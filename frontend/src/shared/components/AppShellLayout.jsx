@@ -1,7 +1,9 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
-import { DEMO_JOIN_CODE } from '@/shared/data/seedData';
+import { JoinCode } from '@/features/groups/JoinCode';
+import { schoolYearToDisplay, sortGroups } from '@/features/groups/groups.logic';
+import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { initialsOf } from '@/shared/state/session';
@@ -22,6 +24,120 @@ const DIRECCION_NAV = [
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
 ];
 
+/** Vistas que todavía usan datos locales del prototipo. */
+const SAMPLE_DATA_PATHS = ['/docente/mapa', '/docente/perfil', '/docente/temario', '/docente/hoja', '/docente/pistas', '/docente/captura'];
+
+const headerChip = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  minHeight: '44px',
+  padding: '6px 12px',
+  borderRadius: '999px',
+  background: COLORS.bg,
+  fontSize: '15px',
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  maxWidth: '100%',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+};
+
+/** Grupo activo en el encabezado: selector con 2+, texto con 1, `Sin grupo` con 0. */
+function ActiveGroupSwitcher() {
+  const navigate = useNavigate();
+  const { status, groups, activeGroup, setActiveGroupId } = useTeacherGroups();
+
+  if (status === 'loading' && !groups.length) {
+    return <div style={{ ...headerChip, color: COLORS.muted, fontWeight: 400 }}>Cargando grupo…</div>;
+  }
+  if (!groups.length) {
+    if (status === 'error') return <div style={{ ...headerChip, color: COLORS.muted, fontWeight: 400 }}>Grupo no disponible</div>;
+    return (
+      <button
+        type="button"
+        onClick={() => navigate('/docente/grupos/nuevo')}
+        style={{ ...headerChip, border: `1px dashed ${COLORS.borderDashed}`, cursor: 'pointer', color: COLORS.primaryText }}
+      >
+        Sin grupo · Crear grupo
+      </button>
+    );
+  }
+  const year = schoolYearToDisplay(activeGroup.schoolYear);
+  if (groups.length === 1) {
+    return (
+      <div style={headerChip}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {activeGroup.name} <span style={{ fontWeight: 400, color: COLORS.muted }}>· Ciclo {year}</span>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <select
+      value={activeGroup.id}
+      onChange={(e) => setActiveGroupId(e.target.value)}
+      aria-label={`Grupo activo: ${activeGroup.name}, ciclo ${year}. Cambiar grupo`}
+      style={{
+        ...headerChip,
+        display: 'block',
+        border: `1px solid ${COLORS.borderInput}`,
+        paddingRight: '28px',
+        cursor: 'pointer',
+        width: 'auto',
+      }}
+    >
+      {sortGroups(groups).map((g) => (
+        <option key={g.id} value={g.id}>
+          {g.name} · Ciclo {schoolYearToDisplay(g.schoolYear)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Código del grupo activo en la barra lateral. */
+function SidebarJoinCode() {
+  const navigate = useNavigate();
+  const { status, activeGroup } = useTeacherGroups();
+  return (
+    <div
+      style={{
+        padding: '14px',
+        borderRadius: '16px',
+        background: COLORS.bg,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+      }}
+    >
+      <div style={{ fontSize: '13px', color: COLORS.muted }}>Código para tus alumnos</div>
+      {activeGroup ? (
+        <>
+          <JoinCode code={activeGroup.joinCode} size={28} buttonHeight={44} label={`Código de ${activeGroup.name}`} />
+          <div style={{ fontSize: '13px', color: COLORS.muted }}>Código de {activeGroup.name}</div>
+        </>
+      ) : status === 'loading' ? (
+        <div className="font-display" aria-label="Cargando código" style={{ fontWeight: 800, fontSize: '28px' }}>
+          —
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: '14px', lineHeight: 1.4 }}>Crea un grupo para obtener su código.</div>
+          <button
+            type="button"
+            onClick={() => navigate('/docente/grupos/nuevo')}
+            style={{ alignSelf: 'flex-start', minHeight: '44px', border: 0, background: 'none', padding: 0, fontSize: '15px', fontWeight: 700, color: COLORS.primaryText, cursor: 'pointer' }}
+          >
+            Crear grupo
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * Contenedor principal para las vistas de Docente y Dirección.
  * Replica la barra lateral en escritorio y navegación inferior en móvil.
@@ -39,8 +155,7 @@ export function AppShellLayout() {
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
-  const topA = isDir ? 'Dirección' : '3.º A';
-  const topB = isDir ? '· Esc. Prim. Benito Juárez' : '· Ciclo 2026–2027';
+  const isSampleView = SAMPLE_DATA_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const userName = session?.user?.fullName ?? '';
   const userIni = initialsOf(userName);
 
@@ -101,29 +216,7 @@ export function AppShellLayout() {
           </nav>
 
           <div style={{ marginTop: 'auto' }}>
-            {!isDir && (
-              <div
-                style={{
-                  padding: '14px',
-                  borderRadius: '16px',
-                  background: COLORS.bg,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ fontSize: '12px', color: COLORS.muted }}>Código para tus alumnos</div>
-                <div
-                  className="font-display"
-                  style={{ fontWeight: 800, fontSize: '24px', lineHeight: 1.1, letterSpacing: '.06em' }}
-                >
-                  {DEMO_JOIN_CODE}
-                </div>
-                <div style={{ fontSize: '12px', color: COLORS.muted }}>
-                  Entran sin correo: código + su nombre.
-                </div>
-              </div>
-            )}
+            {!isDir && <SidebarJoinCode />}
 
             <button
               type="button"
@@ -181,23 +274,15 @@ export function AppShellLayout() {
           }}
         >
           {narrow && <Mascot size={36} />}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 12px',
-              borderRadius: '999px',
-              background: COLORS.bg,
-              fontSize: '14px',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-              overflow: 'hidden',
-            }}
-          >
-            {topA}
-            <span style={{ fontWeight: 400, color: COLORS.muted }}>{topB}</span>
+          <div style={{ minWidth: 0, flex: '0 1 auto', display: 'flex' }}>
+            {isDir ? (
+              <div style={headerChip}>
+                Dirección
+                <span style={{ fontWeight: 400, color: COLORS.muted }}>· Esc. Prim. Benito Juárez</span>
+              </div>
+            ) : (
+              <ActiveGroupSwitcher />
+            )}
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -248,6 +333,23 @@ export function AppShellLayout() {
               padding: wide ? '28px 32px 56px' : '18px 14px 32px',
             }}
           >
+            {isSampleView && (
+              <div
+                style={{
+                  display: 'inline-block',
+                  marginBottom: '14px',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.surface,
+                  color: COLORS.muted,
+                  fontSize: '13px',
+                  fontWeight: 700,
+                }}
+              >
+                Vista con datos de ejemplo
+              </div>
+            )}
             <Outlet />
           </div>
         </main>

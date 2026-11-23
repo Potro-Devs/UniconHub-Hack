@@ -4,6 +4,8 @@ import { ContentDetailScreen } from '@/features/curriculum/ContentDetailScreen';
 import { CurriculumScreen } from '@/features/curriculum/CurriculumScreen';
 import { GroupMapScreen } from '@/features/group-map/GroupMapScreen';
 import { CreateGroupScreen } from '@/features/groups/CreateGroupScreen';
+import { GroupDetailScreen } from '@/features/groups/GroupDetailScreen';
+import { TeacherGroupsProvider } from '@/features/groups/TeacherGroupsContext';
 import { HintCardsScreen } from '@/features/paper-mode/HintCardsScreen';
 import { PrintSheetScreen } from '@/features/paper-mode/PrintSheetScreen';
 import { QuickCaptureScreen } from '@/features/paper-mode/QuickCaptureScreen';
@@ -43,12 +45,15 @@ export function App() {
             <Route
               element={
                 <RequireRole roles={STAFF_ROLES} redirectTo="/login">
-                  <AppShellLayout />
+                  <TeacherGroupsProvider>
+                    <AppShellLayout />
+                  </TeacherGroupsProvider>
                 </RequireRole>
               }
             >
               <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
               <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
+              <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
               <Route path="/docente/mapa" element={<GroupMapScreen />} />
               <Route path="/docente/perfil" element={<StudentProfileScreen />} />
               <Route path="/docente/perfil/:studentIdx" element={<StudentProfileScreen />} />

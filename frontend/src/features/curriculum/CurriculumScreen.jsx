@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { COLORS, LEVELS, getLevelIndex } from '@/config/brand';
+import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
+import { formatJoinCode } from '@/features/groups/groups.logic';
 import { CURRICULUM_CONTENTS, DEMO_JOIN_CODE, STUDENTS } from '@/shared/data/seedData';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { mean, useAppUi } from '@/shared/state/AppUiContext';
@@ -36,6 +38,7 @@ export function CurriculumScreen() {
     needSupportStudents,
     say,
   } = useAppUi();
+  const { activeGroup } = useTeacherGroups();
 
   const stCount = {
     visto: CURRICULUM_CONTENTS.filter((c) => statusOf(c) === 'visto').length,
@@ -58,7 +61,7 @@ export function CurriculumScreen() {
       say('Prueba asignada. Imprime las hojas para tu grupo.');
       navigate('/docente/hoja');
     } else {
-      say(`Prueba asignada. Tus alumnos la verán al entrar con el código ${DEMO_JOIN_CODE}.`);
+      say(`Prueba asignada. Tus alumnos la verán al entrar con el código ${formatJoinCode(activeGroup?.joinCode ?? DEMO_JOIN_CODE)}.`);
     }
   };
 

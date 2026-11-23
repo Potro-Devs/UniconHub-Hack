@@ -23,6 +23,17 @@ export const COLORS = {
   celebrationFg: '#18203A',
   lilacSoftBg: '#F3E8FF',
   lilacSoftFg: '#581C87',
+  surface: '#FFFFFF',
+  onPrimary: '#FFFFFF',
+  focusRing: 'oklch(0.5 0.2 268)',
+  borderDashed: '#C3CCDD',
+  skeleton: '#E6EBF3',
+  alertBg: 'oklch(0.95 0.04 25)',
+  alertFg: 'oklch(0.4 0.13 25)',
+  alertBorder: 'oklch(0.8 0.08 25)',
+  successFg: 'oklch(0.36 0.1 165)',
+  noticeBg: 'oklch(0.96 0.05 90)',
+  noticeFg: 'oklch(0.38 0.08 75)',
 };
 
 export const LEVELS = [
