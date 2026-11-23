@@ -7,6 +7,13 @@ import {
   findHintsRevealingAnswer,
   validateQuestion,
   validateQuestionsPerSkill,
+  assertQuestionsForGrade,
+  assertStudentsInGroup,
+  countTargetsByStatus,
+  orderQuestionsByIds,
+  orderQuestionsBySkills,
+  parseAssignmentInput,
+  parseQuestionFilters,
 } from '../../src/modules/assessments/assessments.domain.js';
 import { DomainError } from '../../src/shared/errors/DomainError.js';
 
@@ -109,5 +116,64 @@ describe('validateQuestion', () => {
     const q = valid();
     q.hints[2] = 'Es 1/4.';
     assert.ok(validateQuestion(q).includes('HINT_REVEALS_ANSWER'));
+  });
+});
+
+const code = (fn) => {
+  try {
+    fn();
+  } catch (error) {
+    return error.code;
+  }
+  return null;
+};
+
+describe('entradas de assessments', () => {
+  test('parseQuestionFilters: opcionales, grado 1–6 y habilidad conocida', () => {
+    assert.deepEqual(parseQuestionFilters({}), { grade: null, skill: null });
+    assert.deepEqual(parseQuestionFilters({ grade: '3', skill: 'fractions' }), { grade: 3, skill: 'fractions' });
+    for (const query of [{ grade: '0' }, { grade: '7' }, { grade: ['3'] }, { skill: 'geometry' }]) {
+      assert.equal(code(() => parseQuestionFilters(query)), 'VALIDATION_ERROR');
+    }
+  });
+
+  test('parseAssignmentInput: exactamente una forma de elegir reactivos', () => {
+    const base = { title: '  Prueba   uno ', modality: 'paper' };
+    assert.deepEqual(parseAssignmentInput({ ...base, skills: ['fractions'] }), {
+      title: 'Prueba uno', modality: 'paper', questionIds: null, skills: ['fractions'], studentIds: null,
+    });
+    assert.equal(code(() => parseAssignmentInput({ ...base, skills: ['fractions'], questionIds: [1, 2, 3] })), 'VALIDATION_ERROR');
+    assert.equal(code(() => parseAssignmentInput(base)), 'VALIDATION_ERROR');
+    assert.equal(code(() => parseAssignmentInput({ ...base, questionIds: [1, 1, 2] })), 'VALIDATION_ERROR');
+    assert.equal(code(() => parseAssignmentInput({ ...base, questionIds: ['1'] })), 'VALIDATION_ERROR');
+    assert.equal(code(() => parseAssignmentInput({ ...base, modality: 'online', skills: ['fractions'] })), 'VALIDATION_ERROR');
+    assert.equal(code(() => parseAssignmentInput(null)), 'VALIDATION_ERROR');
+  });
+
+  test('assertQuestionsForGrade separa inexistentes y de otro grado', () => {
+    assert.doesNotThrow(() => assertQuestionsForGrade([1, 2], [{ id: 1, grade: 3 }, { id: 2, grade: 3 }], 3));
+    try {
+      assertQuestionsForGrade([1, 2, 3], [{ id: 1, grade: 3 }, { id: 2, grade: 4 }], 3);
+      assert.fail('debió lanzar');
+    } catch (error) {
+      assert.deepEqual(error.details, { unknownQuestionIds: [3], wrongGradeQuestionIds: [2] });
+    }
+  });
+
+  test('orden de reactivos: por ids pedidos o por habilidad y luego id', () => {
+    const qs = [{ id: 5, skill: 'fractions' }, { id: 2, skill: 'place_value' }, { id: 3, skill: 'fractions' }];
+    assert.deepEqual(orderQuestionsByIds(qs, [3, 5, 2]).map((q) => q.id), [3, 5, 2]);
+    assert.deepEqual(orderQuestionsBySkills(qs, ['place_value', 'fractions']).map((q) => q.id), [2, 3, 5]);
+  });
+
+  test('assertStudentsInGroup reporta los ids que no están activos', () => {
+    assert.doesNotThrow(() => assertStudentsInGroup([1, 2], [2, 1]));
+    assert.equal(code(() => assertStudentsInGroup([1, 9], [1])), 'VALIDATION_ERROR');
+  });
+
+  test('countTargetsByStatus incluye todos los estados y el total', () => {
+    assert.deepEqual(countTargetsByStatus([{ status: 'pending', count: 3 }, { status: 'completed_paper', count: 2 }]), {
+      total: 5, pending: 3, in_progress: 0, completed_screen: 0, completed_paper: 2,
+    });
   });
 });

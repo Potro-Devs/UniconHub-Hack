@@ -1,6 +1,6 @@
 # Contrato de API REST (`/api/v1`)
 
-> Estado: **Health**, **Auth** y **Groups** implementados. El resto de los módulos está planificado.
+> Estado: **Health**, **Auth**, **Groups** y **Assessments** implementados. El resto de los módulos está planificado.
 
 Todas las respuestas siguen el formato estándar:
 - Éxito: `{ "data": ..., "meta": ... }`
@@ -13,7 +13,7 @@ Todas las respuestas siguen el formato estándar:
 | 400 | `VALIDATION_ERROR`, `INVALID_JSON` | Cuerpo incompleto, con formato inválido o JSON mal formado |
 | 401 | `AUTH_REQUIRED`, `INVALID_TOKEN`, `TOKEN_EXPIRED`, `SESSION_INVALID` | Falta el token, es inválido o expiró, o el usuario ya no existe |
 | 403 | `FORBIDDEN` | El rol de la sesión no puede usar el endpoint |
-| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
+| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND`, `ASSIGNMENT_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
 | 409 | `SCREEN_LOCKED`, `ALREADY_COMPLETED`, `GROUP_ALREADY_EXISTS`, `GROUP_HAS_HISTORY` | Prueba bloqueada en pantalla (papel) o ya terminada; grupo duplicado; cambio de grado/ciclo en un grupo con historial |
 | 422 | Otros códigos de `DomainError` | Regla de negocio incumplida (p. ej. `INSUFFICIENT_QUESTIONS_PER_SKILL`) |
 | 429 | `TOO_MANY_ATTEMPTS` | Demasiados intentos de login o de acceso de alumno (`details.retryAfterSeconds`) |
@@ -79,13 +79,41 @@ Todos los endpoints exigen sesión.
 - **Crear grupo:** si el usuario de la sesión ya no existe, dejó de ser `teacher` o cambió de escuela → 401 `SESSION_INVALID`.
 - El `joinCode` (6 caracteres, sin 0/O/1/I/L) se genera al crear y no cambia al editar.
 
+## Assessments (`/api/v1/assessments`)
+
+Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo**: estas respuestas incluyen la opción correcta y los errores típicos; el portal del alumno usa `diagnostics`.
+
+| Método y ruta | Roles | Cuerpo / query | Respuesta `data` | Errores |
+| --- | --- | --- | --- | --- |
+| `GET /questions` | teacher, director | `?grade=1..6&skill=<código>` (ambos opcionales) | `[Question]` · `meta: { count }` | 400, 401, 403 |
+| `GET /groups/:groupId/assignments` | teacher, director | — | `[AssignmentSummary]` (más recientes primero) · `meta: { count }` | 400, 401, 403, 404 `GROUP_NOT_FOUND` |
+| `POST /groups/:groupId/assignments` | teacher | `{ title, modality, questionIds \| skills, studentIds? }` | `AssignmentDetail` (201) | 400, 401, 403, 404, 422 `INSUFFICIENT_QUESTIONS_PER_SKILL` / `EMPTY_ASSESSMENT` / `NO_ACTIVE_STUDENTS` |
+| `GET /assignments/:assignmentId` | teacher, director | — | `AssignmentDetail` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` |
+
+- `Question`: `{ id, grade, skill: { code, name }, contentId, stem, difficulty, hints: [h1, h2, h3], options: [{ label, text, isCorrect, errorTag, errorExplanation }] }`. La opción correcta tiene `errorTag` y `errorExplanation` en `null`. Orden: grado, habilidad, id.
+- Códigos de habilidad: `fractions`, `multiplication`, `place_value`, `problem_solving`, `reading_comprehension`.
+- `AssignmentSummary`: `{ id, groupId, title, modality, status, createdAt, questionCount, skills: [{ code, name, questionCount }], targetCounts: { total, pending, in_progress, completed_screen, completed_paper } }`. `skills` va en el orden en que aparece cada habilidad en la prueba. `createdAt` es el texto UTC de SQLite (`AAAA-MM-DD HH:MM:SS`).
+- `AssignmentDetail`: `AssignmentSummary` + `questions: [{ position, ...Question }]` (en orden `position` 1..n) + `targets: [{ studentId, status, isScreenLocked }]` (sin nombres ni `internal_folio`; el frontend cruza `studentId` con `GET /groups/:groupId/students`).
+- **Autorización:** igual que `groups`. Docente: solo sus grupos y las asignaciones de esos grupos. Director: solo lectura de su escuela; `POST` → 403. Grupo o asignación inexistente **o ajeno** → 404 con el mismo cuerpo. En `POST`, el 404 del grupo se responde antes de validar el cuerpo.
+- **Crear asignación** (`POST`):
+  - `title`: texto de 1 a 120 caracteres (se recortan y compactan espacios).
+  - `modality`: `screen` o `paper`.
+  - **Exactamente una** forma de elegir reactivos; ambas o ninguna → 400:
+    - `questionIds`: arreglo de 1 a 40 enteros positivos (números, no texto), sin repetidos. Se respeta el orden enviado. Todos deben existir y ser del grado del grupo; si no → 400 con `details: { unknownQuestionIds, wrongGradeQuestionIds }`.
+    - `skills`: arreglo de códigos sin repetidos. Toma **todos** los reactivos del grado del grupo de esas habilidades, en el orden de `skills` enviado y, dentro de cada una, por id ascendente.
+  - `studentIds` (opcional): arreglo de 1 a 100 enteros positivos sin repetidos. Si falta, se asigna a **todos los alumnos activos** del grupo. Si alguno no está activo en el grupo (no existe, dado de baja o de otro grupo) → 400 `VALIDATION_ERROR` con `details.invalidStudentIds` (misma respuesta en los tres casos).
+  - **Regla de 3 por habilidad (AGENTS.md §4.1):** si alguna habilidad incluida queda con 1 o 2 reactivos → 422 `INSUFFICIENT_QUESTIONS_PER_SKILL` con `details.insufficient: [{ skill, count, missing }]`. Sin reactivos → 422 `EMPTY_ASSESSMENT`. Máximo 40 reactivos por prueba (400).
+  - Grupo sin alumnos activos → 422 `NO_ACTIVE_STUDENTS`.
+  - Crea `assignments` (`status = 'active'`), `assignment_questions` (`position` 1..n) y `assignment_targets` en **una sola transacción**: si algo falla, no queda nada.
+  - Destinatarios: todos `pending`. En `paper` quedan con `isScreenLocked: true` desde el inicio (AGENTS.md §4.9); en `screen`, sin bloqueo.
+
 ## Módulos
 
 - **Health:** `GET /api/v1/health`
 - **Auth (`/api/v1/auth`):** ver la sección anterior.
 - **Groups (`/api/v1/groups`):** ver la sección anterior.
 - **Curriculum (`/api/v1/curriculum`):** `GET /groups/:groupId`, `PATCH /groups/:groupId/contents/:contentId`, `GET /groups/:groupId/coverage`
-- **Assessments (`/api/v1/assessments`):** `GET /questions`, `GET /groups/:groupId/assignments`, `POST /groups/:groupId/assignments`
+- **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** `GET /students/:studentId/assignments`, `GET /assignments/:assignmentId/start`, `POST /assignments/:assignmentId/answer`, `POST /assignments/:assignmentId/complete`
 - **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId/map`, `GET /students/:studentId/profile`
