@@ -8,8 +8,8 @@
  * Un grupo o asignación inexistente o ajeno responde 404 (no se revela qué ids existen).
  */
 import { HttpError } from '../../shared/errors/HttpError.js';
-import { ROLES } from '../auth/auth.domain.js';
 import { initialTargetState } from '../diagnostics/diagnostics.domain.js';
+import { createGroupAccess } from '../groups/groups.access.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import {
   assertHasTargets,
@@ -27,7 +27,6 @@ import {
   toTargetDto,
 } from './assessments.domain.js';
 
-const GROUP_NOT_FOUND = () => new HttpError(404, 'GROUP_NOT_FOUND', 'No encontramos ese grupo.');
 const ASSIGNMENT_NOT_FOUND = () => new HttpError(404, 'ASSIGNMENT_NOT_FOUND', 'No encontramos esa prueba.');
 
 /** Agrupa filas por una llave (`Map<key, rows[]>`). */
@@ -49,24 +48,8 @@ function groupBy(rows, key) {
  * }} deps
  */
 export function createAssessmentsService({ repository, groupsRepository, transaction }) {
-  /** Misma regla que `groups`: director → su escuela; docente → solo sus grupos. */
-  const findReadableGroupById = (auth, id) =>
-    auth.role === ROLES.DIRECTOR
-      ? groupsRepository.findGroupOfSchool(id, auth.schoolId)
-      : groupsRepository.findGroupOfTeacher(id, Number(auth.sub), auth.schoolId);
-
-  const findReadableGroup = (auth, groupId) => {
-    const group = findReadableGroupById(auth, parsePositiveId(groupId, 'id del grupo'));
-    if (!group) throw GROUP_NOT_FOUND();
-    return group;
-  };
-
-  const findOwnGroup = (auth, groupId) => {
-    const id = parsePositiveId(groupId, 'id del grupo');
-    const group = groupsRepository.findGroupOfTeacher(id, Number(auth.sub), auth.schoolId);
-    if (!group) throw GROUP_NOT_FOUND();
-    return group;
-  };
+  // Regla de acceso a grupos: única fuente en `groups.access.js`.
+  const { findReadableGroupById, findReadableGroup, findOwnGroup } = createGroupAccess(groupsRepository);
 
   const withOptions = (questionRows, optionRows) => {
     const options = groupBy(optionRows, 'question_id');
