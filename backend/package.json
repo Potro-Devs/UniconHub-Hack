@@ -5,11 +5,12 @@
   "type": "module",
   "description": "API REST modular para diagnóstico educativo Axi",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js",
     "test": "node --test"
   },

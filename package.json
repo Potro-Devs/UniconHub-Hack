@@ -9,6 +9,7 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:frontend": "npm --prefix frontend run build",
+    "migrate": "npm --prefix backend run migrate",
     "seed": "npm --prefix backend run seed",
     "test": "npm --prefix backend test"
   }
