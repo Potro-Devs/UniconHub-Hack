@@ -1,4 +1,4 @@
-import { COLORS } from '@/config/brand';
+import { COLORS, LEVELS, getLevelIndex } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { CelebrationConfetti } from './CelebrationConfetti';
@@ -6,9 +6,20 @@ import { CelebrationConfetti } from './CelebrationConfetti';
 /**
  * Pantalla 08: Celebración de subida de nivel con control de movimiento y salto.
  */
-export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
+export function LevelUpOverlay({
+  axiColor,
+  skip,
+  onSkip,
+  onContinue,
+  skillName = 'Fracciones',
+  fromPct = 44,
+  toPct = 58,
+  note = 'Ya reconoces cuántas partes forman un entero.',
+}) {
   const reducedMotion = useReducedMotion();
   const motion = !reducedMotion && !skip;
+  const fromLvl = LEVELS[getLevelIndex(fromPct)];
+  const toLvl = LEVELS[getLevelIndex(toPct)];
 
   return (
     <div
@@ -87,15 +98,17 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
             color: COLORS.primaryText,
           }}
         >
-          Subiste de nivel
+          {toPct > fromPct ? 'Subiste tu dominio' : 'Cuestionario completado'}
         </div>
 
-        <div className="font-display" style={{ fontWeight: 800, fontSize: '32px', lineHeight: 1.1 }}>
-          ¡Subiste en Fracciones!
+        <div className="font-display" style={{ fontWeight: 800, fontSize: '30px', lineHeight: 1.1 }}>
+          {toPct > fromPct ? `¡Avanzaste en ${skillName}!` : `¡Bien hecho en ${skillName}!`}
         </div>
 
         <div style={{ fontSize: '18px', lineHeight: 1.35 }}>
-          Ya reconoces cuántas partes forman un entero.
+          {toPct > fromPct
+            ? note
+            : 'Completaste tus ejercicios. Usar pistas cuando lo necesitas también consolida tu aprendizaje.'}
         </div>
 
         <div
@@ -114,22 +127,22 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
             style={{
               padding: '6px 12px',
               borderRadius: '999px',
-              background: 'oklch(0.94 0.08 90)',
-              color: 'oklch(0.4 0.09 75)',
+              background: fromLvl.bg,
+              color: fromLvl.fg,
             }}
           >
-            En proceso · 44%
+            {fromLvl.label} · {fromPct}%
           </span>
           <span>→</span>
           <span
             style={{
               padding: '6px 12px',
               borderRadius: '999px',
-              background: 'oklch(0.91 0.07 165)',
-              color: 'oklch(0.38 0.1 165)',
+              background: toLvl.bg,
+              color: toLvl.fg,
             }}
           >
-            Logrado · 58%
+            {toLvl.label} · {toPct}%
           </span>
         </div>
 
@@ -137,9 +150,9 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
           <div
             style={{
               height: '100%',
-              width: '58%',
+              width: `${toPct}%`,
               borderRadius: '999px',
-              background: 'oklch(0.68 0.14 165)',
+              background: toLvl.solid,
               animation: motion ? 'grow 1s ease-out .6s both' : 'none',
             }}
           />

@@ -8,7 +8,9 @@ export const COLORS = {
   ink: '#18203A',
   muted: '#4A5573',
   mutedLight: '#8A93AB',
+  subtle: '#64748B',
   bg: '#F3F6FB',
+  surfaceSubtle: '#F8FAFC',
   border: '#DDE3EE',
   borderInput: '#C9D1E0',
   primary: 'oklch(0.5 0.2 268)',
@@ -17,6 +19,10 @@ export const COLORS = {
   primarySoftBg: 'oklch(0.95 0.035 268)',
   primarySoftFg: 'oklch(0.42 0.2 268)',
   primaryAccent: 'oklch(0.54 0.2 268)',
+  celebrationBg: '#FACC15',
+  celebrationFg: '#18203A',
+  lilacSoftBg: '#F3E8FF',
+  lilacSoftFg: '#581C87',
 };
 
 export const LEVELS = [
@@ -68,11 +74,13 @@ export const STUDENT_AVATAR_HUES = [
 /**
  * Índice de nivel según la escala de intervalos estrictos de 25% (AGENTS.md §4.3):
  * 0–24.99 Necesita apoyo · 25–49.99 En proceso · 50–74.99 Logrado · 75–100 Dominado.
+ * Temporal para vistas con datos semilla; la fuente de verdad es el backend (`analytics.domain.js`).
  */
 export const getLevelIndex = (pct) => {
-  if (pct < LEVELS[1].min) return 0;
-  if (pct < LEVELS[2].min) return 1;
-  if (pct < LEVELS[3].min) return 2;
+  const rounded = Math.round(pct * 100) / 100;
+  if (rounded < LEVELS[1].min) return 0;
+  if (rounded < LEVELS[2].min) return 1;
+  if (rounded < LEVELS[3].min) return 2;
   return 3;
 };
 

@@ -1,10 +1,15 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getLevelIndex } from '@/config/brand';
 import {
+  classifyQuizAnswer,
+  summarizeQuizAnswers,
+} from '@/features/student-portal/studentPortalStats';
+import {
   CURRICULUM_CONTENTS,
   FRACTION_SHEET,
   SKILLS,
   STUDENTS,
+  STUDENT_QUIZZES,
 } from '@/shared/data/seedData';
 
 const AppUiContext = createContext(null);
@@ -40,6 +45,10 @@ export function AppUiProvider({ children }) {
   const [joinCode, setJoinCode] = useState('');
   const [joinRoster, setJoinRoster] = useState(null);
   const [stuIdx, setStuIdx] = useState(0);
+  const [activeQuizId, setActiveQuizId] = useState('fractions-1');
+  const [completedQuizzes, setCompletedQuizzes] = useState({});
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const quizAnswersRef = useRef({});
   const [exIdx, setExIdx] = useState(0);
   const [fb, setFb] = useState(null);
   const [tried, setTried] = useState([]);
@@ -149,8 +158,62 @@ export function AppUiProvider({ children }) {
     );
   };
 
+  const startStudentQuiz = (quizId) => {
+    const quiz = STUDENT_QUIZZES.find((q) => q.id === quizId);
+    if (!quiz || quiz.status === 'completed_paper' || quiz.isScreenLocked) {
+      say('Esta prueba ya se respondió en hoja impresa con tu maestra.');
+      return false;
+    }
+    setActiveQuizId(quiz.id);
+    quizAnswersRef.current = {};
+    setQuizAnswers({});
+    setExIdx(0);
+    setFb(null);
+    setTried([]);
+    setHint(0);
+    setHintsUsed(0);
+    setOverlay(null);
+    setSkip(false);
+    return true;
+  };
+
+  const recordQuizAnswer = (questionIdx, { isCorrect, maxHintUsed = 0, errorTag = null }) => {
+    const prevEntry = quizAnswersRef.current[questionIdx];
+    const nextEntry = prevEntry
+      ? {
+          ...prevEntry,
+          maxHintUsed: Math.max(prevEntry.maxHintUsed, maxHintUsed),
+        }
+      : classifyQuizAnswer({ isCorrect, maxHintUsed, errorTag });
+    const next = {
+      ...quizAnswersRef.current,
+      [questionIdx]: nextEntry,
+    };
+    quizAnswersRef.current = next;
+    setQuizAnswers(next);
+  };
+
+  const completeActiveQuiz = () => {
+    const quiz = STUDENT_QUIZZES.find((q) => q.id === activeQuizId) ?? STUDENT_QUIZZES[0];
+    const totalCount = quiz.exercises?.length ?? 0;
+    const summary = summarizeQuizAnswers(quizAnswersRef.current, totalCount);
+    const result = {
+      quizId: quiz.id,
+      skillId: quiz.skillId,
+      title: quiz.title,
+      ...summary,
+      completedAt: 'Completado hoy',
+    };
+    setCompletedQuizzes((prev) => ({ ...prev, [quiz.id]: result }));
+    return result;
+  };
+
   const resetStudentSession = (nextStuIdx = stuIdx) => {
     setStuIdx(nextStuIdx);
+    setActiveQuizId('fractions-1');
+    setCompletedQuizzes({});
+    quizAnswersRef.current = {};
+    setQuizAnswers({});
     setExIdx(0);
     setFb(null);
     setTried([]);
@@ -196,6 +259,13 @@ export function AppUiProvider({ children }) {
     setJoinRoster,
     stuIdx,
     setStuIdx,
+    activeQuizId,
+    setActiveQuizId,
+    completedQuizzes,
+    quizAnswers,
+    startStudentQuiz,
+    recordQuizAnswer,
+    completeActiveQuiz,
     exIdx,
     setExIdx,
     fb,

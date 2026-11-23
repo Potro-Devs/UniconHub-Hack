@@ -122,7 +122,7 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
             boxShadow: '0 5px 0 oklch(0.32 0.15 268)',
           }}
         >
-          Ver mis sellos
+          Ver mis logros
         </button>
       </div>
     </div>
