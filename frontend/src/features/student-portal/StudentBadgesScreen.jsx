@@ -25,7 +25,7 @@ export function StudentBadgesScreen() {
   const stu = STUDENTS[stuIdx ?? 0];
 
   const badges = SKILLS.map((k) => {
-    const v = k.id === 'fr' ? 72 : k.id === 'sr' ? 88 : stu.sc[k.id];
+    const v = k.id === 'fractions' ? 58 : k.id === 'problem_solving' ? 88 : stu.sc[k.id];
     const kk = getLevelIndex(v);
     return {
       id: k.id,

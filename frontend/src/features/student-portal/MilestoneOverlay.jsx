@@ -82,7 +82,7 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
         </div>
 
         <div className="font-display" style={{ fontWeight: 800, fontSize: '40px', lineHeight: 1.05 }}>
-          ¡Dominaste Suma y resta!
+          ¡Dominaste Resolución de problemas!
         </div>
 
         <div style={{ fontSize: '19px', lineHeight: 1.4, maxWidth: '32ch' }}>

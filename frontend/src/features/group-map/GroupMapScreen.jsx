@@ -48,13 +48,13 @@ export function GroupMapScreen() {
 
   const skCols = SKILLS.map((k) => ({
     name: k.name,
-    isFr: k.id === 'fr',
+    isFr: k.id === 'fractions',
     get: (st) => scoreOf(st, k.id),
   }));
 
   const ctCols = CURRICULUM_CONTENTS.slice(0, 5).map((c) => ({
     name: c.short,
-    isFr: c.sk.includes('fr'),
+    isFr: c.sk.includes('fractions'),
     get: (st) => contentScoreOf(st, c),
   }));
 
@@ -108,7 +108,7 @@ export function GroupMapScreen() {
   const errTxt = act.err;
   const aiSummary = `En ${weak.name}, ${needN} de 45 alumnos necesitan apoyo (promedio del grupo: ${weak.avg}%). El error más frecuente: ${
     errTxt.charAt(0).toLowerCase() + errTxt.slice(1)
-  } Desde septiembre el grupo subió 9 puntos en Suma y resta. Antes de la siguiente aplicación, prueba “${
+  } Desde septiembre el grupo subió 9 puntos en Resolución de problemas. Antes de la siguiente aplicación, prueba “${
     act.t
   }” con esos ${needN} alumnos.`;
 

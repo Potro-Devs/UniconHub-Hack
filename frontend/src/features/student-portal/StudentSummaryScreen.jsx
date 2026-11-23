@@ -34,8 +34,8 @@ export function StudentSummaryScreen() {
   };
 
   const stuProg = [
-    makeProgRow('Fracciones', 58, 72, 'Subiste de nivel hoy.'),
-    ...['sr', 'vp'].map((id) => {
+    makeProgRow('Fracciones', 44, 58, 'Subiste de nivel hoy.'),
+    ...['problem_solving', 'place_value'].map((id) => {
       const skill = SKILLS.find((x) => x.id === id);
       const a = stu.prev[id];
       const b = stu.sc[id];
