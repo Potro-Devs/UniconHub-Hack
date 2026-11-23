@@ -8,7 +8,9 @@ export const COLORS = {
   ink: '#18203A',
   muted: '#4A5573',
   mutedLight: '#8A93AB',
+  subtle: '#64748B',
   bg: '#F3F6FB',
+  surfaceSubtle: '#F8FAFC',
   border: '#DDE3EE',
   borderInput: '#C9D1E0',
   primary: 'oklch(0.5 0.2 268)',
@@ -17,6 +19,10 @@ export const COLORS = {
   primarySoftBg: 'oklch(0.95 0.035 268)',
   primarySoftFg: 'oklch(0.42 0.2 268)',
   primaryAccent: 'oklch(0.54 0.2 268)',
+  celebrationBg: '#FACC15',
+  celebrationFg: '#18203A',
+  lilacSoftBg: '#F3E8FF',
+  lilacSoftFg: '#581C87',
 };
 
 export const LEVELS = [

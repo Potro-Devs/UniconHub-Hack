@@ -88,7 +88,7 @@ describe('navegación', () => {
     assert.equal(homePathFor(null), '/login');
     assert.equal(homePathFor(toSession(teacherData)), '/docente/grupos');
     assert.equal(homePathFor({ role: 'director' }), '/docente/grupos');
-    assert.equal(homePathFor(toSession(studentData)), '/alumno/ejercicio');
+    assert.equal(homePathFor(toSession(studentData)), '/alumno/inicio');
   });
 
   test('safeReturnPath solo vuelve a rutas del área del rol', () => {
@@ -96,10 +96,11 @@ describe('navegación', () => {
     const student = toSession(studentData);
     assert.equal(safeReturnPath('/docente/mapa', teacher), '/docente/mapa');
     assert.equal(safeReturnPath('/direccion/escuela', teacher), '/direccion/escuela');
-    assert.equal(safeReturnPath('/alumno/sellos', teacher), '/docente/grupos');
-    assert.equal(safeReturnPath('/docente/mapa', student), '/alumno/ejercicio');
+    assert.equal(safeReturnPath('/alumno/logros', teacher), '/docente/grupos');
+    assert.equal(safeReturnPath('/alumno/logros', student), '/alumno/logros');
+    assert.equal(safeReturnPath('/docente/mapa', student), '/alumno/inicio');
     assert.equal(safeReturnPath('https://otro.sitio', teacher), '/docente/grupos');
-    assert.equal(safeReturnPath(undefined, student), '/alumno/ejercicio');
+    assert.equal(safeReturnPath(undefined, student), '/alumno/inicio');
   });
 });
 

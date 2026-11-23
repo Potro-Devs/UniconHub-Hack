@@ -114,9 +114,22 @@ export function StudentLayout() {
             </button>
 
             {showBadgesBtn && (
-              <button type="button" onClick={() => navigate('/alumno/sellos')} style={{ ...pillStyle, background: '#fff' }}>
-                {student.displayName} · sellos
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/alumno/inicio')}
+                  style={{ ...pillStyle, background: '#fff' }}
+                >
+                  ← Inicio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/alumno/logros')}
+                  style={{ ...pillStyle, background: '#fff' }}
+                >
+                  Mis logros
+                </button>
+              </>
             )}
 
             {student && (

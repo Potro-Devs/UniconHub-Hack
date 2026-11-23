@@ -22,7 +22,7 @@ export function StudentCodeScreen() {
   const [pending, setPending] = useState(false);
 
   if (session?.role === 'student') {
-    return <Navigate to="/alumno/ejercicio" replace />;
+    return <Navigate to="/alumno/inicio" replace />;
   }
 
   const onSubmit = async (event) => {
