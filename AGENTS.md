@@ -200,6 +200,7 @@ Subagentes de Claude Code definidos en `.claude/agents/`:
 - **`backend`** — Implementa modelo de datos, reglas de diagnóstico, autenticación, seguridad y seed.
 - **`ui-ux`** — Diseña flujos, accesibilidad y tono para docente y alumno; no escribe código.
 - **`frontend`** — Construye las pantallas responsivas y accesibles con estilos en tokens.
+- **`tester`** — Escribe y corre pruebas automatizadas y verifica los flujos del MVP de punta a punta; solo toca archivos de prueba y reporta los errores sin corregirlos.
 - **`auditor`** — Revisa calidad, seguridad, privacidad, README y apego a este documento; no modifica archivos.
 - **`experto-educacion`** — Evalúa el MVP con una rúbrica pedagógica para el contexto de primarias en México; no modifica archivos.
 
@@ -207,12 +208,14 @@ Subagentes de Claude Code definidos en `.claude/agents/`:
 
 1. **`arquitectura`** define la base técnica y **`backend`** la implementa.
 2. **`ui-ux`** diseña los flujos y **`frontend`** los construye.
-3. **`auditor`** revisa antes de cada integración a `main`.
-4. **`experto-educacion`** evalúa el MVP antes de grabar el video y antes de entregar.
+3. **`tester`** prueba cada funcionalidad terminada; los errores que encuentre los corrige `backend` o `frontend`.
+4. **`auditor`** revisa antes de cada integración a `main`.
+5. **`experto-educacion`** evalúa el MVP antes de grabar el video y antes de entregar.
 
 ## Reglas de uso de subagentes
 
 - Antes de cualquier decisión técnica grande, consulta al agente `arquitectura`.
+- Tras terminar una funcionalidad, pruébala con el agente `tester`.
 - Tras terminar una funcionalidad o antes de un commit importante, pasa por el agente `auditor`.
 - Para pantallas, diseña con `ui-ux` y construye con `frontend`; para datos y lógica, usa `backend`.
 - Antes de grabar el video y antes de entregar, evalúa con `experto-educacion`.
