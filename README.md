@@ -6,7 +6,7 @@ Monorepo del sistema de diagnóstico educativo longitudinal **Axi** (`backend/` 
 
 ## Requisitos previos
 
-- **Node.js `>= 22.5.0`** (requerido por el módulo nativo `node:sqlite` en el backend)
+- **Node.js `>= 22.13.0`** (requerido por el módulo nativo `node:sqlite` del backend sin el flag `--experimental-sqlite`)
 - **npm** (incluido con Node.js)
 
 ---
@@ -54,6 +54,21 @@ Variables incluidas en `.env.example`:
 
 Si no creas `.env`, el backend toma valores por defecto (`PORT=3000` y `CORS_ORIGIN=http://localhost:5173`).
 
+Las rutas relativas de `SQLITE_DB_PATH` se resuelven desde `backend/`, así que por defecto la base queda en `backend/data/axi.db`. La carpeta se crea automáticamente.
+
+---
+
+## Base de datos (SQLite)
+
+El backend usa `node:sqlite` (sin dependencias extra) con `foreign_keys = ON`, `journal_mode = WAL` y `busy_timeout = 5000`.
+
+- Las migraciones viven en `backend/src/db/migrations/*.sql` y se aplican **automáticamente al iniciar el backend**.
+- Para aplicarlas manualmente:
+  ```bash
+  npm run migrate
+  ```
+- Para empezar desde cero, detén el backend y borra `backend/data/axi.db*`.
+
 ---
 
 ## Levantar el sistema en desarrollo
@@ -92,7 +107,7 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** El backend expone por ahora únicamente `GET /api/v1/health` (sin servir estáticos ni endpoints de módulos todavía). La interfaz del frontend funciona de forma autónoma con datos semilla locales en `frontend/src/shared/data/seedData.js`.
+> **Estado actual del sistema:** El backend crea el esquema SQLite al iniciar, pero por ahora solo expone `GET /api/v1/health` (sin servir estáticos ni endpoints de módulos todavía). La interfaz del frontend funciona de forma autónoma con datos semilla locales en `frontend/src/shared/data/seedData.js`.
 
 ---
 
@@ -105,6 +120,10 @@ npm run dev
 - **Previsualizar el build del frontend:**
   ```bash
   npm --prefix frontend run preview
+  ```
+- **Pruebas del backend:**
+  ```bash
+  npm test
   ```
 - **Iniciar backend sin watch:**
   ```bash
