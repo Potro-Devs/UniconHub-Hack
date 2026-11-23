@@ -18,13 +18,54 @@ function resolveDbPath(value) {
   return path.resolve(BACKEND_ROOT, value);
 }
 
+const DEV_JWT_SECRET = 'dev_jwt_secret_change_me';
+const PLACEHOLDER_SECRETS = new Set([DEV_JWT_SECRET, 'change_me']);
+const MIN_PRODUCTION_SECRET_LENGTH = 32;
+
+function parseBoolean(value, fallback) {
+  if (value == null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+}
+
+/**
+ * Construye y valida la configuración. En producción exige un `JWT_SECRET` propio y robusto,
+ * y deja desactivados los accesos rápidos de demo salvo que se activen explícitamente.
+ *
+ * @param {NodeJS.ProcessEnv} source
+ */
+export function loadConfig(source = process.env) {
+  const nodeEnv = source.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
+  const jwtSecret = source.JWT_SECRET || DEV_JWT_SECRET;
+
+  if (isProduction && (PLACEHOLDER_SECRETS.has(jwtSecret) || jwtSecret.length < MIN_PRODUCTION_SECRET_LENGTH)) {
+    throw new Error(
+      `JWT_SECRET debe definirse en producción con al menos ${MIN_PRODUCTION_SECRET_LENGTH} caracteres y no puede ser un valor de ejemplo.`,
+    );
+  }
+
+  return {
+    port: Number(source.PORT || 3000),
+    sqliteDbPath: resolveDbPath(source.SQLITE_DB_PATH || './data/axi.db'),
+    jwtSecret,
+    corsOrigin: source.CORS_ORIGIN || 'http://localhost:5173',
+    nodeEnv,
+    auth: {
+      teacherTokenTtl: source.TEACHER_TOKEN_TTL || '8h',
+      studentTokenTtl: source.STUDENT_TOKEN_TTL || '2h',
+      // Accesos rápidos "Entrar como Docente / Alumno" (solo demo).
+      quickLoginEnabled: parseBoolean(source.ENABLE_QUICK_LOGIN, !isProduction),
+      quickLoginTeacherEmail: source.QUICK_LOGIN_TEACHER_EMAIL || 'docente@axi.demo',
+      // Intentos permitidos por IP en login y acceso de alumno.
+      rateLimit: {
+        windowMs: Number(source.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
+        max: Number(source.AUTH_RATE_LIMIT_MAX || 20),
+      },
+    },
+  };
+}
+
 /**
  * Variables de entorno configuradas para el servidor API.
  */
-export const env = {
-  port: Number(process.env.PORT || 3000),
-  sqliteDbPath: resolveDbPath(process.env.SQLITE_DB_PATH || './data/axi.db'),
-  jwtSecret: process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  nodeEnv: process.env.NODE_ENV || 'development',
-};
+export const env = loadConfig();
