@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { COLORS, LEVELS, getLevelIndex } from '@/config/brand';
-import { CURRICULUM_CONTENTS, STUDENTS } from '@/shared/data/seedData';
+import { CURRICULUM_CONTENTS, DEMO_JOIN_CODE, STUDENTS } from '@/shared/data/seedData';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { mean, useAppUi } from '@/shared/state/AppUiContext';
 
@@ -58,7 +58,7 @@ export function CurriculumScreen() {
       say('Prueba asignada. Imprime las hojas para tu grupo.');
       navigate('/docente/hoja');
     } else {
-      say('Prueba asignada. Tus alumnos la verán al entrar con el código 3A-7K2.');
+      say(`Prueba asignada. Tus alumnos la verán al entrar con el código ${DEMO_JOIN_CODE}.`);
     }
   };
 

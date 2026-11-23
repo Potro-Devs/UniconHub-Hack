@@ -19,49 +19,63 @@ import { StudentSummaryScreen } from '@/features/student-portal/StudentSummarySc
 import { StudentProfileScreen } from '@/features/student-profile/StudentProfileScreen';
 import { TeacherGroupsScreen } from '@/features/teacher-dashboard/TeacherGroupsScreen';
 import { AppShellLayout } from '@/shared/components/AppShellLayout';
+import { RequireRole } from '@/shared/components/RequireRole';
 import { AppUiProvider } from '@/shared/state/AppUiContext';
+import { STAFF_ROLES } from '@/shared/state/session';
+import { SessionProvider } from '@/shared/state/SessionContext';
 
 /**
  * Enrutador modular de Axi que separa cada ventana en su feature correspondiente.
+ * Las vistas de docente/dirección y el área del alumno con sesión están protegidas por rol.
  */
 export function App() {
   return (
-    <AppUiProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginScreen />} />
+    <SessionProvider>
+      <AppUiProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginScreen />} />
 
-          <Route element={<AppShellLayout />}>
-            <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
-            <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
-            <Route path="/docente/mapa" element={<GroupMapScreen />} />
-            <Route path="/docente/perfil" element={<StudentProfileScreen />} />
-            <Route path="/docente/perfil/:studentIdx" element={<StudentProfileScreen />} />
-            <Route path="/docente/temario" element={<CurriculumScreen />} />
-            <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
-            <Route path="/docente/hoja" element={<PrintSheetScreen />} />
-            <Route path="/docente/pistas" element={<HintCardsScreen />} />
-            <Route path="/docente/captura" element={<QuickCaptureScreen />} />
+            <Route
+              element={
+                <RequireRole roles={STAFF_ROLES} redirectTo="/login">
+                  <AppShellLayout />
+                </RequireRole>
+              }
+            >
+              <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
+              <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
+              <Route path="/docente/mapa" element={<GroupMapScreen />} />
+              <Route path="/docente/perfil" element={<StudentProfileScreen />} />
+              <Route path="/docente/perfil/:studentIdx" element={<StudentProfileScreen />} />
+              <Route path="/docente/temario" element={<CurriculumScreen />} />
+              <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
+              <Route path="/docente/hoja" element={<PrintSheetScreen />} />
+              <Route path="/docente/pistas" element={<HintCardsScreen />} />
+              <Route path="/docente/captura" element={<QuickCaptureScreen />} />
 
-            <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
-            <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
-            <Route path="/direccion/traslados" element={<TransfersScreen />} />
-          </Route>
+              <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
+              <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
+              <Route path="/direccion/traslados" element={<TransfersScreen />} />
+            </Route>
 
-          <Route path="/alumno" element={<StudentLayout />}>
-            <Route index element={<Navigate to="/alumno/codigo" replace />} />
-            <Route path="codigo" element={<StudentCodeScreen />} />
-            <Route path="nombre" element={<StudentNameScreen />} />
-            <Route path="ejercicio" element={<StudentExerciseScreen />} />
-            <Route path="resumen" element={<StudentSummaryScreen />} />
-            <Route path="sellos" element={<StudentBadgesScreen />} />
-          </Route>
+            <Route path="/alumno" element={<StudentLayout />}>
+              <Route index element={<Navigate to="/alumno/codigo" replace />} />
+              <Route path="codigo" element={<StudentCodeScreen />} />
+              <Route path="nombre" element={<StudentNameScreen />} />
+              <Route element={<RequireRole roles={['student']} redirectTo="/alumno/codigo" />}>
+                <Route path="ejercicio" element={<StudentExerciseScreen />} />
+                <Route path="resumen" element={<StudentSummaryScreen />} />
+                <Route path="sellos" element={<StudentBadgesScreen />} />
+              </Route>
+            </Route>
 
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AppUiProvider>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AppUiProvider>
+    </SessionProvider>
   );
 }
 

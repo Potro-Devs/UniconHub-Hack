@@ -1,6 +1,13 @@
 /**
  * Datos semilla locales para mostrar las ventanas modulares cargadas de inicio.
  */
+
+/**
+ * Código de acceso del grupo demo (coincide con `npm run seed` del backend).
+ * Se reemplazará por el código real del grupo al conectar el módulo `groups`.
+ */
+export const DEMO_JOIN_CODE = 'MAPA3A';
+
 function buildStudents() {
   let seed = 11;
   const r = () => {

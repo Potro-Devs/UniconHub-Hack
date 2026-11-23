@@ -1,12 +1,26 @@
 /**
- * Stub de cliente HTTP centralizado para comunicarse con el API REST (/api/v1).
- * Sin llamadas reales implementadas en la etapa de configuración inicial.
+ * Instancia compartida del cliente HTTP (`/api/v1`). En desarrollo, Vite redirige `/api`
+ * al backend (ver `vite.config.js`).
  */
+import { createApiClient } from './createApiClient';
+
+export { ApiError, errorMessageOf } from './createApiClient';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-export const apiClient = {
+let tokenProvider = () => null;
+let unauthorizedHandler = () => {};
+
+/**
+ * La sesión registra aquí cómo obtener el token y qué hacer si el servidor lo rechaza.
+ */
+export function configureApiAuth({ getToken, onUnauthorized }) {
+  tokenProvider = getToken;
+  unauthorizedHandler = onUnauthorized;
+}
+
+export const apiClient = createApiClient({
   baseUrl: API_BASE_URL,
-  async request(_path, _options = {}) {
-    throw new Error('Cliente API aún no conectado al backend.');
-  },
-};
+  getToken: () => tokenProvider(),
+  onUnauthorized: (error) => unauthorizedHandler(error),
+});

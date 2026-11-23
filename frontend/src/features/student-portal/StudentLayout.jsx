@@ -2,9 +2,19 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { Toast } from '@/shared/components/Toast';
-import { STUDENTS } from '@/shared/data/seedData';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { useAppUi } from '@/shared/state/AppUiContext';
+import { useSession } from '@/shared/state/SessionContext';
+
+const pillStyle = {
+  minHeight: '44px',
+  padding: '0 14px',
+  borderRadius: '999px',
+  border: 0,
+  fontSize: '15px',
+  fontWeight: 700,
+  cursor: 'pointer',
+};
 
 /**
  * Contenedor del portal del alumno con fondo cielo y barra superior con Axi.
@@ -13,11 +23,20 @@ export function StudentLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { narrow } = useBreakpoint();
-  const { axiColor, sound, setSound, stuIdx, toast } = useAppUi();
+  const { axiColor, sound, setSound, toast, resetStudentSession, setJoinRoster } = useAppUi();
+  const { session, signOut } = useSession();
 
-  const stu = stuIdx != null ? STUDENTS[stuIdx] : null;
+  const student = session?.role === 'student' ? session.student : null;
   const showBadgesBtn =
-    Boolean(stu) && pathname !== '/alumno/codigo' && pathname !== '/alumno/nombre';
+    Boolean(student) && pathname !== '/alumno/codigo' && pathname !== '/alumno/nombre';
+
+  // En computadoras compartidas, "Salir" deja lista la pantalla para el siguiente alumno.
+  const exit = () => {
+    signOut();
+    resetStudentSession(0);
+    setJoinRoster(null);
+    navigate('/alumno/codigo', { replace: true });
+  };
 
   return (
     <div
@@ -75,40 +94,34 @@ export function StudentLayout() {
             {APP_NAME}
           </div>
 
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div
+            style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              gap: '8px',
+              alignItems: 'center',
+            }}
+          >
             <button
               type="button"
+              aria-pressed={sound}
               onClick={() => setSound((prev) => !prev)}
-              style={{
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '999px',
-                border: 0,
-                background: 'rgba(255,255,255,.7)',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
+              style={{ ...pillStyle, padding: '0 12px', background: 'rgba(255,255,255,.7)', fontSize: '13px' }}
             >
               {sound ? 'Sonido: sí' : 'Sonido: no'}
             </button>
 
             {showBadgesBtn && (
-              <button
-                type="button"
-                onClick={() => navigate('/alumno/sellos')}
-                style={{
-                  height: '40px',
-                  padding: '0 14px',
-                  borderRadius: '999px',
-                  border: 0,
-                  background: '#fff',
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {stu.short} · sellos
+              <button type="button" onClick={() => navigate('/alumno/sellos')} style={{ ...pillStyle, background: '#fff' }}>
+                {student.displayName} · sellos
+              </button>
+            )}
+
+            {student && (
+              <button type="button" onClick={exit} style={{ ...pillStyle, background: 'rgba(255,255,255,.7)' }}>
+                Salir
               </button>
             )}
           </div>
