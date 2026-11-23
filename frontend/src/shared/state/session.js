@@ -67,7 +67,7 @@ export function writeStoredSession(storage, session) {
  */
 export function homePathFor(session) {
   if (!session) return '/login';
-  return session.role === 'student' ? '/alumno/ejercicio' : '/docente/grupos';
+  return session.role === 'student' ? '/alumno/inicio' : '/docente/grupos';
 }
 
 /**

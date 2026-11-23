@@ -17,7 +17,7 @@ export function StudentNameScreen() {
   const [pendingId, setPendingId] = useState(null);
   const [error, setError] = useState(null);
 
-  if (session?.role === 'student') return <Navigate to="/alumno/ejercicio" replace />;
+  if (session?.role === 'student') return <Navigate to="/alumno/inicio" replace />;
   // Se llega aquí después de escribir el código (al recargar la página se vuelve a pedir).
   if (!joinRoster) return <Navigate to="/alumno/codigo" replace />;
 
@@ -29,7 +29,7 @@ export function StudentNameScreen() {
     try {
       signIn(await authApi.selectStudent(joinCode, student.id));
       resetStudentSession(0);
-      navigate('/alumno/ejercicio', { replace: true });
+      navigate('/alumno/inicio', { replace: true });
     } catch (err) {
       setError(errorMessageOf(err));
       setPendingId(null);

@@ -10,11 +10,15 @@ import { QuickCaptureScreen } from '@/features/paper-mode/QuickCaptureScreen';
 import { PromoteGroupsScreen } from '@/features/school-admin/PromoteGroupsScreen';
 import { SchoolOverviewScreen } from '@/features/school-admin/SchoolOverviewScreen';
 import { TransfersScreen } from '@/features/school-admin/TransfersScreen';
-import { StudentBadgesScreen } from '@/features/student-portal/StudentBadgesScreen';
+import { StudentAchievementsScreen } from '@/features/student-portal/StudentAchievementsScreen';
+import { StudentClassesScreen } from '@/features/student-portal/StudentClassesScreen';
 import { StudentCodeScreen } from '@/features/student-portal/StudentCodeScreen';
 import { StudentExerciseScreen } from '@/features/student-portal/StudentExerciseScreen';
+import { StudentHomeScreen } from '@/features/student-portal/StudentHomeScreen';
 import { StudentLayout } from '@/features/student-portal/StudentLayout';
 import { StudentNameScreen } from '@/features/student-portal/StudentNameScreen';
+import { StudentProgressScreen } from '@/features/student-portal/StudentProgressScreen';
+import { StudentShellLayout } from '@/features/student-portal/StudentShellLayout';
 import { StudentSummaryScreen } from '@/features/student-portal/StudentSummaryScreen';
 import { StudentProfileScreen } from '@/features/student-profile/StudentProfileScreen';
 import { TeacherGroupsScreen } from '@/features/teacher-dashboard/TeacherGroupsScreen';
@@ -60,15 +64,29 @@ export function App() {
             </Route>
 
             <Route path="/alumno" element={<StudentLayout />}>
-              <Route index element={<Navigate to="/alumno/codigo" replace />} />
+              <Route index element={<Navigate to="/alumno/inicio" replace />} />
               <Route path="codigo" element={<StudentCodeScreen />} />
               <Route path="nombre" element={<StudentNameScreen />} />
-              <Route element={<RequireRole roles={['student']} redirectTo="/alumno/codigo" />}>
+              <Route element={<RequireRole roles={['student']} redirectTo="/login" />}>
                 <Route path="ejercicio" element={<StudentExerciseScreen />} />
                 <Route path="resumen" element={<StudentSummaryScreen />} />
-                <Route path="sellos" element={<StudentBadgesScreen />} />
               </Route>
             </Route>
+
+            <Route
+              element={
+                <RequireRole roles={['student']} redirectTo="/login">
+                  <StudentShellLayout />
+                </RequireRole>
+              }
+            >
+              <Route path="/alumno/inicio" element={<StudentHomeScreen />} />
+              <Route path="/alumno/clases" element={<StudentClassesScreen />} />
+              <Route path="/alumno/progreso" element={<StudentProgressScreen />} />
+              <Route path="/alumno/logros" element={<StudentAchievementsScreen />} />
+            </Route>
+
+            <Route path="/alumno/sellos" element={<Navigate to="/alumno/logros" replace />} />
 
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />

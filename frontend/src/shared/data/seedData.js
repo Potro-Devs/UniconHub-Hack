@@ -320,3 +320,202 @@ export const EVOLUTION_OFFSETS = {
   multiplication: 4,
   reading_comprehension: 5,
 };
+
+/**
+ * Textos y reactivos de comprensión lectora de ejemplo (por validar con docente de primaria).
+ */
+export const READING_SHEET = [
+  {
+    passage:
+      'Los ajolotes viven en los canales de Xochimilco. Respiran por unas branquias en forma de ramitas y pueden regenerar su cola si se lastiman.',
+    q: '¿De qué trata principalmente este texto?',
+    o: [
+      'Solo habla del agua de los canales',
+      'Explica dónde viven los ajolotes y cómo son',
+      'Cuenta un cuento sobre peces voladores',
+      'Describe cómo cuidar plantas en maceta',
+    ],
+    k: 1,
+  },
+  {
+    passage:
+      'Ayer por la tarde, Sofía sembró semillas de frijol en un vaso con algodón húmedo. Cada mañana revisa si ya salió un pequeño brote verde.',
+    q: '¿Para qué revisa Sofía su vaso cada mañana?',
+    o: [
+      'Para cambiar las semillas por piedras',
+      'Para ver si ya salió un brote del frijol',
+      'Para regar las flores del jardín escolar',
+      'Para secar el algodón al sol',
+    ],
+    k: 1,
+  },
+  {
+    passage:
+      'En la biblioteca de la escuela hay libros de cuentos, mapas y diccionarios. Para llevarte un libro a casa, primero anotas tu nombre con la maestra.',
+    q: 'Según el texto, ¿qué debes hacer antes de llevarte un libro a casa?',
+    o: [
+      'Escribir un resumen del diccionario',
+      'Anotar tu nombre con la maestra',
+      'Pintar un mapa en el cuaderno',
+      'Guardar el libro debajo de la mesa',
+    ],
+    k: 1,
+  },
+];
+
+// Etiquetas de error típico de ejemplo — por validar con docente de primaria.
+export const READING_DISTRACTOR_ERRORS = [
+  ['detail_as_main_idea', null, 'off_topic', 'off_topic'],
+  ['off_topic', null, 'prior_knowledge_over_text', 'literal_misread'],
+  ['literal_misread', null, 'off_topic', 'off_topic'],
+];
+
+// Pistas de comprensión lectora de ejemplo — por validar con docente de primaria.
+export const READING_EXERCISES = [
+  {
+    s: 0,
+    h: [
+      'Lee otra vez las dos oraciones y fíjate de qué animal habla todo el texto.',
+      'La primera oración dice dónde vive ese animal y la segunda cuenta cómo es.',
+      'Ejemplo parecido: si un texto dice "Las abejas hacen miel y viven en colmenas", trata sobre dónde viven y qué hacen las abejas.',
+    ],
+  },
+  {
+    s: 1,
+    h: [
+      'Busca en la segunda oración lo que Sofía espera notar cuando observa el vaso.',
+      'Piensa qué ocurre después de colocar una semilla en algodón húmedo.',
+      'Ejemplo parecido: "Luis plantó maíz y mira su maceta para notar una hojita" → revisa si la planta empieza a crecer.',
+    ],
+  },
+  {
+    s: 2,
+    h: [
+      'Fíjate en la segunda oración, donde se explica el paso necesario para llevar un libro.',
+      'La palabra "primero" señala la acción que va antes de salir con el libro.',
+      'Ejemplo parecido: "Para entrar al museo, primero muestras tu boleto en la puerta" → indica el paso previo para pasar.',
+    ],
+  },
+];
+
+export const STUDENT_QUIZZES = [
+  {
+    id: 'fractions-1',
+    skillId: 'fractions',
+    title: 'Fracciones · Prueba 1',
+    heroTitle: 'Fracciones — Prueba 1: Medios, cuartos y octavos',
+    classId: 'class-math-3a',
+    classLabel: 'Matemáticas 3.º A',
+    teacher: 'Mtra. Elena Torres',
+    dueLabel: 'Para el 26 nov',
+    status: 'pending_screen',
+    modality: 'screen',
+    ctaLabel: 'Empezar cuestionario',
+    ctaTone: 'primary',
+    questionCount: STUDENT_EXERCISES.length,
+    exercises: STUDENT_EXERCISES,
+    sheet: FRACTION_SHEET,
+    distractorErrors: DISTRACTOR_ERRORS,
+  },
+  {
+    id: 'reading-1',
+    skillId: 'reading_comprehension',
+    title: 'Lectura de textos breves',
+    heroTitle: 'Comprensión lectora — Lectura de textos breves',
+    classId: 'class-club-3',
+    classLabel: 'Comprensión lectora · Club 3.º',
+    teacher: 'Mtro. Carlos Ruiz',
+    dueLabel: 'Programado · 28 nov',
+    status: 'pending_screen',
+    modality: 'screen',
+    ctaLabel: 'Resolver ahora',
+    ctaTone: 'ink',
+    questionCount: READING_EXERCISES.length,
+    exercises: READING_EXERCISES,
+    sheet: READING_SHEET,
+    distractorErrors: READING_DISTRACTOR_ERRORS,
+  },
+  {
+    id: 'mult-paper-1',
+    skillId: 'multiplication',
+    title: 'Multiplicación y reparto',
+    classId: 'class-math-3a',
+    classLabel: 'Matemáticas 3.º A',
+    teacher: 'Mtra. Elena Torres',
+    status: 'completed_paper',
+    modality: 'paper',
+    isScreenLocked: true,
+    scorePct: 64,
+    note: 'Ya la respondiste en hoja impresa con tu maestra. Tu resultado ya está guardado.',
+  },
+];
+
+export const STUDENT_CLASSES = [
+  {
+    id: 'class-math-3a',
+    gradeLabel: '3.º A',
+    code: DEMO_JOIN_CODE,
+    name: 'Matemáticas',
+    teacherLine: 'Mtra. Elena Torres · Saberes y pensamiento científico',
+    ctaType: 'quizzes',
+  },
+  {
+    id: 'class-esp-3a',
+    gradeLabel: '3.º A',
+    code: '3A9P4K',
+    name: 'Español y Lectura',
+    teacherLine: 'Mtra. Elena Torres · Lenguajes',
+    ctaType: 'progress',
+  },
+  {
+    id: 'class-club-3',
+    gradeLabel: 'Club 3.º',
+    code: 'CL4M8R',
+    name: 'Club de Lectura',
+    teacherLine: 'Mtro. Carlos Ruiz · Comprensión lectora',
+    ctaType: 'quizzes',
+  },
+];
+
+export const STUDENT_ACHIEVEMENTS = [
+  {
+    id: 'ach-autonomy',
+    mascotColor: 'rosa',
+    category: 'Autonomía',
+    categoryTone: 'achieved',
+    title: 'Sin pistas en Valor posicional',
+    description: 'Resolviste 5 preguntas seguidas usando tus propias estrategias.',
+    earnedAt: 'Obtenido el 18 nov 2026',
+    isMilestone: true,
+  },
+  {
+    id: 'ach-growth',
+    mascotColor: 'azul',
+    category: 'Crecimiento',
+    categoryTone: 'mastered',
+    title: 'Subiste de nivel',
+    description: 'Pasaste de En proceso a Logrado en Fracciones.',
+    earnedAt: 'Obtenido el 15 nov 2026',
+    isMilestone: false,
+  },
+  {
+    id: 'ach-support',
+    mascotColor: 'amarillo',
+    category: 'Con apoyo',
+    categoryTone: 'in_progress',
+    title: 'Explorador de pistas',
+    description: 'Usaste una pista para entender un problema y lo terminaste con éxito.',
+    earnedAt: 'Obtenido el 10 nov 2026',
+    isMilestone: false,
+  },
+  {
+    id: 'ach-reading',
+    mascotColor: 'lila',
+    category: 'Lectura',
+    categoryTone: 'lilac',
+    title: 'Lectura con calma',
+    description: 'Completaste tu diagnóstico de comprensión lectora paso a paso.',
+    earnedAt: 'Obtenido el 04 nov 2026',
+    isMilestone: false,
+  },
+];
