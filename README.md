@@ -69,6 +69,24 @@ El backend usa `node:sqlite` (sin dependencias extra) con `foreign_keys = ON`, `
   ```
 - Para empezar desde cero, detén el backend y borra `backend/data/axi.db*`.
 
+### Datos demo
+
+```bash
+npm run seed         # carga los datos demo si la base aún no los tiene
+npm run seed:reset   # borra la base y la vuelve a crear (detén antes el backend)
+```
+
+El seed es reproducible (semilla fija) y carga:
+
+- **Escuela demo** y la **docente** `docente@axi.demo` / contraseña `AxiDemo2026`.
+- **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
+- **Temario 1.º–6.º** con las 5 habilidades clave y el avance del temario de 3.º A.
+- **120 reactivos** (4 por habilidad y grado), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas.
+- Diagnósticos en pantalla ya contestados para 4 habilidades. **Fracciones** está asignada **en papel**, pendiente de captura y con la pantalla bloqueada.
+- Historial de dominio de 3 ciclos y catálogo de 10 actividades sugeridas.
+
+> Son credenciales solo de demostración. No uses estos datos en un despliegue real.
+
 ---
 
 ## Levantar el sistema en desarrollo
