@@ -1,0 +1,15 @@
+{
+  "name": "axi-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma web responsiva de diagnóstico educativo longitudinal para primaria",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:frontend": "npm --prefix frontend run build",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend test"
+  }
+}
