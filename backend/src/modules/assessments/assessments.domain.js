@@ -47,15 +47,6 @@ export function assertQuestionsPerSkill(questions) {
   return result;
 }
 
-/**
- * Valida la modalidad de una asignación.
- */
-export function assertValidModality(modality) {
-  if (!ASSIGNMENT_MODALITIES.includes(modality)) {
-    throw new DomainError('INVALID_MODALITY', `Modalidad no válida: ${modality}. Usa "screen" o "paper".`);
-  }
-}
-
 function normalizeText(text) {
   return String(text)
     .normalize('NFD')
@@ -168,26 +159,29 @@ export function parseQuestionFilters(query) {
   }
   if (skill !== undefined) {
     if (typeof skill !== 'string' || !SKILL_CODES.includes(skill)) {
-      throw invalid(`Habilidad no válida. Usa una de: ${SKILL_CODES.join(', ')}.`);
+      throw invalid('Elige una habilidad válida.', { field: 'skill', allowed: SKILL_CODES });
     }
     filters.skill = skill;
   }
   return filters;
 }
 
-/** Arreglo no vacío de ids enteros positivos (tipo número), sin repetidos y con tope. */
-function parseIdList(value, { field, max }) {
+/**
+ * Arreglo no vacío de ids enteros positivos (tipo número), sin repetidos y con tope.
+ * Los mensajes son para la docente (`noun`/`plural`); el nombre técnico va en `details.field`.
+ */
+function parseIdList(value, { field, max, noun, plural }) {
   if (!Array.isArray(value) || value.length === 0) {
-    throw invalid(`${field} debe ser una lista con al menos un id.`);
+    throw invalid(`Elige al menos ${noun}.`, { field });
   }
   if (value.length > max) {
-    throw invalid(`${field} admite como máximo ${max} elementos.`, { max, received: value.length });
+    throw invalid(`Puedes elegir como máximo ${max} ${plural}.`, { field, max, received: value.length });
   }
   if (!value.every(isPositiveId)) {
-    throw invalid(`${field} solo admite números enteros positivos.`);
+    throw invalid(`Hay ${plural} que no reconocemos. Vuelve a elegirlos.`, { field });
   }
   const dup = firstDuplicate(value);
-  if (dup !== undefined) throw invalid(`${field} tiene ids repetidos.`, { duplicated: dup });
+  if (dup !== undefined) throw invalid(`Hay ${plural} repetidos en tu selección.`, { field, duplicated: dup });
   return value;
 }
 
@@ -198,7 +192,7 @@ function parseIdList(value, { field, max }) {
  * @returns {{ title: string, modality: 'screen' | 'paper', questionIds: number[] | null, skills: string[] | null, studentIds: number[] | null }}
  */
 export function parseAssignmentInput(body) {
-  if (!isPlainObject(body)) throw invalid('El cuerpo debe ser un objeto JSON.');
+  if (!isPlainObject(body)) throw invalid('Faltan los datos de la prueba.');
 
   const title = typeof body.title === 'string' ? body.title.trim().replace(/\s+/g, ' ') : '';
   if (!title || title.length > MAX_TITLE_LENGTH) {
@@ -206,35 +200,48 @@ export function parseAssignmentInput(body) {
   }
 
   if (typeof body.modality !== 'string' || !ASSIGNMENT_MODALITIES.includes(body.modality)) {
-    throw invalid('Modalidad no válida. Usa "screen" o "paper".');
+    throw invalid('Elige si la prueba será en pantalla o en papel.', { field: 'modality', allowed: ASSIGNMENT_MODALITIES });
   }
 
   const hasIds = body.questionIds !== undefined;
   const hasSkills = body.skills !== undefined;
   if (hasIds === hasSkills) {
-    throw invalid('Elige los reactivos con questionIds o con skills (solo una de las dos).');
+    throw invalid(
+      hasIds ? 'Elige los reactivos uno por uno o por habilidad, pero no de las dos formas a la vez.' : 'Elige al menos un reactivo o una habilidad.',
+      { fields: ['questionIds', 'skills'] },
+    );
   }
 
   let questionIds = null;
   let skills = null;
   if (hasIds) {
-    questionIds = parseIdList(body.questionIds, { field: 'questionIds', max: MAX_QUESTIONS_PER_ASSIGNMENT });
+    questionIds = parseIdList(body.questionIds, {
+      field: 'questionIds',
+      max: MAX_QUESTIONS_PER_ASSIGNMENT,
+      noun: 'un reactivo',
+      plural: 'reactivos',
+    });
   } else {
     if (!Array.isArray(body.skills) || body.skills.length === 0) {
-      throw invalid('skills debe ser una lista con al menos una habilidad.');
+      throw invalid('Elige al menos una habilidad.', { field: 'skills' });
     }
     if (!body.skills.every((s) => typeof s === 'string' && SKILL_CODES.includes(s))) {
-      throw invalid(`Habilidad no válida. Usa: ${SKILL_CODES.join(', ')}.`);
+      throw invalid('Elige una habilidad válida.', { field: 'skills', allowed: SKILL_CODES });
     }
     const dup = firstDuplicate(body.skills);
-    if (dup !== undefined) throw invalid('skills tiene habilidades repetidas.', { duplicated: dup });
+    if (dup !== undefined) throw invalid('Hay habilidades repetidas en tu selección.', { field: 'skills', duplicated: dup });
     skills = body.skills;
   }
 
   const studentIds =
     body.studentIds === undefined
       ? null
-      : parseIdList(body.studentIds, { field: 'studentIds', max: MAX_TARGETS_PER_ASSIGNMENT });
+      : parseIdList(body.studentIds, {
+          field: 'studentIds',
+          max: MAX_TARGETS_PER_ASSIGNMENT,
+          noun: 'un alumno',
+          plural: 'alumnos',
+        });
 
   return { title, modality: body.modality, questionIds, skills, studentIds };
 }
@@ -280,6 +287,28 @@ export function orderQuestionsBySkills(questions, skills) {
     .sort((a, b) => rank.get(a.skill) - rank.get(b.skill) || a.id - b.id);
 }
 
+/**
+ * Modo `skills`: cada habilidad pedida debe tener reactivos en el grado del grupo. Las que no
+ * tienen ninguno se reportan con `count: 0` (no se descartan en silencio) → 422
+ * `INSUFFICIENT_QUESTIONS_PER_SKILL`. Las que tienen 1 o 2 las detecta `assertQuestionsPerSkill`.
+ *
+ * @param {string[]} requestedSkills
+ * @param {Array<{ skill: string }>} questions Reactivos encontrados.
+ */
+export function assertRequestedSkillsHaveQuestions(requestedSkills, questions) {
+  const present = new Set(questions.map((q) => q.skill));
+  const insufficient = requestedSkills
+    .filter((skill) => !present.has(skill))
+    .map((skill) => ({ skill, count: 0, missing: MIN_QUESTIONS_PER_SKILL }));
+  if (insufficient.length > 0) {
+    throw new DomainError(
+      'INSUFFICIENT_QUESTIONS_PER_SKILL',
+      `Cada habilidad incluida necesita al menos ${MIN_QUESTIONS_PER_SKILL} reactivos.`,
+      { insufficient },
+    );
+  }
+}
+
 /** Verifica el tope de reactivos de una prueba ya armada. */
 export function assertQuestionLimit(count) {
   if (count > MAX_QUESTIONS_PER_ASSIGNMENT) {
@@ -310,6 +339,15 @@ export function assertHasTargets(count) {
   if (count === 0) {
     throw new DomainError('NO_ACTIVE_STUDENTS', 'El grupo no tiene alumnos activos para asignar la prueba.');
   }
+}
+
+/** Destinatario de una asignación: sin nombres ni `internal_folio`. */
+export function toTargetDto(row) {
+  return {
+    studentId: row.student_id,
+    status: row.status,
+    isScreenLocked: row.is_screen_locked === 1,
+  };
 }
 
 /** Conteo de destinatarios por estado (incluye `total`). */

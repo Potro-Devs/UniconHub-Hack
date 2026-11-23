@@ -253,10 +253,36 @@ describe('assessments API', () => {
         assert.equal(three.body.data.questionCount, 3);
       });
 
-      test('habilidad sin reactivos en el grado → 422 EMPTY_ASSESSMENT', async () => {
+      test('habilidad sin reactivos en el grado → 422 con count 0 (no se descarta)', async () => {
         const res = await createAs(fx.tokens.teacherA, validBody({ skills: ['reading_comprehension'] }));
         assert.equal(res.status, 422);
-        assert.equal(res.body.error.code, 'EMPTY_ASSESSMENT');
+        assert.equal(res.body.error.code, 'INSUFFICIENT_QUESTIONS_PER_SKILL');
+        assert.deepEqual(res.body.error.details.insufficient, [{ skill: 'reading_comprehension', count: 0, missing: 3 }]);
+      });
+
+      test('una habilidad con reactivos y otra sin ninguno → 422 solo con la vacía, sin crear nada', async () => {
+        const res = await createAs(fx.tokens.teacherA, validBody({ skills: ['fractions', 'problem_solving'] }));
+        assert.equal(res.status, 422);
+        assert.equal(res.body.error.code, 'INSUFFICIENT_QUESTIONS_PER_SKILL');
+        assert.deepEqual(res.body.error.details.insufficient, [{ skill: 'problem_solving', count: 0, missing: 3 }]);
+        assert.equal(count(fx.db, 'assignments'), 0);
+        assert.equal(count(fx.db, 'assignment_questions'), 0);
+        assert.equal(count(fx.db, 'assignment_targets'), 0);
+      });
+
+      test('mensajes de validación sin nombres técnicos; el campo va en details', async () => {
+        const none = await createAs(fx.tokens.teacherA, validBody({ skills: undefined }));
+        assert.equal(none.body.error.message, 'Elige al menos un reactivo o una habilidad.');
+        const modality = await createAs(fx.tokens.teacherA, validBody({ modality: 'online' }));
+        assert.equal(modality.body.error.message, 'Elige si la prueba será en pantalla o en papel.');
+        assert.equal(modality.body.error.details.field, 'modality');
+        const skill = await createAs(fx.tokens.teacherA, validBody({ skills: ['geometry'] }));
+        assert.equal(skill.body.error.message, 'Elige una habilidad válida.');
+        const ids = await createAs(fx.tokens.teacherA, validBody({ skills: undefined, questionIds: [] }));
+        assert.equal(ids.body.error.details.field, 'questionIds');
+        for (const res of [none, modality, skill, ids]) {
+          assert.ok(!/questionIds|studentIds|skills|modality|screen|paper|geometry/.test(res.body.error.message), res.body.error.message);
+        }
       });
     });
 

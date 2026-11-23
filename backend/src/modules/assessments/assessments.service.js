@@ -16,6 +16,7 @@ import {
   assertQuestionLimit,
   assertQuestionsForGrade,
   assertQuestionsPerSkill,
+  assertRequestedSkillsHaveQuestions,
   assertStudentsInGroup,
   orderQuestionsByIds,
   orderQuestionsBySkills,
@@ -23,6 +24,7 @@ import {
   parseQuestionFilters,
   toAssignmentSummaryDto,
   toQuestionDto,
+  toTargetDto,
 } from './assessments.domain.js';
 
 const GROUP_NOT_FOUND = () => new HttpError(404, 'GROUP_NOT_FOUND', 'No encontramos ese grupo.');
@@ -82,11 +84,7 @@ export function createAssessmentsService({ repository, groupsRepository, transac
       position: questionRows[idx].position,
       ...q,
     }));
-    const targets = repository.listTargetsOfAssignment(assignment.id).map((t) => ({
-      studentId: t.student_id,
-      status: t.status,
-      isScreenLocked: t.is_screen_locked === 1,
-    }));
+    const targets = repository.listTargetsOfAssignment(assignment.id).map(toTargetDto);
     return { ...summary, questions, targets };
   };
 
@@ -97,7 +95,9 @@ export function createAssessmentsService({ repository, groupsRepository, transac
       assertQuestionsForGrade(input.questionIds, found, group.grade);
       return orderQuestionsByIds(found, input.questionIds);
     }
-    return orderQuestionsBySkills(repository.listQuestionsOfGradeBySkills(group.grade, input.skills), input.skills);
+    const found = repository.listQuestionsOfGradeBySkills(group.grade, input.skills);
+    assertRequestedSkillsHaveQuestions(input.skills, found);
+    return orderQuestionsBySkills(found, input.skills);
   };
 
   const resolveTargets = (input, group) => {

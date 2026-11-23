@@ -3,7 +3,8 @@ import { describe, test } from 'node:test';
 import {
   MIN_QUESTIONS_PER_SKILL,
   assertQuestionsPerSkill,
-  assertValidModality,
+  assertRequestedSkillsHaveQuestions,
+  toTargetDto,
   findHintsRevealingAnswer,
   validateQuestion,
   validateQuestionsPerSkill,
@@ -48,17 +49,6 @@ describe('mínimo de reactivos por habilidad', () => {
   test('bloquea una prueba vacía', () => {
     assert.equal(validateQuestionsPerSkill([]).valid, false);
     assert.throws(() => assertQuestionsPerSkill([]), (err) => err.code === 'EMPTY_ASSESSMENT');
-  });
-});
-
-describe('modalidad', () => {
-  test('acepta screen y paper', () => {
-    assert.doesNotThrow(() => assertValidModality('screen'));
-    assert.doesNotThrow(() => assertValidModality('paper'));
-  });
-
-  test('rechaza otras modalidades', () => {
-    assert.throws(() => assertValidModality('mixed'), (err) => err.code === 'INVALID_MODALITY');
   });
 });
 
@@ -174,6 +164,27 @@ describe('entradas de assessments', () => {
   test('countTargetsByStatus incluye todos los estados y el total', () => {
     assert.deepEqual(countTargetsByStatus([{ status: 'pending', count: 3 }, { status: 'completed_paper', count: 2 }]), {
       total: 5, pending: 3, in_progress: 0, completed_screen: 0, completed_paper: 2,
+    });
+  });
+});
+
+describe('habilidades pedidas sin reactivos', () => {
+  test('reporta solo las ausentes con count 0 y missing 3', () => {
+    const qs = [{ skill: 'fractions' }, { skill: 'fractions' }, { skill: 'fractions' }];
+    assert.doesNotThrow(() => assertRequestedSkillsHaveQuestions(['fractions'], qs));
+    assert.throws(
+      () => assertRequestedSkillsHaveQuestions(['fractions', 'reading_comprehension'], qs),
+      (err) =>
+        err instanceof DomainError &&
+        err.code === 'INSUFFICIENT_QUESTIONS_PER_SKILL' &&
+        JSON.stringify(err.details.insufficient) ===
+          JSON.stringify([{ skill: 'reading_comprehension', count: 0, missing: MIN_QUESTIONS_PER_SKILL }]),
+    );
+  });
+
+  test('toTargetDto expone solo id, estado y bloqueo', () => {
+    assert.deepEqual(toTargetDto({ student_id: 7, status: 'pending', is_screen_locked: 1, internal_folio: 'AXI-X' }), {
+      studentId: 7, status: 'pending', isScreenLocked: true,
     });
   });
 });
