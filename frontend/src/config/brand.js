@@ -74,11 +74,13 @@ export const STUDENT_AVATAR_HUES = [
 /**
  * Índice de nivel según la escala de intervalos estrictos de 25% (AGENTS.md §4.3):
  * 0–24.99 Necesita apoyo · 25–49.99 En proceso · 50–74.99 Logrado · 75–100 Dominado.
+ * Temporal para vistas con datos semilla; la fuente de verdad es el backend (`analytics.domain.js`).
  */
 export const getLevelIndex = (pct) => {
-  if (pct < LEVELS[1].min) return 0;
-  if (pct < LEVELS[2].min) return 1;
-  if (pct < LEVELS[3].min) return 2;
+  const rounded = Math.round(pct * 100) / 100;
+  if (rounded < LEVELS[1].min) return 0;
+  if (rounded < LEVELS[2].min) return 1;
+  if (rounded < LEVELS[3].min) return 2;
   return 3;
 };
 

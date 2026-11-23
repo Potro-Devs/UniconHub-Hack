@@ -51,11 +51,12 @@ export function StudentSummaryScreen() {
     const skillName = SKILLS.find((x) => x.id === id)?.name ?? summary?.name ?? id;
     const a = summary?.initialPct ?? stu.prev?.[id] ?? 36;
     const b = summary?.currentPct ?? stu.sc?.[id] ?? 44;
+    const delta = summary?.deltaPct ?? Math.round((b - a) * 100) / 100;
     const note =
       getLevelIndex(b) > getLevelIndex(a)
         ? 'Subiste respecto a tu nivel anterior.'
         : b > a
-          ? `Mejoraste respecto a tu inicio: +${b - a} puntos.`
+          ? `Mejoraste respecto a tu inicio: +${delta} puntos.`
           : 'Esta habilidad todavía se está formando. Probemos con una pista la próxima vez.';
     return makeProgRow(skillName, a, b, note);
   });

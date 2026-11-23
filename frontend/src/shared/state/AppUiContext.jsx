@@ -1,14 +1,16 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getLevelIndex } from '@/config/brand';
 import {
+  classifyQuizAnswer,
+  summarizeQuizAnswers,
+} from '@/features/student-portal/studentPortalStats';
+import {
   CURRICULUM_CONTENTS,
   FRACTION_SHEET,
   SKILLS,
   STUDENTS,
-  STUDENT_CLASSES,
   STUDENT_QUIZZES,
 } from '@/shared/data/seedData';
-import { normalizeJoinCodeInput } from './session';
 
 const AppUiContext = createContext(null);
 
@@ -45,7 +47,6 @@ export function AppUiProvider({ children }) {
   const [stuIdx, setStuIdx] = useState(0);
   const [activeQuizId, setActiveQuizId] = useState('fractions-1');
   const [completedQuizzes, setCompletedQuizzes] = useState({});
-  const [enrolledClasses, setEnrolledClasses] = useState(STUDENT_CLASSES);
   const [quizAnswers, setQuizAnswers] = useState({});
   const quizAnswersRef = useRef({});
   const [exIdx, setExIdx] = useState(0);
@@ -157,27 +158,6 @@ export function AppUiProvider({ children }) {
     );
   };
 
-  const joinStudentClass = (rawCode) => {
-    const code = normalizeJoinCodeInput(rawCode);
-    if (code.length < 4) {
-      return { ok: false, error: 'Escribe un código de clase válido de 4 a 6 caracteres.' };
-    }
-    if (enrolledClasses.some((cls) => cls.code.toUpperCase() === code)) {
-      return { ok: false, error: `Ya estás inscrito en la clase con código ${code}.` };
-    }
-    const nextClass = {
-      id: `class-${code.toLowerCase()}`,
-      gradeLabel: '3.º A',
-      code,
-      name: `Grupo ${code}`,
-      teacherLine: 'Docente asignado · Primaria',
-      ctaType: 'quizzes',
-    };
-    setEnrolledClasses((prev) => [...prev, nextClass]);
-    say(`Te uniste a la clase ${code}`);
-    return { ok: true, code, classItem: nextClass };
-  };
-
   const startStudentQuiz = (quizId) => {
     const quiz = STUDENT_QUIZZES.find((q) => q.id === quizId);
     if (!quiz || quiz.status === 'completed_paper' || quiz.isScreenLocked) {
@@ -197,14 +177,17 @@ export function AppUiProvider({ children }) {
     return true;
   };
 
-  const recordQuizAnswer = (questionIdx, maxHintUsed) => {
+  const recordQuizAnswer = (questionIdx, { isCorrect, maxHintUsed = 0, errorTag = null }) => {
     const prevEntry = quizAnswersRef.current[questionIdx];
-    const recordedHint = prevEntry
-      ? Math.max(prevEntry.maxHintUsed, maxHintUsed)
-      : maxHintUsed;
+    const nextEntry = prevEntry
+      ? {
+          ...prevEntry,
+          maxHintUsed: Math.max(prevEntry.maxHintUsed, maxHintUsed),
+        }
+      : classifyQuizAnswer({ isCorrect, maxHintUsed, errorTag });
     const next = {
       ...quizAnswersRef.current,
-      [questionIdx]: { maxHintUsed: recordedHint },
+      [questionIdx]: nextEntry,
     };
     quizAnswersRef.current = next;
     setQuizAnswers(next);
@@ -213,28 +196,12 @@ export function AppUiProvider({ children }) {
   const completeActiveQuiz = () => {
     const quiz = STUDENT_QUIZZES.find((q) => q.id === activeQuizId) ?? STUDENT_QUIZZES[0];
     const totalCount = quiz.exercises?.length ?? 0;
-    const answersMap = quizAnswersRef.current;
-    let autonomousCount = 0;
-    let withSupportCount = 0;
-    for (let i = 0; i < totalCount; i += 1) {
-      const entry = answersMap[i];
-      if (!entry) continue;
-      if (entry.maxHintUsed === 0) autonomousCount += 1;
-      else withSupportCount += 1;
-    }
-    const autonomousPct = totalCount ? Math.round((autonomousCount / totalCount) * 100) : 0;
-    const totalCorrectPct = totalCount
-      ? Math.round(((autonomousCount + withSupportCount) / totalCount) * 100)
-      : 0;
+    const summary = summarizeQuizAnswers(quizAnswersRef.current, totalCount);
     const result = {
       quizId: quiz.id,
       skillId: quiz.skillId,
       title: quiz.title,
-      autonomousCount,
-      withSupportCount,
-      totalCount,
-      autonomousPct,
-      totalCorrectPct,
+      ...summary,
       completedAt: 'Completado hoy',
     };
     setCompletedQuizzes((prev) => ({ ...prev, [quiz.id]: result }));
@@ -245,7 +212,6 @@ export function AppUiProvider({ children }) {
     setStuIdx(nextStuIdx);
     setActiveQuizId('fractions-1');
     setCompletedQuizzes({});
-    setEnrolledClasses(STUDENT_CLASSES);
     quizAnswersRef.current = {};
     setQuizAnswers({});
     setExIdx(0);
@@ -296,9 +262,7 @@ export function AppUiProvider({ children }) {
     activeQuizId,
     setActiveQuizId,
     completedQuizzes,
-    enrolledClasses,
     quizAnswers,
-    joinStudentClass,
     startStudentQuiz,
     recordQuizAnswer,
     completeActiveQuiz,

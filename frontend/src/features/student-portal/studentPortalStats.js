@@ -1,15 +1,71 @@
-import { LEVELS, getLevelIndex } from '@/config/brand';
+/**
+ * Cálculos temporales en el cliente para el portal del alumno mientras usa datos semilla locales.
+ * ponytail: duplica reglas de `diagnostics.domain.js` y `analytics.domain.js` (mismo redondeo a 2 decimales);
+ * eliminar y consumir directamente las respuestas de `diagnostics` / `analytics` al conectar la API.
+ */
+import { LEVELS, getLevelIndex } from '../../config/brand.js';
 import {
   EVOLUTION_OFFSETS,
   SKILLS,
   STUDENTS,
   STUDENT_ACHIEVEMENTS,
   STUDENT_QUIZZES,
-} from '@/shared/data/seedData';
+} from '../../shared/data/seedData.js';
 
 /**
- * Promedio ponderado evolutivo lineal (sesión i con peso w_i = i).
- * Replica la regla pura del dominio pedagógico en el cliente.
+ * Redondea a 2 decimales igual que `roundPercentage` en `analytics.domain.js`.
+ */
+export const roundPercentage = (value) => Math.round(value * 100) / 100;
+
+/**
+ * Clasifica un intento de respuesta (AGENTS.md §4.2).
+ */
+export function classifyQuizAnswer({ isCorrect, maxHintUsed = 0, errorTag = null }) {
+  if (!isCorrect) {
+    return { outcomeStatus: 'incorrect', maxHintUsed, errorTag };
+  }
+  return {
+    outcomeStatus: maxHintUsed === 0 ? 'correct_autonomous' : 'achieved_with_support',
+    maxHintUsed,
+    errorTag: null,
+  };
+}
+
+/**
+ * Resume respuestas registradas de un cuestionario manteniendo acierto autónomo, con apoyo y error_tag.
+ */
+export function summarizeQuizAnswers(answersMap, totalCount) {
+  let autonomousCount = 0;
+  let withSupportCount = 0;
+  let incorrectCount = 0;
+  const errorTags = [];
+
+  for (let i = 0; i < totalCount; i += 1) {
+    const entry = answersMap[i];
+    if (!entry) continue;
+    if (entry.outcomeStatus === 'correct_autonomous') autonomousCount += 1;
+    else if (entry.outcomeStatus === 'achieved_with_support') withSupportCount += 1;
+    else if (entry.outcomeStatus === 'incorrect') {
+      incorrectCount += 1;
+      if (entry.errorTag) errorTags.push(entry.errorTag);
+    }
+  }
+
+  const pct = (n) => (totalCount ? roundPercentage((n / totalCount) * 100) : 0);
+  return {
+    autonomousCount,
+    withSupportCount,
+    incorrectCount,
+    errorTags,
+    totalCount,
+    autonomousPct: pct(autonomousCount),
+    supportedPct: pct(withSupportCount),
+  };
+}
+
+/**
+ * Promedio ponderado evolutivo lineal (sesión i con peso w_i = i) redondeado a 2 decimales.
+ * Temporal mientras el portal lee datos locales; la fuente de verdad vive en `analytics.domain.js`.
  */
 export function weightedEvolution(scores) {
   if (!scores.length) return 0;
@@ -20,7 +76,7 @@ export function weightedEvolution(scores) {
     weightedSum += w * pct;
     weightTotal += w;
   });
-  return Math.round(weightedSum / weightTotal);
+  return roundPercentage(weightedSum / weightTotal);
 }
 
 /**
@@ -90,7 +146,7 @@ export function getStudentSkillSummaries(stuIdx = 0, completedQuizzes = {}) {
       0,
     );
 
-    const deltaPct = currentPct - initialPct;
+    const deltaPct = roundPercentage(currentPct - initialPct);
     const levelIdx = getLevelIndex(currentPct);
 
     return {

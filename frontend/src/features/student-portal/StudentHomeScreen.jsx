@@ -71,24 +71,6 @@ export function StudentHomeScreen() {
             {groupLabel} · Tus cuestionarios y avances de hoy
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => navigate('/alumno/clases')}
-          style={{
-            minHeight: '44px',
-            padding: '0 16px',
-            borderRadius: '14px',
-            border: `1.5px solid ${COLORS.border}`,
-            background: '#fff',
-            color: COLORS.ink,
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          + Ingresar código de clase
-        </button>
       </div>
 
       {heroQuiz ? (

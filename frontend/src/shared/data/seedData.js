@@ -321,6 +321,9 @@ export const EVOLUTION_OFFSETS = {
   reading_comprehension: 5,
 };
 
+/**
+ * Textos y reactivos de comprensión lectora de ejemplo (por validar con docente de primaria).
+ */
 export const READING_SHEET = [
   {
     passage:
@@ -360,6 +363,14 @@ export const READING_SHEET = [
   },
 ];
 
+// Etiquetas de error típico de ejemplo — por validar con docente de primaria.
+export const READING_DISTRACTOR_ERRORS = [
+  ['detail_as_main_idea', null, 'off_topic', 'off_topic'],
+  ['off_topic', null, 'prior_knowledge_over_text', 'literal_misread'],
+  ['literal_misread', null, 'off_topic', 'off_topic'],
+];
+
+// Pistas de comprensión lectora de ejemplo — por validar con docente de primaria.
 export const READING_EXERCISES = [
   {
     s: 0,
@@ -404,6 +415,7 @@ export const STUDENT_QUIZZES = [
     questionCount: STUDENT_EXERCISES.length,
     exercises: STUDENT_EXERCISES,
     sheet: FRACTION_SHEET,
+    distractorErrors: DISTRACTOR_ERRORS,
   },
   {
     id: 'reading-1',
@@ -421,6 +433,7 @@ export const STUDENT_QUIZZES = [
     questionCount: READING_EXERCISES.length,
     exercises: READING_EXERCISES,
     sheet: READING_SHEET,
+    distractorErrors: READING_DISTRACTOR_ERRORS,
   },
   {
     id: 'mult-paper-1',
@@ -449,7 +462,7 @@ export const STUDENT_CLASSES = [
   {
     id: 'class-esp-3a',
     gradeLabel: '3.º A',
-    code: '3A9P4',
+    code: '3A9P4K',
     name: 'Español y Lectura',
     teacherLine: 'Mtra. Elena Torres · Lenguajes',
     ctaType: 'progress',
@@ -457,7 +470,7 @@ export const STUDENT_CLASSES = [
   {
     id: 'class-club-3',
     gradeLabel: 'Club 3.º',
-    code: 'CL4M8',
+    code: 'CL4M8R',
     name: 'Club de Lectura',
     teacherLine: 'Mtro. Carlos Ruiz · Comprensión lectora',
     ctaType: 'quizzes',

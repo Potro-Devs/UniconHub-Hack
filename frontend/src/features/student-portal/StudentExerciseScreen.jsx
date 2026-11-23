@@ -67,9 +67,10 @@ export function StudentExerciseScreen() {
   const pickOption = (optIdx) => {
     if (fb === 'ok' || tried.includes(optIdx)) return;
     const isCorrect = optIdx === q.k;
+    const errorTag = isCorrect ? null : activeQuiz.distractorErrors?.[ex.s]?.[optIdx] ?? null;
+    recordQuizAnswer(safeExIdx, { isCorrect, maxHintUsed: hint, errorTag });
     setFb(isCorrect ? 'ok' : 'casi');
     if (isCorrect) {
-      recordQuizAnswer(safeExIdx, hint);
       setLastReaction('acierto');
     } else {
       setTried((prev) => [...prev, optIdx]);

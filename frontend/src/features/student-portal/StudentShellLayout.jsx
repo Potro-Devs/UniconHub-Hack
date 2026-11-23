@@ -81,11 +81,7 @@ export function StudentShellLayout() {
     setJoinRoster,
   } = useAppUi();
 
-  const student = session?.student ?? {
-    displayName: 'Sofía Ramírez',
-    initials: 'SR',
-    avatarColor: COLORS.primary,
-  };
+  const student = session?.student ?? null;
   const group = session?.group;
   const groupLabel =
     group?.grade && group?.section
@@ -228,24 +224,6 @@ export function StudentShellLayout() {
               <div style={{ fontSize: '13px', color: COLORS.muted }}>
                 Código <strong style={{ color: COLORS.ink }}>{activeCode}</strong>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate('/alumno/clases')}
-                style={{
-                  marginTop: '6px',
-                  minHeight: '36px',
-                  padding: '4px 0',
-                  border: 0,
-                  background: 'none',
-                  color: COLORS.primaryText,
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                + Ingresar otro código
-              </button>
             </div>
 
             <button
@@ -328,49 +306,51 @@ export function StudentShellLayout() {
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '4px 10px 4px 5px',
-                borderRadius: '999px',
-                background: COLORS.surfaceSubtle,
-                border: `1px solid ${COLORS.border}`,
-              }}
-            >
-              <span
-                aria-hidden="true"
+            {student && (
+              <div
                 style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
-                  background: student.avatarColor || COLORS.primary,
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  gap: '8px',
+                  padding: '4px 10px 4px 5px',
+                  borderRadius: '999px',
+                  background: COLORS.surfaceSubtle,
+                  border: `1px solid ${COLORS.border}`,
                 }}
               >
-                {student.initials || 'SR'}
-              </span>
-              <span
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: COLORS.ink,
-                  maxWidth: narrow ? '130px' : '220px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {student.displayName}
-              </span>
-            </div>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    background: student.avatarColor || COLORS.primary,
+                    color: '#fff',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {student.initials}
+                </span>
+                <span
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: COLORS.ink,
+                    maxWidth: narrow ? '130px' : '220px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {student.displayName}
+                </span>
+              </div>
+            )}
 
             {narrow && (
               <button
