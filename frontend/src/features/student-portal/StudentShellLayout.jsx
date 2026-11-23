@@ -102,7 +102,7 @@ export function StudentShellLayout() {
     signOut();
     resetStudentSession(0);
     setJoinRoster(null);
-    navigate('/alumno/codigo', { replace: true });
+    navigate('/login', { replace: true });
   };
 
   return (

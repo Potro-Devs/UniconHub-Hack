@@ -23,20 +23,12 @@ export function StudentLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { narrow } = useBreakpoint();
-  const { axiColor, sound, setSound, toast, resetStudentSession, setJoinRoster } = useAppUi();
-  const { session, signOut } = useSession();
+  const { axiColor, sound, setSound, toast } = useAppUi();
+  const { session } = useSession();
 
   const student = session?.role === 'student' ? session.student : null;
   const showBadgesBtn =
     Boolean(student) && pathname !== '/alumno/codigo' && pathname !== '/alumno/nombre';
-
-  // En computadoras compartidas, "Salir" deja lista la pantalla para el siguiente alumno.
-  const exit = () => {
-    signOut();
-    resetStudentSession(0);
-    setJoinRoster(null);
-    navigate('/alumno/codigo', { replace: true });
-  };
 
   return (
     <div
@@ -130,12 +122,6 @@ export function StudentLayout() {
                   Mis logros
                 </button>
               </>
-            )}
-
-            {student && (
-              <button type="button" onClick={exit} style={{ ...pillStyle, background: 'rgba(255,255,255,.7)' }}>
-                Salir
-              </button>
             )}
           </div>
         </header>

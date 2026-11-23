@@ -67,7 +67,7 @@ export function App() {
               <Route index element={<Navigate to="/alumno/inicio" replace />} />
               <Route path="codigo" element={<StudentCodeScreen />} />
               <Route path="nombre" element={<StudentNameScreen />} />
-              <Route element={<RequireRole roles={['student']} redirectTo="/alumno/codigo" />}>
+              <Route element={<RequireRole roles={['student']} redirectTo="/login" />}>
                 <Route path="ejercicio" element={<StudentExerciseScreen />} />
                 <Route path="resumen" element={<StudentSummaryScreen />} />
               </Route>
@@ -75,7 +75,7 @@ export function App() {
 
             <Route
               element={
-                <RequireRole roles={['student']} redirectTo="/alumno/codigo">
+                <RequireRole roles={['student']} redirectTo="/login">
                   <StudentShellLayout />
                 </RequireRole>
               }
