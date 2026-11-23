@@ -108,11 +108,11 @@ export function StudentShellLayout() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
+        overflow: 'hidden',
         background: COLORS.bg,
         color: COLORS.ink,
-        overflowX: 'hidden',
       }}
     >
       {wide && (
@@ -120,16 +120,14 @@ export function StudentShellLayout() {
           aria-label="Navegación del estudiante"
           style={{
             width: '232px',
-            flexShrink: 0,
+            flex: 'none',
+            overflowY: 'auto',
             background: '#fff',
             borderRight: `1px solid ${COLORS.border}`,
             display: 'flex',
             flexDirection: 'column',
             padding: '18px 14px',
             gap: '16px',
-            position: 'sticky',
-            top: 0,
-            height: '100vh',
           }}
         >
           <button
@@ -275,6 +273,7 @@ export function StudentShellLayout() {
         <header
           style={{
             minHeight: '58px',
+            flex: 'none',
             background: '#fff',
             borderBottom: `1px solid ${COLORS.border}`,
             padding: narrow ? '10px 14px' : '0 24px',
@@ -398,86 +397,85 @@ export function StudentShellLayout() {
         <main
           style={{
             flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
             width: '100%',
-            padding: narrow ? '16px 14px 92px' : '24px 28px 36px',
+            padding: narrow ? '16px 14px 28px' : '24px 28px 36px',
           }}
         >
           <div style={{ maxWidth: '1040px', margin: '0 auto', width: '100%' }}>
             <Outlet />
           </div>
         </main>
-      </div>
 
-      {narrow && (
-        <nav
-          aria-label="Menú inferior del estudiante"
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 30,
-            background: '#fff',
-            borderTop: `1px solid ${COLORS.border}`,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            padding: '4px 6px',
-          }}
-        >
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.to);
-            return (
-              <button
-                key={item.to}
-                type="button"
-                onClick={() => navigate(item.to)}
-                aria-current={active ? 'page' : undefined}
-                style={{
-                  minHeight: '54px',
-                  border: 0,
-                  borderRadius: '12px',
-                  background: active ? COLORS.primarySoftBg : 'transparent',
-                  color: active ? COLORS.primarySoftFg : COLORS.muted,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '3px',
-                  fontSize: '12px',
-                  fontWeight: active ? 700 : 600,
-                  cursor: 'pointer',
-                  position: 'relative',
-                }}
-              >
-                <NavIcon kind={item.icon} active={active} />
-                <span>{item.mobileLabel}</span>
-                {item.icon === 'home' && pendingCount > 0 && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '5px',
-                      right: 'calc(50% - 20px)',
-                      minWidth: '18px',
-                      height: '18px',
-                      padding: '0 5px',
-                      borderRadius: '999px',
-                      background: COLORS.primary,
-                      color: '#fff',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {pendingCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      )}
+        {narrow && (
+          <nav
+            aria-label="Menú inferior del estudiante"
+            style={{
+              flex: 'none',
+              background: '#fff',
+              borderTop: `1px solid ${COLORS.border}`,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              padding: '4px 6px',
+            }}
+          >
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.to);
+              return (
+                <button
+                  key={item.to}
+                  type="button"
+                  onClick={() => navigate(item.to)}
+                  aria-current={active ? 'page' : undefined}
+                  style={{
+                    minHeight: '54px',
+                    border: 0,
+                    borderRadius: '12px',
+                    background: active ? COLORS.primarySoftBg : 'transparent',
+                    color: active ? COLORS.primarySoftFg : COLORS.muted,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '3px',
+                    fontSize: '12px',
+                    fontWeight: active ? 700 : 600,
+                    cursor: 'pointer',
+                    position: 'relative',
+                  }}
+                >
+                  <NavIcon kind={item.icon} active={active} />
+                  <span>{item.mobileLabel}</span>
+                  {item.icon === 'home' && pendingCount > 0 && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: 'calc(50% - 20px)',
+                        minWidth: '18px',
+                        height: '18px',
+                        padding: '0 5px',
+                        borderRadius: '999px',
+                        background: COLORS.primary,
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+      </div>
 
       <Toast message={toast} hasBottomNav={narrow} />
     </div>
