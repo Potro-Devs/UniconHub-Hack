@@ -189,3 +189,30 @@ Todo desarrollo en este repositorio debe apegarse estrictamente a las siguientes
   - Correcto: `fix: lock screen test after paper capture`
   - Incorrecto: `feat: Se agregaron muchas cosas del backend y también arreglé unos detalles en varias pantallas del frontend`
 - Mantén commits atómicos por módulo vertical para evitar conflictos en archivos compartidos (`App.jsx`, `app.js`, `shared/`).
+
+---
+
+# Agentes del proyecto
+
+Subagentes de Claude Code definidos en `.claude/agents/`:
+
+- **`arquitectura`** — Decide y justifica pila, estructura, puntos de extensión y despliegue; no implementa.
+- **`backend`** — Implementa modelo de datos, reglas de diagnóstico, autenticación, seguridad y seed.
+- **`ui-ux`** — Diseña flujos, accesibilidad y tono para docente y alumno; no escribe código.
+- **`frontend`** — Construye las pantallas responsivas y accesibles con estilos en tokens.
+- **`auditor`** — Revisa calidad, seguridad, privacidad, README y apego a este documento; no modifica archivos.
+- **`experto-educacion`** — Evalúa el MVP con una rúbrica pedagógica para el contexto de primarias en México; no modifica archivos.
+
+## Flujo de trabajo
+
+1. **`arquitectura`** define la base técnica y **`backend`** la implementa.
+2. **`ui-ux`** diseña los flujos y **`frontend`** los construye.
+3. **`auditor`** revisa antes de cada integración a `main`.
+4. **`experto-educacion`** evalúa el MVP antes de grabar el video y antes de entregar.
+
+## Reglas de uso de subagentes
+
+- Antes de cualquier decisión técnica grande, consulta al agente `arquitectura`.
+- Tras terminar una funcionalidad o antes de un commit importante, pasa por el agente `auditor`.
+- Para pantallas, diseña con `ui-ux` y construye con `frontend`; para datos y lógica, usa `backend`.
+- Antes de grabar el video y antes de entregar, evalúa con `experto-educacion`.
