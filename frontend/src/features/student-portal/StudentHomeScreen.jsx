@@ -9,19 +9,18 @@ import { useSession } from '@/shared/state/SessionContext';
 import {
   getEarnedAchievements,
   getQuizItems,
-  getStudentSkillSummaries,
   pickFirstName,
 } from './studentPortalStats';
 
 /**
- * Pantalla de inicio del alumno: cuestionarios pendientes, resumen de progreso y logros.
+ * Pantalla de inicio del alumno: cuestionarios pendientes y logros.
  */
 export function StudentHomeScreen() {
   const navigate = useNavigate();
   const { narrow } = useBreakpoint();
   const reducedMotion = useReducedMotion();
   const { session } = useSession();
-  const { axiColor, stuIdx, completedQuizzes, startStudentQuiz } = useAppUi();
+  const { axiColor, completedQuizzes, startStudentQuiz } = useAppUi();
 
   const firstName = pickFirstName(session?.student?.displayName, 'Sofía');
   const group = session?.group;
@@ -33,13 +32,6 @@ export function StudentHomeScreen() {
   const quizItems = getQuizItems(completedQuizzes);
   const pendingQuizzes = quizItems.filter((q) => q.resolvedStatus === 'pending_screen');
   const heroQuiz = pendingQuizzes[0] ?? null;
-
-  const skillSummaries = getStudentSkillSummaries(stuIdx, completedQuizzes);
-  const recentSkills = [
-    skillSummaries.find((s) => s.id === 'fractions') ?? skillSummaries[0],
-    skillSummaries.find((s) => s.id === 'reading_comprehension') ?? skillSummaries[1],
-    skillSummaries.find((s) => s.id === 'place_value') ?? skillSummaries[2],
-  ].filter(Boolean);
 
   const earnedCount = getEarnedAchievements(completedQuizzes).length;
 
@@ -68,7 +60,7 @@ export function StudentHomeScreen() {
             ¡Hola, {firstName}!
           </h1>
           <div style={{ fontSize: '15px', color: COLORS.muted, marginTop: '4px' }}>
-            {groupLabel} · Tus cuestionarios y avances de hoy
+            {groupLabel} · Tus cuestionarios de hoy
           </div>
         </div>
       </div>
@@ -186,7 +178,7 @@ export function StudentHomeScreen() {
                 ¡Terminaste tus cuestionarios pendientes!
               </h2>
               <p style={{ margin: '4px 0 0', fontSize: '15px', color: COLORS.muted, lineHeight: 1.4 }}>
-                Tus respuestas ya quedaron guardadas. Revisa cómo avanzó tu camino o mira tus logros.
+                Tus respuestas ya quedaron guardadas. Mira tus logros.
               </p>
             </div>
           </div>
@@ -208,23 +200,6 @@ export function StudentHomeScreen() {
               }}
             >
               Ver mis logros
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/alumno/progreso')}
-              style={{
-                minHeight: '44px',
-                padding: '0 16px',
-                borderRadius: '12px',
-                border: `1px solid ${COLORS.border}`,
-                background: '#fff',
-                color: COLORS.ink,
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: 'pointer',
-              }}
-            >
-              Ver mi progreso
             </button>
           </div>
         </section>
@@ -338,8 +313,8 @@ export function StudentHomeScreen() {
                   </p>
                 )}
 
-                <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
-                  {isPending ? (
+                {isPending && (
+                  <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
                     <button
                       type="button"
                       className={quiz.ctaTone === 'primary' ? 'axi-btn-primary' : undefined}
@@ -359,153 +334,60 @@ export function StudentHomeScreen() {
                     >
                       {quiz.ctaLabel || 'Resolver ahora'}
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/alumno/progreso')}
-                      style={{
-                        width: '100%',
-                        minHeight: '44px',
-                        padding: '0 14px',
-                        borderRadius: '12px',
-                        border: `1px solid ${COLORS.border}`,
-                        background: '#fff',
-                        color: COLORS.primaryText,
-                        fontWeight: 700,
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Ver en mi progreso →
-                    </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </article>
             );
           })}
         </div>
       </section>
 
-      <div
+      <section
         style={{
-          display: 'grid',
-          gridTemplateColumns: narrow ? '1fr' : '1.35fr 1fr',
-          gap: '14px',
+          background: '#fff',
+          borderRadius: '20px',
+          border: `1px solid ${COLORS.border}`,
+          padding: '18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          justifyContent: 'space-between',
         }}
       >
-        <section
-          style={{
-            background: '#fff',
-            borderRadius: '20px',
-            border: `1px solid ${COLORS.border}`,
-            padding: '18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-            <h2 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '19px' }}>
-              Tu progreso reciente
-            </h2>
-            <button
-              type="button"
-              onClick={() => navigate('/alumno/progreso')}
-              style={{
-                minHeight: '36px',
-                border: 0,
-                background: 'none',
-                color: COLORS.primaryText,
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                padding: 0,
-              }}
-            >
-              Ver las 5 habilidades →
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {recentSkills.map((skill) => (
-              <div key={skill.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 700 }}>{skill.name}</span>
-                  <span
-                    style={{
-                      padding: '2px 9px',
-                      borderRadius: '999px',
-                      background: skill.level.bg,
-                      color: skill.level.fg,
-                      fontSize: '12px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {skill.currentPct}% · {skill.level.label}
-                  </span>
-                </div>
-                <div style={{ height: '10px', borderRadius: '999px', background: COLORS.bg, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      width: `${skill.currentPct}%`,
-                      height: '100%',
-                      borderRadius: '999px',
-                      background: skill.level.solid,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section
-          style={{
-            background: '#fff',
-            borderRadius: '20px',
-            border: `1px solid ${COLORS.border}`,
-            padding: '18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Mascot size={70} mood="celebra" color={axiColor} />
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.primaryText, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                Tus logros
-              </div>
-              <h2 className="font-display" style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '19px', lineHeight: 1.2 }}>
-                {earnedCount} sellos de esfuerzo
-              </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Mascot size={70} mood="celebra" color={axiColor} />
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.primaryText, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              Tus logros
             </div>
+            <h2 className="font-display" style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '19px', lineHeight: 1.2 }}>
+              {earnedCount} sellos de esfuerzo
+            </h2>
           </div>
+        </div>
 
-          <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.45, color: COLORS.muted }}>
-            Los sellos no se pierden ({STUDENT_ACHIEVEMENTS.length} base del ciclo). Cada reto suma a tu camino con {APP_NAME}.
-          </p>
+        <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.45, color: COLORS.muted }}>
+          Los sellos no se pierden ({STUDENT_ACHIEVEMENTS.length} base del ciclo). Cada reto suma a tu camino con {APP_NAME}.
+        </p>
 
-          <button
-            type="button"
-            onClick={() => navigate('/alumno/logros')}
-            style={{
-              minHeight: '44px',
-              padding: '0 16px',
-              borderRadius: '12px',
-              border: 0,
-              background: COLORS.celebrationBg,
-              color: COLORS.celebrationFg,
-              fontWeight: 700,
-              fontSize: '14px',
-              cursor: 'pointer',
-            }}
-          >
-            Ver mis logros →
-          </button>
-        </section>
-      </div>
+        <button
+          type="button"
+          onClick={() => navigate('/alumno/logros')}
+          style={{
+            minHeight: '44px',
+            padding: '0 16px',
+            borderRadius: '12px',
+            border: 0,
+            background: COLORS.celebrationBg,
+            color: COLORS.celebrationFg,
+            fontWeight: 700,
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          Ver mis logros →
+        </button>
+      </section>
     </div>
   );
 }

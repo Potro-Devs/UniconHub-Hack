@@ -11,7 +11,6 @@ import { getQuizItems } from './studentPortalStats';
 const NAV_ITEMS = [
   { to: '/alumno/inicio', label: 'Inicio', mobileLabel: 'Inicio', icon: 'home' },
   { to: '/alumno/clases', label: 'Mis clases', mobileLabel: 'Clases', icon: 'classes' },
-  { to: '/alumno/progreso', label: 'Mi progreso', mobileLabel: 'Progreso', icon: 'progress' },
   { to: '/alumno/logros', label: 'Mis logros', mobileLabel: 'Logros', icon: 'achievements' },
 ];
 
@@ -44,15 +43,6 @@ function NavIcon({ kind, active }) {
         <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v15H6.5A2.5 2.5 0 0 0 4 21.5z" />
         <path d="M8 8h7" />
         <path d="M8 12h5" />
-      </svg>
-    );
-  }
-  if (kind === 'progress') {
-    return (
-      <svg {...props}>
-        <path d="M4 19h16" />
-        <path d="M6 15l4-4 3 2.5L19 7" />
-        <path d="M15 7h4v4" />
       </svg>
     );
   }
@@ -397,7 +387,7 @@ export function StudentShellLayout() {
               background: '#fff',
               borderTop: `1px solid ${COLORS.border}`,
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: `repeat(${NAV_ITEMS.length}, 1fr)`,
               padding: '4px 6px',
             }}
           >
