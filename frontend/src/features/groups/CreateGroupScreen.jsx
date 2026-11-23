@@ -1,238 +1,108 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
-import { STUDENTS } from '@/shared/data/seedData';
 import { useAppUi } from '@/shared/state/AppUiContext';
+import { FormMessage } from '@/shared/components/FormMessage';
+import { buttonStyle, card, noticeBox, pageTitle } from '@/shared/styles/ui';
+import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
+import { groupsApi } from './groups.api';
+import { MESSAGES, classifyGroupSaveError, findSameGroup, groupLabel, SCHOOL_YEARS, schoolYearToDisplay } from './groups.logic';
+import { GroupFieldsPicker } from './GroupFieldsPicker';
+import { useTeacherGroups } from './TeacherGroupsContext';
+import { DuplicateGroupAlert } from './DuplicateGroupAlert';
 
-const GRADES = ['1.º', '2.º', '3.º', '4.º', '5.º', '6.º'];
-const SECTIONS = ['A', 'B', 'C', 'D'];
 
 /**
- * Pantalla 10: Alta de grupo y pegado masivo de lista de alumnos.
+ * Paso 1 de 2: alta del grupo (`POST /groups`). Con el 201 navega al detalle
+ * (`/docente/grupos/:id?nuevo=1`), donde se pega la lista de alumnos.
  */
 export function CreateGroupScreen() {
   const navigate = useNavigate();
-  const { ngGrade, setNgGrade, ngGroup, setNgGroup, ngList, setNgList, say } = useAppUi();
+  const { say } = useAppUi();
+  const { narrow } = useBreakpoint();
+  const { groups, upsertGroup, setActiveGroupId, reload } = useTeacherGroups();
 
-  const pickStyle = (active) =>
-    active
-      ? { background: COLORS.ink, color: '#fff', borderColor: COLORS.ink }
-      : { background: '#fff', color: COLORS.ink, borderColor: COLORS.border };
+  const [fields, setFields] = useState({ grade: 3, section: 'A', schoolYear: SCHOOL_YEARS[0] });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null); // { kind: 'duplicate', fields } | { kind: 'generic' }
+  const submittingRef = useRef(false);
+  const errorRef = useRef(null);
 
-  const parsed = ngList
-    .split(/\n|,/)
-    .map((x) => x.trim())
-    .filter(Boolean);
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
-  const ngTemario =
-    ngGrade === '3.º'
-      ? 'Fase 4 · Saberes y pensamiento científico'
-      : 'Disponible en roadmap (MVP: solo 3.º)';
+  const label = groupLabel(fields.grade, fields.section);
 
-  const handleCreate = () => {
-    say(`Grupo ${ngGrade} ${ngGroup} creado con ${parsed.length} alumnos. Ahora marca en qué van.`);
-    navigate('/docente/temario');
+  const onSubmit = async (event) => {
+    event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const group = await groupsApi.create(fields);
+      upsertGroup(group);
+      setActiveGroupId(group.id);
+      say(`Listo, se creó ${group.name}.`);
+      reload().catch(() => {});
+      navigate(`/docente/grupos/${group.id}?nuevo=1`);
+    } catch (err) {
+      const kind = classifyGroupSaveError(err);
+      setError(kind === 'duplicate' ? { kind, fields: { ...fields } } : { kind });
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
+  const existing = error?.kind === 'duplicate' ? findSameGroup(groups, error.fields) : null;
+
   return (
-    <div style={{ maxWidth: '780px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <form onSubmit={onSubmit} noValidate style={{ maxWidth: '780px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
       <button
         type="button"
         onClick={() => navigate('/docente/grupos')}
-        style={{
-          alignSelf: 'flex-start',
-          border: 0,
-          background: 'none',
-          padding: 0,
-          fontSize: '14px',
-          fontWeight: 700,
-          color: COLORS.primaryText,
-          cursor: 'pointer',
-        }}
+        style={{ ...buttonStyle('ghost'), alignSelf: 'flex-start', minHeight: '44px', padding: '0 4px', fontSize: '15px' }}
       >
         ← Grupos
       </button>
 
-      <h1 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '30px', lineHeight: 1.1 }}>
-        Crear grupo
-      </h1>
-
-      <div
-        style={{
-          background: '#fff',
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: '22px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700 }}>Grado</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {GRADES.map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setNgGrade(g)}
-                style={{
-                  minWidth: '56px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  border: '2px solid',
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  ...pickStyle(ngGrade === g),
-                }}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700 }}>Grupo</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {SECTIONS.map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setNgGroup(g)}
-                style={{
-                  minWidth: '56px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  border: '2px solid',
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  ...pickStyle(ngGroup === g),
-                }}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 32px', fontSize: '14px' }}>
-          <div>
-            <div style={{ color: COLORS.muted }}>Ciclo escolar</div>
-            <div style={{ fontWeight: 700, marginTop: '2px' }}>2026–2027</div>
-          </div>
-          <div>
-            <div style={{ color: COLORS.muted }}>Temario que se carga</div>
-            <div style={{ fontWeight: 700, marginTop: '2px' }}>{ngTemario}</div>
-          </div>
-        </div>
+      <div>
+        <h1 className="font-display" style={pageTitle}>
+          Crear grupo
+        </h1>
+        <div style={{ fontSize: '15px', color: COLORS.muted, marginTop: '4px' }}>Paso 1 de 2</div>
       </div>
 
-      <div
-        style={{
-          background: '#fff',
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: '22px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            gap: '10px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ fontSize: '16px', fontWeight: 700 }}>Alumnos</div>
-          <button
-            type="button"
-            onClick={() => setNgList(STUDENTS.slice(0, 38).map((s) => s.name).join('\n'))}
-            style={{
-              border: 0,
-              background: 'none',
-              padding: 0,
-              fontSize: '13px',
-              fontWeight: 700,
-              color: COLORS.primaryText,
-              cursor: 'pointer',
-            }}
-          >
-            Pegar lista de ejemplo
-          </button>
-        </div>
+      <div style={card}>
+        <GroupFieldsPicker value={fields} onChange={setFields} />
+        <div style={noticeBox}>Revisa el grado y el ciclo: cuando agregues alumnos ya no se podrán cambiar.</div>
+      </div>
 
-        <div style={{ fontSize: '14px', color: COLORS.muted }}>
-          Pega la lista de tu control escolar, un nombre por renglón.
-        </div>
-
-        <textarea
-          value={ngList}
-          onChange={(e) => setNgList(e.target.value)}
-          placeholder={'Sofía Ramírez\nMateo Hernández\n…'}
-          style={{
-            minHeight: '150px',
-            borderRadius: '14px',
-            border: `1px solid ${COLORS.borderInput}`,
-            padding: '12px 14px',
-            fontSize: '15px',
-            lineHeight: 1.5,
-            resize: 'vertical',
-            outline: 'none',
-            fontFamily: 'inherit',
-          }}
+      {error?.kind === 'duplicate' && (
+        <DuplicateGroupAlert
+          ref={errorRef}
+          label={groupLabel(error.fields.grade, error.fields.section)}
+          schoolYear={schoolYearToDisplay(error.fields.schoolYear)}
+          existing={existing}
+          onGo={(g) => navigate(`/docente/grupos/${g.id}`)}
         />
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-          <b style={{ fontSize: '14px', marginRight: '4px' }}>{parsed.length} alumnos</b>
-          {parsed.slice(0, 10).map((name, idx) => (
-            <span
-              key={`${name}-${idx}`}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '999px',
-                background: COLORS.bg,
-                fontSize: '13px',
-              }}
-            >
-              {name}
-            </span>
-          ))}
-          {parsed.length > 10 && (
-            <span style={{ fontSize: '13px', color: COLORS.muted }}>
-              y {parsed.length - 10} más
-            </span>
-          )}
+      )}
+      {error && error.kind !== 'duplicate' && (
+        <div ref={errorRef} tabIndex={-1}>
+          <FormMessage message={error.kind === 'network' ? MESSAGES.createNetwork : MESSAGES.createGeneric} />
         </div>
-
-        <div style={{ fontSize: '13px', color: COLORS.muted, lineHeight: 1.4 }}>
-          Solo el nombre. No pidas CURP: el sistema crea un folio interno para unir su historial.
-        </div>
-      </div>
+      )}
 
       <button
-        type="button"
-        onClick={handleCreate}
-        style={{
-          alignSelf: 'flex-start',
-          height: '54px',
-          padding: '0 24px',
-          borderRadius: '16px',
-          border: 0,
-          background: COLORS.primary,
-          color: '#fff',
-          fontSize: '17px',
-          fontWeight: 700,
-          cursor: 'pointer',
-        }}
+        type="submit"
+        disabled={submitting}
+        aria-disabled={submitting}
+        style={{ ...buttonStyle('primary', { tall: true, fullWidth: narrow, disabled: submitting }), alignSelf: narrow ? 'stretch' : 'flex-start' }}
       >
-        Crear {ngGrade} {ngGroup} y ver su temario
+        {submitting ? 'Creando grupo…' : `Crear ${label}`}
       </button>
-    </div>
+    </form>
   );
 }

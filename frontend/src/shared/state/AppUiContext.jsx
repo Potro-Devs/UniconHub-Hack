@@ -37,9 +37,6 @@ export function AppUiProvider({ children }) {
   const [capAnswers, setCapAnswers] = useState({});
   const [absent, setAbsent] = useState({});
 
-  const [ngGrade, setNgGrade] = useState('3.º');
-  const [ngGroup, setNgGroup] = useState('C');
-  const [ngList, setNgList] = useState('');
 
   // Acceso del alumno: código escrito y tarjetas devueltas por `POST /auth/student-join`.
   const [joinCode, setJoinCode] = useState('');
@@ -247,12 +244,6 @@ export function AppUiProvider({ children }) {
     setCapAnswers,
     absent,
     setAbsent,
-    ngGrade,
-    setNgGrade,
-    ngGroup,
-    setNgGroup,
-    ngList,
-    setNgList,
     joinCode,
     setJoinCode,
     joinRoster,
