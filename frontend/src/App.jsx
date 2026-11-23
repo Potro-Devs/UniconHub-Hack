@@ -19,7 +19,6 @@ import { StudentExerciseScreen } from '@/features/student-portal/StudentExercise
 import { StudentHomeScreen } from '@/features/student-portal/StudentHomeScreen';
 import { StudentLayout } from '@/features/student-portal/StudentLayout';
 import { StudentNameScreen } from '@/features/student-portal/StudentNameScreen';
-import { StudentProgressScreen } from '@/features/student-portal/StudentProgressScreen';
 import { StudentShellLayout } from '@/features/student-portal/StudentShellLayout';
 import { StudentSummaryScreen } from '@/features/student-portal/StudentSummaryScreen';
 import { StudentProfileScreen } from '@/features/student-profile/StudentProfileScreen';
@@ -87,7 +86,6 @@ export function App() {
             >
               <Route path="/alumno/inicio" element={<StudentHomeScreen />} />
               <Route path="/alumno/clases" element={<StudentClassesScreen />} />
-              <Route path="/alumno/progreso" element={<StudentProgressScreen />} />
               <Route path="/alumno/logros" element={<StudentAchievementsScreen />} />
             </Route>
 

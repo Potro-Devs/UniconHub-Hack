@@ -465,7 +465,6 @@ export const STUDENT_CLASSES = [
     code: '3A9P4K',
     name: 'Español y Lectura',
     teacherLine: 'Mtra. Elena Torres · Lenguajes',
-    ctaType: 'progress',
   },
   {
     id: 'class-club-3',

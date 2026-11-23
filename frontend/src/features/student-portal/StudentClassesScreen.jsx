@@ -109,26 +109,28 @@ export function StudentClassesScreen() {
                     : 'Sin cuestionarios pendientes por ahora'}
                 </div>
 
-                <div style={{ marginTop: 'auto', paddingTop: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(showQuizzesBtn ? '/alumno/inicio' : '/alumno/progreso')}
-                    style={{
-                      width: '100%',
-                      minHeight: '44px',
-                      padding: '0 14px',
-                      borderRadius: '12px',
-                      border: `1px solid ${COLORS.border}`,
-                      background: COLORS.surfaceSubtle,
-                      color: COLORS.primaryText,
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {showQuizzesBtn ? 'Ver cuestionarios →' : 'Ver mi avance →'}
-                  </button>
-                </div>
+                {showQuizzesBtn && (
+                  <div style={{ marginTop: 'auto', paddingTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/alumno/inicio')}
+                      style={{
+                        width: '100%',
+                        minHeight: '44px',
+                        padding: '0 14px',
+                        borderRadius: '12px',
+                        border: `1px solid ${COLORS.border}`,
+                        background: COLORS.surfaceSubtle,
+                        color: COLORS.primaryText,
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Ver cuestionarios →
+                    </button>
+                  </div>
+                )}
               </article>
             );
           })}

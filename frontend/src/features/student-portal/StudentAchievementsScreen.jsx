@@ -98,24 +98,6 @@ export function StudentAchievementsScreen() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           <button
             type="button"
-            className="axi-btn-primary"
-            onClick={() => navigate('/alumno/progreso')}
-            style={{
-              minHeight: '44px',
-              padding: '0 16px',
-              borderRadius: '12px',
-              border: 0,
-              background: COLORS.primary,
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '14px',
-              cursor: 'pointer',
-            }}
-          >
-            Ver mi progreso
-          </button>
-          <button
-            type="button"
             onClick={() => navigate('/alumno/inicio')}
             style={{
               minHeight: '44px',
