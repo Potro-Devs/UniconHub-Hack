@@ -1,6 +1,6 @@
 # Contrato de API REST (`/api/v1`)
 
-> Estado: **Health** y **Auth** implementados. El resto de los módulos está planificado.
+> Estado: **Health**, **Auth** y **Groups** implementados. El resto de los módulos está planificado.
 
 Todas las respuestas siguen el formato estándar:
 - Éxito: `{ "data": ..., "meta": ... }`
@@ -13,8 +13,8 @@ Todas las respuestas siguen el formato estándar:
 | 400 | `VALIDATION_ERROR`, `INVALID_JSON` | Cuerpo incompleto, con formato inválido o JSON mal formado |
 | 401 | `AUTH_REQUIRED`, `INVALID_TOKEN`, `TOKEN_EXPIRED`, `SESSION_INVALID` | Falta el token, es inválido o expiró, o el usuario ya no existe |
 | 403 | `FORBIDDEN` | El rol de la sesión no puede usar el endpoint |
-| 404 | `NOT_FOUND` | La ruta no existe |
-| 409 | `SCREEN_LOCKED`, `ALREADY_COMPLETED` | Prueba bloqueada en pantalla (papel) o ya terminada |
+| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
+| 409 | `SCREEN_LOCKED`, `ALREADY_COMPLETED`, `GROUP_ALREADY_EXISTS`, `GROUP_HAS_HISTORY` | Prueba bloqueada en pantalla (papel) o ya terminada; grupo duplicado; cambio de grado/ciclo en un grupo con historial |
 | 422 | Otros códigos de `DomainError` | Regla de negocio incumplida (p. ej. `INSUFFICIENT_QUESTIONS_PER_SKILL`) |
 | 429 | `TOO_MANY_ATTEMPTS` | Demasiados intentos de login o de acceso de alumno (`details.retryAfterSeconds`) |
 | 500 | `INTERNAL_ERROR` | Error inesperado (sin detalles internos) |
@@ -41,11 +41,49 @@ Los endpoints protegidos esperan `Authorization: Bearer <token>`. El token (JWT 
 - Con correo inexistente o contraseña incorrecta, la respuesta es idéntica (mismo código, mensaje y tiempo de respuesta).
 - Los accesos rápidos están activos fuera de producción. En producción solo se activan con `ENABLE_QUICK_LOGIN=true`.
 
+## Groups (`/api/v1/groups`)
+
+Todos los endpoints exigen sesión.
+
+| Método y ruta | Roles | Cuerpo | Respuesta `data` | Errores |
+| --- | --- | --- | --- | --- |
+| `GET /` | teacher, director | — | `[Group]` · `meta: { count }` | 401, 403 |
+| `POST /` | teacher | `{ grade, section, schoolYear }` | `Group` (201) | 400, 401, 403, 409 `GROUP_ALREADY_EXISTS` |
+| `GET /:groupId` | teacher, director | — | `Group` | 400, 401, 403, 404 `GROUP_NOT_FOUND` |
+| `PATCH /:groupId` | teacher | `{ grade?, section?, schoolYear? }` (al menos uno) | `Group` | 400, 401, 403, 404, 409 `GROUP_ALREADY_EXISTS` / `GROUP_HAS_HISTORY` |
+| `GET /:groupId/students` | teacher, director | — | `[Student]` (solo inscritos activos) · `meta: { count }` | 400, 401, 403, 404 |
+| `POST /:groupId/students` | teacher | `{ firstNames, lastNames }` | `Student` (201) | 400, 401, 403, 404 |
+| `POST /:groupId/students/bulk` | teacher | `{ text }` (un alumno por línea) | `{ created: [Student] }` (201) · `meta: { createdCount }` | 400 (`details.invalidLines` si hay líneas inválidas), 401, 403, 404 |
+| `PATCH /students/:studentId/avatar` | teacher, student | `{ avatarId?, avatarColor? }` (al menos uno) | `Student` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
+
+- `Group`: `{ id, name: "3.º A", grade, section, schoolYear, phase, joinCode, teacherId, studentCount }`. `phase` se calcula del grado (3: 1.º–2.º, 4: 3.º–4.º, 5: 5.º–6.º); `studentCount` cuenta inscripciones activas.
+- `Student`: `{ id, firstNames, lastNames, initials, avatarColor, avatarId }`. Nombre completo porque es un contexto autenticado de la escuela. **Nunca incluye `internal_folio`.**
+- **Autorización:**
+  - `teacher`: solo grupos con `teacher_id` = su id (y de su escuela), y alumnos con inscripción `active` en ellos.
+  - `director`: **solo lectura** de los grupos y alumnos de su escuela; cualquier escritura → 403.
+  - `student`: solo `PATCH /students/:studentId/avatar` con su propio id y estando activo en el grupo de su token; el resto → 403.
+  - Un grupo o alumno inexistente **o ajeno** responde 404 con el mismo cuerpo (no se revela qué ids existen).
+- **Validación** (`400 VALIDATION_ERROR`):
+  - Ids de ruta: enteros positivos.
+  - `grade`: entero 1–6 (acepta `"3"`). `section`: 1 o 2 letras A–Z, se guarda en mayúsculas. `schoolYear`: `AAAA-AAAA` con años consecutivos (2000–2100).
+  - `firstNames` / `lastNames`: se normalizan (`"  ana PAULA "` → `"Ana Paula"`, partículas `de la` en minúscula); deben empezar con letra, solo letras (con acentos), espacio, guion, apóstrofo o punto; máximo 80 caracteres cada uno.
+  - `avatarId`: `rosa`, `azul`, `amarillo`, `lila` (variantes de la mascota del frontend) o `null` para quitarlo. `avatarColor`: un color de la paleta accesible `AVATAR_PALETTE` (no distingue mayúsculas).
+- **Alta de alumnos:** genera iniciales (primer nombre + primer apellido), color aleatorio de la paleta y `internal_folio` único (reintenta si choca), e inscribe al alumno como `active`.
+- **Carga masiva:**
+  - Acepta viñetas, numeración, líneas vacías y el formato `Apellidos, Nombres`. Sin coma, los dos últimos términos son apellidos.
+  - Máximo **60 líneas no vacías** por carga (`details: { maxLines, lineCount }`).
+  - **Todo o nada:** si **alguna** línea es inválida, se rechaza el lote completo con 400 `VALIDATION_ERROR` y `details.invalidLines: [{ line, text }]`, sin guardar ningún alumno. La docente corrige la lista y la vuelve a pegar.
+  - Si todas son válidas, se crean en **una sola transacción**: si falla un alta, no se guarda ninguna.
+- **Grupo duplicado:** misma escuela, grado, sección y ciclo → 409 `GROUP_ALREADY_EXISTS` ("Ese grupo ya está registrado en tu escuela.").
+- **Grupo con historial:** si el grupo tiene inscripciones (de cualquier estado: `active`, `completed`, `withdrawn`) o asignaciones, `PATCH` no puede cambiar `grade` ni `schoolYear` → 409 `GROUP_HAS_HISTORY`, para no reescribir el historial longitudinal. Cambiar solo `section` sí se permite (respetando el 409 por duplicado). Enviar el mismo grado o ciclo que ya tiene no cuenta como cambio.
+- **Crear grupo:** si el usuario de la sesión ya no existe, dejó de ser `teacher` o cambió de escuela → 401 `SESSION_INVALID`.
+- El `joinCode` (6 caracteres, sin 0/O/1/I/L) se genera al crear y no cambia al editar.
+
 ## Módulos
 
 - **Health:** `GET /api/v1/health`
 - **Auth (`/api/v1/auth`):** ver la sección anterior.
-- **Groups (`/api/v1/groups`):** `GET /`, `POST /`, `GET /:groupId/students`, `POST /:groupId/students`, `POST /:groupId/students/bulk`, `PATCH /students/:studentId/avatar`
+- **Groups (`/api/v1/groups`):** ver la sección anterior.
 - **Curriculum (`/api/v1/curriculum`):** `GET /groups/:groupId`, `PATCH /groups/:groupId/contents/:contentId`, `GET /groups/:groupId/coverage`
 - **Assessments (`/api/v1/assessments`):** `GET /questions`, `GET /groups/:groupId/assignments`, `POST /groups/:groupId/assignments`
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
