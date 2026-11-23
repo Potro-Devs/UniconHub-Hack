@@ -1,0 +1,274 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #f3f6fb;
+  font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  color: #18203a;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: oklch(0.5 0.2 268);
+}
+
+a:hover {
+  color: oklch(0.4 0.2 268);
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+.font-display {
+  font-family: 'Baloo 2', sans-serif;
+}
+
+.axi-btn-primary:hover {
+  background: oklch(0.44 0.2 268) !important;
+}
+
+.axi-card-hover:hover {
+  border-color: oklch(0.54 0.2 268) !important;
+}
+
+.axi-dashed-hover:hover {
+  border-color: oklch(0.54 0.2 268) !important;
+  color: oklch(0.45 0.2 268) !important;
+}
+
+.axi-name-hover:hover {
+  color: oklch(0.45 0.2 268) !important;
+}
+
+.axi-student-card:hover {
+  box-shadow: 0 0 0 3px #18203a !important;
+}
+
+@keyframes cellIn {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-28px) scale(1.04, 0.96);
+  }
+  55% {
+    transform: translateY(0) scale(1.1, 0.9);
+  }
+  75% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes grow {
+  from {
+    width: 58%;
+  }
+  to {
+    width: 72%;
+  }
+}
+
+@keyframes b0 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, -130px) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b1 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(96px, -96px) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b2 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(140px, 0) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b3 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(96px, 80px) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b4 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-96px, 80px) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b5 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-140px, 0) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b6 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-96px, -96px) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes b7 {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(40px, -150px) scale(1) rotate(90deg);
+  }
+}
+
+@keyframes axiBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes axiGillL {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(-7deg);
+  }
+}
+
+@keyframes axiGillR {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+@keyframes axiBlink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}

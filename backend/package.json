@@ -1,0 +1,24 @@
+{
+  "name": "axi-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "API REST modular para diagnóstico educativo Axi",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed": "node src/db/seed.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.15.0"
+  }
+}
