@@ -196,7 +196,7 @@ Todo desarrollo en este repositorio debe apegarse estrictamente a las siguientes
 
 Subagentes de Claude Code definidos en `.claude/agents/`:
 
-- **`arquitectura`** — Decide y justifica pila, estructura, puntos de extensión y despliegue; no implementa.
+- **`arquitectura`** — Decide estructura, puntos de extensión y despliegue respetando la pila actual (sin migrar a otra); no implementa.
 - **`backend`** — Implementa modelo de datos, reglas de diagnóstico, autenticación, seguridad y seed.
 - **`ui-ux`** — Diseña flujos, accesibilidad y tono para docente y alumno; no escribe código.
 - **`frontend`** — Construye las pantallas responsivas y accesibles con estilos en tokens.
