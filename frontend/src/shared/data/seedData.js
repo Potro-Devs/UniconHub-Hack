@@ -32,7 +32,7 @@ function buildStudents() {
     SKILLS.forEach((k) => {
       sc[k.id] = clamp(k.b + ab + (r() - 0.5) * 30);
     });
-    ['vp', 'sr', 'me'].forEach((k) => {
+    ['place_value', 'problem_solving', 'reading_comprehension'].forEach((k) => {
       prev[k] = clamp(sc[k] - 4 - r() * 18);
     });
     return {
@@ -46,18 +46,27 @@ function buildStudents() {
     };
   });
 
-  Object.assign(students[0].sc, { vp: 71, sr: 80, mu: 58, di: 49, fr: 36, me: 63 });
-  Object.assign(students[0].prev, { vp: 55, sr: 62, me: 60 });
+  Object.assign(students[0].sc, {
+    place_value: 71,
+    problem_solving: 63,
+    multiplication: 58,
+    fractions: 36,
+    reading_comprehension: 63,
+  });
+  Object.assign(students[0].prev, { place_value: 55, problem_solving: 44, reading_comprehension: 60 });
   return students;
 }
 
+/**
+ * Las 5 habilidades clave transversales del MVP (AGENTS.md §3).
+ * `b` es el promedio base usado para generar puntajes ficticios.
+ */
 export const SKILLS = [
-  { id: 'vp', name: 'Valor posicional', b: 74 },
-  { id: 'sr', name: 'Suma y resta', b: 76 },
-  { id: 'mu', name: 'Multiplicación', b: 61 },
-  { id: 'di', name: 'División', b: 53 },
-  { id: 'fr', name: 'Fracciones', b: 47 },
-  { id: 'me', name: 'Medición', b: 66 },
+  { id: 'place_value', name: 'Valor posicional', b: 62 },
+  { id: 'problem_solving', name: 'Resolución de problemas', b: 44 },
+  { id: 'multiplication', name: 'Multiplicación', b: 50 },
+  { id: 'fractions', name: 'Fracciones', b: 38 },
+  { id: 'reading_comprehension', name: 'Comprensión lectora', b: 56 },
 ];
 
 export const STUDENTS = buildStudents();
@@ -68,7 +77,7 @@ export const CURRICULUM_CONTENTS = [
     short: 'Números',
     t: 'Estudio de los números',
     pda: 'Lee, escribe y ordena números naturales hasta 1 000.',
-    sk: ['vp'],
+    sk: ['place_value'],
     st: 'visto',
     tests: ['Números hasta 1 000 · prueba 1 · 8 reactivos'],
   },
@@ -77,7 +86,7 @@ export const CURRICULUM_CONTENTS = [
     short: 'Fracciones',
     t: 'Estudio de los números: fracciones',
     pda: 'Usa medios, cuartos y octavos para expresar partes de un todo y compararlas.',
-    sk: ['fr'],
+    sk: ['fractions'],
     st: 'curso',
     tests: ['Fracciones · prueba 1 · 10 reactivos', 'Fracciones · repaso con pistas · 6 reactivos'],
   },
@@ -86,7 +95,7 @@ export const CURRICULUM_CONTENTS = [
     short: 'Suma y resta',
     t: 'Suma y resta, su relación como operaciones inversas',
     pda: 'Resuelve problemas de suma y resta con números hasta 1 000.',
-    sk: ['sr'],
+    sk: ['problem_solving'],
     st: 'visto',
     tests: ['Suma y resta · prueba 1 · 8 reactivos'],
   },
@@ -95,16 +104,24 @@ export const CURRICULUM_CONTENTS = [
     short: 'Mult. y división',
     t: 'Multiplicación y división, su relación como operaciones inversas',
     pda: 'Resuelve problemas de multiplicación hasta 10 × 10 y de reparto en partes iguales.',
-    sk: ['mu', 'di'],
+    sk: ['multiplication'],
     st: 'curso',
     tests: ['Multiplicación y división · prueba 1 · 10 reactivos'],
   },
   {
     id: 'c5',
-    short: 'Medición',
+    short: 'Lectura',
+    t: 'Comprensión de textos informativos y narrativos',
+    pda: 'Lee textos breves, identifica la idea principal y responde preguntas sobre lo que leyó.',
+    sk: ['reading_comprehension'],
+    st: 'visto',
+    tests: ['Comprensión lectora · prueba 1 · 8 reactivos'],
+  },
+  {
+    id: 'c11',
     t: 'Medición de longitud, masa y capacidad',
     pda: 'Compara y mide longitudes, masas y capacidades con unidades convencionales.',
-    sk: ['me'],
+    sk: [],
     st: 'visto',
     tests: ['Medición · prueba 1 · 8 reactivos'],
   },
@@ -151,41 +168,35 @@ export const CURRICULUM_CONTENTS = [
 ];
 
 export const SUGGESTED_ACTIVITIES = {
-  fr: {
+  fractions: {
     t: 'Tiras de fracciones',
     d: 'En parejas, doblen tiras de papel en 2, 4 y 8 partes iguales. Pinten una parte de cada tira y comparen cuál pedazo es más grande.',
     meta: '20 min · En parejas · Tiras de papel y colores',
     err: 'Escribe el total de partes arriba (4/1 en lugar de 1/4).',
   },
-  di: {
-    t: 'Repartos con fichas',
-    d: 'Repartan 24 fichas en grupos iguales de distintas formas y escriban la división que representa cada reparto.',
-    meta: '15 min · Equipos de 3 · Fichas o semillas',
-    err: 'Reparte sin que todos los grupos queden iguales.',
-  },
-  mu: {
+  multiplication: {
     t: 'Arreglos rectangulares',
     d: 'Formen filas y columnas con fichas para representar multiplicaciones y cuenten el total de dos formas.',
     meta: '15 min · En parejas · Fichas',
     err: 'Suma los números en lugar de multiplicarlos.',
   },
-  vp: {
+  place_value: {
     t: 'Tablero de centenas',
     d: 'Con billetes de juguete de 100, 10 y 1, armen números que dicte un compañero y escríbanlos.',
     meta: '15 min · En parejas · Billetes de juguete',
     err: 'Confunde decenas con centenas al escribir el número.',
   },
-  sr: {
+  problem_solving: {
     t: 'La tiendita',
-    d: 'Compren y vendan con precios hasta 500 pesos; anoten la suma y el cambio de cada compra.',
+    d: 'Compren y vendan con precios hasta 500 pesos; antes de calcular, digan qué pregunta el problema y qué datos sirven.',
     meta: '20 min · Equipos de 4 · Etiquetas de precio',
-    err: 'Olvida agrupar las decenas al sumar.',
+    err: 'Opera con todos los números del enunciado sin identificar qué se pregunta.',
   },
-  me: {
-    t: 'Medimos el salón',
-    d: 'Midan objetos del salón con regla y cinta, empezando siempre desde el cero, y comparen sus resultados.',
-    meta: '20 min · En parejas · Regla y cinta métrica',
-    err: 'Empieza a medir desde el 1 de la regla, no desde el 0.',
+  reading_comprehension: {
+    t: 'Detectives de la idea principal',
+    d: 'Lean en voz alta un texto breve, subrayen las palabras clave de cada párrafo y digan en una frase de qué trata.',
+    meta: '20 min · En parejas · Texto breve y lápices de color',
+    err: 'Elige un detalle llamativo del texto en lugar de la idea principal.',
   },
 };
 
@@ -289,12 +300,16 @@ export const PROMO_GROUPS = [
 ];
 
 export const SKILL_GLYPHS = {
-  vp: '123',
-  sr: '+ −',
-  mu: '×',
-  di: '÷',
-  fr: '½',
-  me: 'cm',
+  place_value: '123',
+  problem_solving: '¿?',
+  multiplication: '×',
+  fractions: '½',
+  reading_comprehension: 'Aa',
 };
 
-export const EVOLUTION_OFFSETS = { vp: 6, sr: 9, mu: 4, di: 3, me: 5 };
+export const EVOLUTION_OFFSETS = {
+  place_value: 6,
+  problem_solving: 9,
+  multiplication: 4,
+  reading_comprehension: 5,
+};
