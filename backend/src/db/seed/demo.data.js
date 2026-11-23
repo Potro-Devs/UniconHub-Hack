@@ -30,11 +30,6 @@ export const SKILL_BASE = Object.freeze({
   reading_comprehension: 56,
 });
 
-/** Paleta accesible de avatares (misma que `groups.domain.js`). */
-export const AVATAR_PALETTE = Object.freeze([
-  '#F4B6C2', '#F9E08B', '#A8DCEB', '#B5E3C4', '#D7C4F2', '#FFCBA4', '#C9D8F5', '#E3E8A1',
-]);
-
 export const FIRST_NAMES = Object.freeze([
   'Sofía', 'Mateo', 'Valentina', 'Santiago', 'Regina', 'Diego', 'Ximena', 'Emiliano', 'Camila',
   'Leonardo', 'Renata', 'Iker', 'Valeria', 'Sebastián', 'Daniela', 'Gael', 'Mariana', 'Andrés',

@@ -11,10 +11,13 @@ import { pathToFileURL } from 'node:url';
 import bcrypt from 'bcryptjs';
 import { closeDatabase, getDatabase, withTransaction } from '../config/database.js';
 import { env } from '../config/env.js';
+import { computeWeightedMastery, getMasteryLevel } from '../modules/analytics/analytics.domain.js';
+import { phaseForGrade } from '../modules/curriculum/curriculum.domain.js';
+import { evaluateAchievements } from '../modules/diagnostics/diagnostics.domain.js';
+import { AVATAR_PALETTE, buildInitials, generateInternalFolio } from '../modules/groups/groups.domain.js';
 import { runMigrations } from './migrate.js';
 import {
   ACTIVITIES,
-  AVATAR_PALETTE,
   CURRICULUM_BY_SKILL,
   DEMO,
   EXTRA_THIRD_GRADE_CONTENTS,
@@ -43,17 +46,6 @@ const DATES = {
   diagnostic: '2026-09-25',
   paperAssigned: '2026-11-18 09:00:00',
 };
-
-// ─────────────── Reglas duplicadas a propósito ───────────────
-// TODO: reemplazar por `groups.domain.js` y `analytics.domain.js` cuando se fusione el PR #4.
-const FOLIO_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const initialsOf = (first, last) => `${first.charAt(0)}${last.charAt(0)}`.toLocaleUpperCase('es-MX');
-const folioOf = (rng) =>
-  `AXI-${Array.from({ length: 8 }, () => FOLIO_ALPHABET[Math.floor(rng.next() * FOLIO_ALPHABET.length)]).join('')}`;
-const weightedMastery = (pcts) => round2(pcts.reduce((s, p, i) => s + (i + 1) * p, 0) / ((pcts.length * (pcts.length + 1)) / 2));
-const levelIndexOf = (pct) => (pct < 25 ? 0 : pct < 50 ? 1 : pct < 75 ? 2 : 3);
-const LEVEL_CODES = ['needs_support', 'in_progress', 'achieved', 'mastered'];
-// ─────────────────────────────────────────────────────────────
 
 export function isSeeded(db) {
   return Boolean(db.prepare('SELECT 1 FROM schools WHERE name = ?').get(DEMO.schoolName));
@@ -98,7 +90,7 @@ function insertDemo(db, rng, bank, passwordHash) {
   const insertContent = (grade, field, title, pda, skillId, order) =>
     run(
       'INSERT INTO curriculum_contents (phase, grade, formative_field, title, pda, skill_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      Math.floor((grade + 1) / 2) + 2, grade, field, title, pda, skillId, order,
+      phaseForGrade(grade), grade, field, title, pda, skillId, order,
     );
   for (let grade = 1; grade <= 6; grade += 1) {
     let order = 1;
@@ -157,12 +149,12 @@ function insertDemo(db, rng, bank, passwordHash) {
     if (l1 === l2) lastNames = `${l1} ${LAST_NAMES[(i * 11 + 6) % LAST_NAMES.length]}`;
 
     let folio;
-    do folio = folioOf(rng); while (folios.has(folio));
+    do folio = generateInternalFolio(rng.next); while (folios.has(folio));
     folios.add(folio);
 
     const id = run(
       'INSERT INTO students (school_id, internal_folio, first_names, last_names, initials, avatar_color) VALUES (?, ?, ?, ?, ?, ?)',
-      schoolId, folio, first, lastNames, initialsOf(first, lastNames), rng.pick(AVATAR_PALETTE),
+      schoolId, folio, first, lastNames, buildInitials(first, lastNames), rng.pick(AVATAR_PALETTE),
     );
 
     const general = rng.normal();
@@ -206,14 +198,14 @@ function insertDemo(db, rng, bank, passwordHash) {
     const key = `${student.id}:${skill}`;
     const previous = cutsBy.get(key) ?? [];
     const sessions = [...previous, autonomous];
-    const mastery = weightedMastery(sessions);
+    const mastery = computeWeightedMastery(sessions);
     run(
       'INSERT INTO skill_mastery_history (student_id, skill_id, assignment_id, grade, session_index, session_percentage, autonomous_percentage, supported_percentage, mastery_percentage, mastery_level, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       student.id, skillIds[skill], assignmentId, grade, sessions.length, autonomous, autonomous, supported, mastery,
-      LEVEL_CODES[levelIndexOf(mastery)], recordedAt,
+      getMasteryLevel(mastery).code, recordedAt,
     );
     cutsBy.set(key, sessions);
-    return { previousMastery: previous.length ? weightedMastery(previous) : null, mastery };
+    return { previousMastery: computeWeightedMastery(previous), mastery };
   };
 
   for (const s of students) {
@@ -287,15 +279,15 @@ function insertDemo(db, rng, bank, passwordHash) {
         round2((tally.autonomous / total) * 100), round2((tally.supported / total) * 100), `${DATES.diagnostic} 12:00:00`,
       );
 
-      run(
-        "INSERT INTO student_achievements (student_id, achievement_code, size, skill_id, assignment_id, awarded_at) VALUES (?, 'block_completed', 'small', ?, ?, ?)",
-        s.id, skillIds[skill], assignmentId, `${DATES.diagnostic} 09:30:00`,
-      );
-      achievementCount += 1;
-      if (previousMastery != null && levelIndexOf(mastery) > levelIndexOf(previousMastery)) {
+      const { celebrations } = evaluateAchievements({
+        blockCompleted: true,
+        previousPercentage: previousMastery,
+        currentPercentage: mastery,
+      });
+      for (const c of celebrations) {
         run(
-          "INSERT INTO student_achievements (student_id, achievement_code, size, skill_id, assignment_id, awarded_at) VALUES (?, 'level_up', 'medium', ?, ?, ?)",
-          s.id, skillIds[skill], assignmentId, `${DATES.diagnostic} 09:30:00`,
+          'INSERT INTO student_achievements (student_id, achievement_code, size, skill_id, assignment_id, awarded_at) VALUES (?, ?, ?, ?, ?, ?)',
+          s.id, c.code, c.size, skillIds[skill], assignmentId, `${DATES.diagnostic} 09:30:00`,
         );
         achievementCount += 1;
       }
