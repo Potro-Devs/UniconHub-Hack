@@ -73,8 +73,8 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
             }}
           />
           {motion && <CelebrationConfetti variant="nivel" />}
-          <div style={{ position: 'relative', animation: motion ? 'hop 1.1s ease-in-out .2s both' : 'none' }}>
-            <Mascot size={150} mood="celebra" color={axiColor} />
+          <div style={{ position: 'relative' }}>
+            <Mascot size={150} mood="celebra" color={axiColor} animated={motion} />
           </div>
         </div>
 
@@ -118,7 +118,7 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
               color: 'oklch(0.4 0.09 75)',
             }}
           >
-            En proceso · 58%
+            En proceso · 44%
           </span>
           <span>→</span>
           <span
@@ -129,7 +129,7 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
               color: 'oklch(0.38 0.1 165)',
             }}
           >
-            Logrado · 72%
+            Logrado · 58%
           </span>
         </div>
 
@@ -137,7 +137,7 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
           <div
             style={{
               height: '100%',
-              width: '72%',
+              width: '58%',
               borderRadius: '999px',
               background: 'oklch(0.68 0.14 165)',
               animation: motion ? 'grow 1s ease-out .6s both' : 'none',

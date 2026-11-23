@@ -272,3 +272,344 @@ textarea {
     transform: scaleY(0.1);
   }
 }
+
+/* Pista (pedir ayuda, ~1.3s) */
+@keyframes axiIdeaPop {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(8px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.16) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes axiIdeaRing {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes axiHeadTilt {
+  0% {
+    transform: rotate(0deg);
+  }
+  60% {
+    transform: rotate(-5deg) translateY(-2px);
+  }
+  100% {
+    transform: rotate(-3.5deg) translateY(-1px);
+  }
+}
+
+@keyframes axiLookUpRight {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(3px, -2.5px);
+  }
+}
+
+@keyframes axiPointUp {
+  0% {
+    transform: rotate(0deg);
+  }
+  65% {
+    transform: rotate(-38deg) translateY(-3px);
+  }
+  100% {
+    transform: rotate(-30deg) translateY(-2px);
+  }
+}
+
+@keyframes axiGillCurious {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+}
+
+/* Motivación al fallar (~1.4s) */
+@keyframes axiWarmGlow {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+@keyframes axiCalmSway {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  30% {
+    transform: rotate(-3deg) translateY(2px);
+  }
+  68% {
+    transform: rotate(2.5deg) translateY(-1px);
+  }
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+
+@keyframes axiCalmBreathL {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes axiCalmBreathR {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes axiCalmOrbFloat {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.08) translateY(-4px);
+  }
+  100% {
+    opacity: 0.95;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Acierto en respuesta (~0.85s) */
+@keyframes axiHaloPulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+@keyframes axiQuickHop {
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+  20% {
+    transform: translateY(3px) scale(1.07, 0.92);
+  }
+  52% {
+    transform: translateY(-14px) scale(0.96, 1.05);
+  }
+  78% {
+    transform: translateY(1px) scale(1.02, 0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes axiGillPerkL {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-9deg);
+  }
+}
+
+@keyframes axiGillPerkR {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+
+@keyframes axiQuickWave {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  45% {
+    transform: rotate(-30deg) translateY(-3px);
+  }
+}
+
+@keyframes axiSparkPop {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(6px);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.15) translateY(-4px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-10px);
+  }
+}
+
+/* Cuestionario completado (~2.2s) */
+@keyframes axiSealPop {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes axiCelebrateJump {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.84, 0.84);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0px) scale(1.08, 0.92);
+  }
+  48% {
+    transform: translateY(-20px) scale(0.95, 1.06);
+  }
+  70% {
+    transform: translateY(2px) scale(1.04, 0.96);
+  }
+  85% {
+    transform: translateY(-5px) scale(0.99, 1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes axiGillDanceL {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-10deg) scale(1.05);
+  }
+}
+
+@keyframes axiGillDanceR {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(10deg) scale(1.05);
+  }
+}
+
+@keyframes axiArmRaiseL {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(26deg) translateY(-4px);
+  }
+}
+
+@keyframes axiArmRaiseR {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-26deg) translateY(-4px);
+  }
+}
+
+@keyframes axiCelebrateSpark {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes axiConfettiPop {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 20px), var(--ty, -30px)) scale(1) rotate(var(--rot, 140deg));
+  }
+}
+
+@keyframes axiTextRise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

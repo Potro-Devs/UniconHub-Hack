@@ -72,8 +72,8 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
             }}
           />
           {motion && <CelebrationConfetti variant="hito" />}
-          <div style={{ position: 'relative', animation: motion ? 'hop 1.1s ease-in-out .25s both' : 'none' }}>
-            <Mascot size={180} mood="celebra" color={axiColor} />
+          <div style={{ position: 'relative' }}>
+            <Mascot size={180} mood="celebra" color={axiColor} animated={motion} />
           </div>
         </div>
 
@@ -82,7 +82,7 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
         </div>
 
         <div className="font-display" style={{ fontWeight: 800, fontSize: '40px', lineHeight: 1.05 }}>
-          ¡Dominaste Suma y resta!
+          ¡Dominaste Resolución de problemas!
         </div>
 
         <div style={{ fontSize: '19px', lineHeight: 1.4, maxWidth: '32ch' }}>

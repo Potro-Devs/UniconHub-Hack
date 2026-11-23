@@ -80,11 +80,11 @@ export function AppUiProvider({ children }) {
       const correctCount = ans.filter((x, j) => x === FRACTION_SHEET[j].k).length;
       return Math.round((correctCount / answeredCount) * 100);
     }
-    return student.sc.fr;
+    return student.sc.fractions;
   };
 
   const scoreOf = (student, skillId) =>
-    skillId === 'fr' ? (captured ? frOf(student) : null) : student.sc[skillId];
+    skillId === 'fractions' ? (captured ? frOf(student) : null) : student.sc[skillId];
 
   const contentScoreOf = (student, content) => {
     const vals = content.sk.map((k) => scoreOf(student, k));
@@ -95,7 +95,7 @@ export function AppUiProvider({ children }) {
   const statusOf = (content) => statuses[content.id] || content.st;
 
   const isEvaluated = (content) =>
-    content.sk.length > 0 && (!content.sk.includes('fr') || captured);
+    content.sk.length > 0 && (!content.sk.includes('fractions') || captured);
 
   const covN = CURRICULUM_CONTENTS.filter(isEvaluated).length;
 
@@ -121,7 +121,7 @@ export function AppUiProvider({ children }) {
     const nextAnswers = {};
     STUDENTS.forEach((st) => {
       nextAnswers[st.i] = FRACTION_SHEET.map((q) =>
-        rr() < st.sc.fr / 100 - 0.07
+        rr() < st.sc.fractions / 100 - 0.07
           ? q.k
           : (q.k + 1 + Math.floor(rr() * 3)) % 4,
       );

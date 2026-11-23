@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
@@ -34,6 +35,13 @@ export function StudentExerciseScreen() {
     setSkip,
   } = useAppUi();
 
+  const [lastReaction, setLastReaction] = useState(null);
+  const [reactionKey, setReactionKey] = useState(0);
+
+  useEffect(() => {
+    setLastReaction(null);
+  }, [exIdx]);
+
   const ex = STUDENT_EXERCISES[exIdx];
   const q = FRACTION_SHEET[ex.s];
 
@@ -41,9 +49,13 @@ export function StudentExerciseScreen() {
     if (fb === 'ok' || tried.includes(optIdx)) return;
     const isCorrect = optIdx === q.k;
     setFb(isCorrect ? 'ok' : 'casi');
-    if (!isCorrect) {
+    if (isCorrect) {
+      setLastReaction('acierto');
+    } else {
       setTried((prev) => [...prev, optIdx]);
+      setLastReaction('calma');
     }
+    setReactionKey((prev) => prev + 1);
   };
 
   const handleNext = () => {
@@ -52,6 +64,7 @@ export function StudentExerciseScreen() {
       setFb(null);
       setTried([]);
       setHint(0);
+      setLastReaction(null);
     } else {
       setSkip(false);
       setOverlay('bloque');
@@ -62,17 +75,48 @@ export function StudentExerciseScreen() {
     if (hint < 3) {
       setHint((prev) => prev + 1);
       setHintsUsed((prev) => prev + 1);
+      setLastReaction('pista');
+      setReactionKey((prev) => prev + 1);
     }
   };
 
-  const axiMood = hint > 0 ? 'pista' : fb === 'casi' ? 'calma' : 'feliz';
+  const axiMood =
+    lastReaction ||
+    (fb === 'ok' ? 'acierto' : hint > 0 ? 'pista' : fb === 'casi' ? 'calma' : 'feliz');
+
   const bubble =
-    hint > 0
+    axiMood === 'acierto'
+      ? exIdx < STUDENT_EXERCISES.length - 1
+        ? '¡Muy bien! Vas por buen camino. Sigamos con la siguiente pregunta.'
+        : '¡Muy bien! Terminaste esta pregunta.'
+      : axiMood === 'pista' && hint > 0
       ? ex.h[hint - 1]
-      : fb === 'casi'
-      ? 'No pasa nada. Si quieres, te doy una pista.'
+      : axiMood === 'calma'
+      ? hint > 0
+        ? `¡Casi! Tú puedes. Revisa la pista: ${ex.h[hint - 1]}`
+        : '¡Casi! Tú puedes. Tómate un respiro, prueba con una pista e inténtalo de nuevo.'
+      : hint > 0
+      ? ex.h[hint - 1]
       : 'Lee con calma. Si te atoras, pídeme una pista.';
-  const hintTag = hint > 0 ? `Pista ${hint} de 3` : APP_NAME;
+
+  const hintTag =
+    axiMood === 'acierto'
+      ? `${APP_NAME} · ¡Muy bien!`
+      : axiMood === 'calma'
+      ? `${APP_NAME} · Tú puedes`
+      : hint > 0
+      ? `Pista ${hint} de 3`
+      : APP_NAME;
+
+  const panelTone =
+    axiMood === 'acierto'
+      ? { bg: '#ECFDF5', border: '#A7F3D0', tagColor: '#047857' }
+      : axiMood === 'pista'
+      ? { bg: '#EFF6FF', border: '#BFDBFE', tagColor: '#1D4ED8' }
+      : axiMood === 'calma'
+      ? { bg: '#FFFBEB', border: '#FDE68A', tagColor: '#B45309' }
+      : { bg: '#fff', border: 'transparent', tagColor: COLORS.primaryText };
+
   const effortMsg = hintsUsed
     ? `Pediste ${hintsUsed} ${hintsUsed > 1 ? 'pistas' : 'pista'} y seguiste intentando.`
     : 'Lo pensaste con calma, paso a paso.';
@@ -249,22 +293,30 @@ export function StudentExerciseScreen() {
 
       {/* Panel de pistas de Axi */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px' }}>
-        <Mascot size={104} mood={axiMood} color={axiColor} animate={!reducedMotion} />
+        <Mascot
+          size={104}
+          mood={axiMood}
+          color={axiColor}
+          animated={!reducedMotion}
+          reactionKey={reactionKey}
+        />
         <div
           style={{
             flex: 1,
             minWidth: 0,
-            background: '#fff',
+            background: panelTone.bg,
+            border: `2px solid ${panelTone.border}`,
             borderRadius: '22px 22px 22px 6px',
             padding: '14px 18px',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             gap: '12px',
+            transition: reducedMotion ? 'none' : 'background 0.25s ease, border-color 0.25s ease',
           }}
         >
           <div style={{ flex: '1 1 220px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.primaryText }}>{hintTag}</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: panelTone.tagColor }}>{hintTag}</div>
             <div style={{ fontSize: '19px', lineHeight: 1.35, textWrap: 'pretty' }}>{bubble}</div>
           </div>
           <button
@@ -297,6 +349,8 @@ export function StudentExerciseScreen() {
         <BlockCompleteOverlay
           axiColor={axiColor}
           effortMsg={effortMsg}
+          skip={skip}
+          onSkip={() => setSkip(true)}
           onContinue={() => {
             setSkip(false);
             setOverlay('nivel');

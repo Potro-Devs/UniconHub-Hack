@@ -23,7 +23,8 @@ export const LEVELS = [
   {
     code: 'needs_support',
     label: 'Necesita apoyo',
-    range: '0–39%',
+    min: 0,
+    range: '0–24%',
     bg: 'oklch(0.91 0.06 25)',
     fg: 'oklch(0.42 0.14 25)',
     solid: 'oklch(0.66 0.17 25)',
@@ -31,7 +32,8 @@ export const LEVELS = [
   {
     code: 'in_progress',
     label: 'En proceso',
-    range: '40–64%',
+    min: 25,
+    range: '25–49%',
     bg: 'oklch(0.94 0.08 90)',
     fg: 'oklch(0.4 0.09 75)',
     solid: 'oklch(0.8 0.15 80)',
@@ -39,7 +41,8 @@ export const LEVELS = [
   {
     code: 'achieved',
     label: 'Logrado',
-    range: '65–84%',
+    min: 50,
+    range: '50–74%',
     bg: 'oklch(0.91 0.07 165)',
     fg: 'oklch(0.38 0.1 165)',
     solid: 'oklch(0.68 0.14 165)',
@@ -47,7 +50,8 @@ export const LEVELS = [
   {
     code: 'mastered',
     label: 'Dominado',
-    range: '85–100%',
+    min: 75,
+    range: '75–100%',
     bg: 'oklch(0.88 0.08 268)',
     fg: 'oklch(0.36 0.18 268)',
     solid: 'oklch(0.55 0.2 268)',
@@ -61,10 +65,14 @@ export const STUDENT_AVATAR_HUES = [
   'oklch(0.87 0.08 150)',
 ];
 
+/**
+ * Índice de nivel según la escala de intervalos estrictos de 25% (AGENTS.md §4.3):
+ * 0–24.99 Necesita apoyo · 25–49.99 En proceso · 50–74.99 Logrado · 75–100 Dominado.
+ */
 export const getLevelIndex = (pct) => {
-  if (pct < 40) return 0;
-  if (pct < 65) return 1;
-  if (pct < 85) return 2;
+  if (pct < LEVELS[1].min) return 0;
+  if (pct < LEVELS[2].min) return 1;
+  if (pct < LEVELS[3].min) return 2;
   return 3;
 };
 

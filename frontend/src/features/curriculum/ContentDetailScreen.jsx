@@ -30,7 +30,7 @@ export function ContentDetailScreen() {
   const cdC = CURRICULUM_CONTENTS.find((c) => c.id === contentId) || CURRICULUM_CONTENTS[1];
   const cdEv = isEvaluated(cdC);
   const cdAvg = cdEv ? mean(STUDENTS.map((s) => contentScoreOf(s, cdC))) : null;
-  const cdFr = cdC.sk.includes('fr');
+  const cdFr = cdC.sk.includes('fractions');
   const cdSt = STATUS_STYLE[statusOf(cdC)];
 
   const skillsText =
