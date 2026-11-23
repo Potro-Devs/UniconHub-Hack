@@ -60,7 +60,11 @@ export const MAX_NOTES_LENGTH = 500;
 /** Aviso fijo: el temario del seed es de ejemplo y no está revisado por docentes. */
 export const CURRICULUM_REVIEW_NOTICE = 'por validar con docente';
 
-/** Nombres de los campos formativos del Plan de Estudio 2022 (códigos del esquema). */
+/**
+ * Nombres de los cuatro campos formativos (códigos del esquema `curriculum_contents.formative_field`).
+ * Fuente: SEP, Plan de Estudio 2022 para la educación preescolar, primaria y secundaria,
+ * apartado "Campos formativos". Son los nombres oficiales; no es contenido pedagógico propio.
+ */
 export const FORMATIVE_FIELD_NAMES = Object.freeze({
   lenguajes: 'Lenguajes',
   saberes_pensamiento_cientifico: 'Saberes y Pensamiento Científico',

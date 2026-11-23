@@ -8,7 +8,7 @@
  * Grupo o contenido inexistente o ajeno → 404 (no se revela qué ids existen).
  */
 import { HttpError } from '../../shared/errors/HttpError.js';
-import { ROLES } from '../auth/auth.domain.js';
+import { createGroupAccess } from '../groups/groups.access.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import {
   CURRICULUM_REVIEW_NOTICE,
@@ -20,7 +20,6 @@ import {
   toCurriculumContentDto,
 } from './curriculum.domain.js';
 
-const GROUP_NOT_FOUND = () => new HttpError(404, 'GROUP_NOT_FOUND', 'No encontramos ese grupo.');
 const CONTENT_NOT_FOUND = () =>
   new HttpError(404, 'CONTENT_NOT_FOUND', 'No encontramos ese contenido en el temario del grupo.');
 
@@ -32,24 +31,8 @@ const CONTENT_NOT_FOUND = () =>
  * }} deps
  */
 export function createCurriculumService({ repository, groupsRepository, transaction }) {
-  /** Grupo visible para la sesión (docente: propio; director: de su escuela). Mismas consultas que `groups`. */
-  const findReadableGroup = (auth, groupId) => {
-    const id = parsePositiveId(groupId, 'id del grupo');
-    const group =
-      auth.role === ROLES.DIRECTOR
-        ? groupsRepository.findGroupOfSchool(id, auth.schoolId)
-        : groupsRepository.findGroupOfTeacher(id, Number(auth.sub), auth.schoolId);
-    if (!group) throw GROUP_NOT_FOUND();
-    return group;
-  };
-
-  /** Grupo editable: solo el docente dueño. */
-  const findOwnGroup = (auth, groupId) => {
-    const id = parsePositiveId(groupId, 'id del grupo');
-    const group = groupsRepository.findGroupOfTeacher(id, Number(auth.sub), auth.schoolId);
-    if (!group) throw GROUP_NOT_FOUND();
-    return group;
-  };
+  // Regla de acceso única de `groups` (docente: propio; director: lectura de su escuela; resto → 404).
+  const { findReadableGroup, findOwnGroup } = createGroupAccess(groupsRepository);
 
   const loadContents = (group) =>
     repository.listContentsWithProgress(group.id, group.grade).map(toCurriculumContentDto);

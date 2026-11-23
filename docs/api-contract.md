@@ -99,6 +99,9 @@ Todos los endpoints exigen sesión. El temario de ejemplo del seed está **por v
   - Cuerpo vacío, sin `status` ni `notes`, o que no es objeto → 400.
 - **Contenido:** debe ser del **mismo grado** que el grupo; si es de otro grado o no existe → 404 `CONTENT_NOT_FOUND`.
 - **Guardado:** upsert en `group_curriculum_progress` (un registro por grupo y contenido). Un campo ausente conserva su valor; `updated_at` se actualiza en cada `PATCH`.
+- Otros campos del cuerpo del PATCH se ignoran.
+- `notes` es texto libre de la docente: no debe incluir nombres de alumnos y nunca se envía a servicios de IA externos.
+
 ## Assessments (`/api/v1/assessments`)
 
 Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo**: estas respuestas incluyen la opción correcta y los errores típicos; el portal del alumno usa `diagnostics`.
