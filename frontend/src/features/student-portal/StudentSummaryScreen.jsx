@@ -4,6 +4,7 @@ import { Mascot } from '@/features/mascot';
 import { SKILLS, STUDENTS } from '@/shared/data/seedData';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { useAppUi } from '@/shared/state/AppUiContext';
+import { useSession } from '@/shared/state/SessionContext';
 
 /**
  * Pantalla 11: Resumen final del alumno comparado consigo mismo.
@@ -11,7 +12,8 @@ import { useAppUi } from '@/shared/state/AppUiContext';
 export function StudentSummaryScreen() {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
-  const { axiColor, stuIdx, hintsUsed, resetStudentSession } = useAppUi();
+  const { axiColor, stuIdx, hintsUsed, resetStudentSession, setJoinRoster } = useAppUi();
+  const { signOut } = useSession();
 
   const stu = STUDENTS[stuIdx ?? 0];
   const effortMsg = hintsUsed
@@ -152,8 +154,10 @@ export function StudentSummaryScreen() {
         <button
           type="button"
           onClick={() => {
+            signOut();
             resetStudentSession(0);
-            navigate('/alumno/codigo');
+            setJoinRoster(null);
+            navigate('/alumno/codigo', { replace: true });
           }}
           style={{
             height: '60px',

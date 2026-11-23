@@ -17,8 +17,6 @@ export const mean = (arr) =>
  * todas las ventanas modulares del sistema sin backend conectado.
  */
 export function AppUiProvider({ children }) {
-  const [loginEmail, setLoginEmail] = useState('elena.torres@escuela.mx');
-  const [loginPass, setLoginPass] = useState('demo1234');
   const [captured, setCaptured] = useState(false);
   const [assigned, setAssigned] = useState(false);
   const [reveal, setReveal] = useState(false);
@@ -38,7 +36,9 @@ export function AppUiProvider({ children }) {
   const [ngGroup, setNgGroup] = useState('C');
   const [ngList, setNgList] = useState('');
 
-  const [code, setCode] = useState('3A-7K2');
+  // Acceso del alumno: código escrito y tarjetas devueltas por `POST /auth/student-join`.
+  const [joinCode, setJoinCode] = useState('');
+  const [joinRoster, setJoinRoster] = useState(null);
   const [stuIdx, setStuIdx] = useState(0);
   const [exIdx, setExIdx] = useState(0);
   const [fb, setFb] = useState(null);
@@ -161,10 +161,6 @@ export function AppUiProvider({ children }) {
   };
 
   const value = {
-    loginEmail,
-    setLoginEmail,
-    loginPass,
-    setLoginPass,
     captured,
     setCaptured,
     assigned,
@@ -194,8 +190,10 @@ export function AppUiProvider({ children }) {
     setNgGroup,
     ngList,
     setNgList,
-    code,
-    setCode,
+    joinCode,
+    setJoinCode,
+    joinRoster,
+    setJoinRoster,
     stuIdx,
     setStuIdx,
     exIdx,

@@ -1,8 +1,11 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
+import { DEMO_JOIN_CODE } from '@/shared/data/seedData';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { useAppUi } from '@/shared/state/AppUiContext';
+import { initialsOf } from '@/shared/state/session';
+import { useSession } from '@/shared/state/SessionContext';
 import { Toast } from './Toast';
 
 const DOCENTE_NAV = [
@@ -28,6 +31,7 @@ export function AppShellLayout() {
   const navigate = useNavigate();
   const { wide, narrow } = useBreakpoint();
   const { toast } = useAppUi();
+  const { session, signOut } = useSession();
 
   const isDir = pathname.startsWith('/direccion');
   const navDef = isDir ? DIRECCION_NAV : DOCENTE_NAV;
@@ -37,8 +41,13 @@ export function AppShellLayout() {
 
   const topA = isDir ? 'Dirección' : '3.º A';
   const topB = isDir ? '· Esc. Prim. Benito Juárez' : '· Ciclo 2026–2027';
-  const userName = isDir ? 'Mtro. David Ruiz' : 'Mtra. Elena Torres';
-  const userIni = isDir ? 'DR' : 'ET';
+  const userName = session?.user?.fullName ?? '';
+  const userIni = initialsOf(userName);
+
+  const logout = () => {
+    signOut();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div style={{ height: '100vh', display: 'flex', background: COLORS.bg }}>
@@ -108,7 +117,7 @@ export function AppShellLayout() {
                   className="font-display"
                   style={{ fontWeight: 800, fontSize: '24px', lineHeight: 1.1, letterSpacing: '.06em' }}
                 >
-                  3A-7K2
+                  {DEMO_JOIN_CODE}
                 </div>
                 <div style={{ fontSize: '12px', color: COLORS.muted }}>
                   Entran sin correo: código + su nombre.
@@ -138,7 +147,7 @@ export function AppShellLayout() {
 
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={logout}
               style={{
                 marginTop: '2px',
                 width: '100%',
@@ -209,6 +218,25 @@ export function AppShellLayout() {
             >
               {userIni}
             </div>
+            {!wide && (
+              <button
+                type="button"
+                onClick={logout}
+                style={{
+                  minHeight: '44px',
+                  padding: '0 10px',
+                  border: 0,
+                  borderRadius: '12px',
+                  background: 'none',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: COLORS.muted,
+                  cursor: 'pointer',
+                }}
+              >
+                Salir
+              </button>
+            )}
           </div>
         </header>
 

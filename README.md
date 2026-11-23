@@ -107,7 +107,9 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** El backend crea el esquema SQLite al iniciar, pero por ahora solo expone `GET /api/v1/health` (sin servir estáticos ni endpoints de módulos todavía). La interfaz del frontend funciona de forma autónoma con datos semilla locales en `frontend/src/shared/data/seedData.js`.
+> **Estado actual del sistema:** El backend crea el esquema SQLite al iniciar y expone `health` y `auth` (ver `docs/api-contract.md`). En el frontend, el **login docente, los accesos rápidos y el acceso del alumno** (código + tarjeta) usan la API. Por eso hay que levantar el backend y cargar los datos demo con `npm run seed`. El resto de las pantallas sigue usando los datos locales de `frontend/src/shared/data/seedData.js` hasta conectar sus módulos.
+>
+> La sesión se guarda en `sessionStorage`: se cierra al cerrar la pestaña, pensado para computadoras compartidas en el salón.
 
 ---
 
