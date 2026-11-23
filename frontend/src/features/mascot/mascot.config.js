@@ -56,6 +56,7 @@ export const MASCOT_PALETTES = {
 export const STATE_TO_MOOD = {
   default: 'feliz',
   hint: 'pista',
+  correct: 'acierto',
   celebrate: 'celebra',
   encourage: 'calma',
 };
@@ -76,6 +77,7 @@ export const mascotConfig = {
   states: {
     default: null,
     hint: null,
+    correct: null,
     celebrate: null,
     encourage: null,
   },

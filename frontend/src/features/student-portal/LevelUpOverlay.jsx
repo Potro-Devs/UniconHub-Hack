@@ -73,8 +73,8 @@ export function LevelUpOverlay({ axiColor, skip, onSkip, onContinue }) {
             }}
           />
           {motion && <CelebrationConfetti variant="nivel" />}
-          <div style={{ position: 'relative', animation: motion ? 'hop 1.1s ease-in-out .2s both' : 'none' }}>
-            <Mascot size={150} mood="celebra" color={axiColor} />
+          <div style={{ position: 'relative' }}>
+            <Mascot size={150} mood="celebra" color={axiColor} animated={motion} />
           </div>
         </div>
 

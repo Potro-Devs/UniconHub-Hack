@@ -72,8 +72,8 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
             }}
           />
           {motion && <CelebrationConfetti variant="hito" />}
-          <div style={{ position: 'relative', animation: motion ? 'hop 1.1s ease-in-out .25s both' : 'none' }}>
-            <Mascot size={180} mood="celebra" color={axiColor} />
+          <div style={{ position: 'relative' }}>
+            <Mascot size={180} mood="celebra" color={axiColor} animated={motion} />
           </div>
         </div>
 
