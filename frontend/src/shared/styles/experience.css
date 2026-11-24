@@ -24,12 +24,12 @@ button.brand-link { cursor: pointer; }
 .orbit-one { top: 24px; left: 10px; }.orbit-two { right: 4px; top: 70px; color: var(--axi-successFg); }.orbit-three { bottom: 30px; left: 22px; font-size: 1.1rem; color: var(--axi-primaryText); }
 .welcome-note { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1rem; }
 .welcome-access { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-.student-entry { padding: 22px; background: var(--axi-playfulTeal); border: 1px solid var(--axi-playfulTealBorder); border-radius: 26px; display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; box-shadow: 0 5px 0 var(--axi-playfulTealShadow); }
-.entry-icon { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; background: white; color: var(--axi-playfulTealFg); border-radius: 18px; flex: none; }
+.student-entry { padding: 22px; background: var(--axi-playfulLilac); border: 1px solid var(--axi-playfulLilacBorder); border-radius: 26px; display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; box-shadow: 0 5px 0 var(--axi-playfulLilacBorder); }
+.entry-icon { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; background: white; color: var(--axi-primaryText); border-radius: 18px; flex: none; }
 .student-entry h2, .teacher-login h2 { margin: 0; font-size: 1.6rem; line-height: 1.2; }
 .student-entry p, .login-heading p { margin: 5px 0 0; font-size: .9375rem; line-height: 1.45; color: var(--axi-muted); }
-.entry-button { grid-column: 1 / -1; background: var(--axi-playfulTealFg); color: white; border: 0; border-radius: 16px; min-height: 54px; font-weight: 800; font-size: 1.125rem; cursor: pointer; box-shadow: 0 4px 0 var(--axi-playfulTealDeep); transition: transform 160ms, box-shadow 160ms; }
-.entry-button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--axi-playfulTealDeep); }.entry-button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--axi-playfulTealDeep); }
+.entry-button { grid-column: 1 / -1; background: var(--axi-primary); color: var(--axi-onPrimary); border: 0; border-radius: 16px; min-height: 54px; font-weight: 800; font-size: 1.125rem; cursor: pointer; box-shadow: 0 4px 0 var(--kid-primary-dark); transition: transform 160ms, box-shadow 160ms, background 160ms; }
+.entry-button:hover { background: var(--axi-primaryHover); transform: translateY(-2px); box-shadow: 0 6px 0 var(--kid-primary-dark); }.entry-button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--kid-primary-dark); }
 .teacher-login { background: white; border: 1px solid var(--axi-border); border-radius: 26px; padding: 28px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 12px 35px var(--axi-shadowSoft); }
 .login-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }.teacher-icon { background: var(--axi-primarySoftBg); color: var(--axi-primaryText); }
 .teacher-login label { display: flex; flex-direction: column; gap: 8px; font-weight: 700; font-size: .9375rem; }
