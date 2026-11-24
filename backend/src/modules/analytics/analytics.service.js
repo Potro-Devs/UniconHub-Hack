@@ -7,6 +7,8 @@ import { buildStudentSkills, summarizeGroupSkills, countStudentsNeedingSupport,
   findWeakestSkill, selectRecommendedActivity, toHistoryDto, parseAnalyticsSelection,
   selectAnalyticsStudents, summarizeGroupEvidence, summarizeAutonomyProgress, buildNextStep } from './analytics.domain.js';
 import { renderAnalyticsPdf, renderAnalyticsXlsx } from './analytics.export.js';
+import { buildSchoolPriorities, currentSchoolYear, mapSkillsToFields, mergeTypicalErrors, summarizeFields,
+  summarizeSchool, summarizeSchoolGroup, summarizeSkills } from './analytics.school.domain.js';
 
 const groupDto = (group) => ({ id: group.id, grade: group.grade, section: group.section, schoolYear: group.school_year });
 const studentDto = (student) => ({ id: student.id, name: `${student.first_names} ${student.last_names}`,
@@ -60,6 +62,44 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
         recommendedActivity: weakestSkill?.grade === group.grade
           ? selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill.code, typicalErrors) : null,
       }, meta };
+    },
+    /**
+     * Panel de Dirección: agregados del ciclo actual de la escuela del director (`auth.schoolId`).
+     * Sin nombres ni folios de alumnos.
+     */
+    getSchool(auth) {
+      const school = repository.findSchool(auth.schoolId);
+      if (!school) throw new HttpError(404, 'SCHOOL_NOT_FOUND', 'No encontramos tu escuela.');
+      const allGroups = repository.listSchoolGroups(school.id);
+      const schoolYear = currentSchoolYear(allGroups);
+      const skillRows = repository.listSkills();
+      const fieldSkills = mapSkillsToFields(repository.listSkillFields());
+      const allStudents = [];
+      const errorsPerGroup = [];
+      const groups = allGroups.filter((g) => g.school_year === schoolYear).map((group) => {
+        const history = repository.listGroupHistory(group.id, school.id);
+        const students = groupsRepository.listActiveStudents(group.id).map((student) => ({
+          skills: buildStudentSkills(skillRows, history.filter((cut) => cut.student_id === student.id)),
+        }));
+        allStudents.push(...students);
+        errorsPerGroup.push(errorDtos(repository.listTypicalErrors(group.id, school.id)));
+        const contents = curriculumRepository.listContentsWithProgress(group.id, group.grade);
+        const coverage = computeCoverage(contents.length, contents.map((c) => ({ status: c.status ?? 'pending' })));
+        return summarizeSchoolGroup({ id: group.id, grade: group.grade, section: group.section,
+          schoolYear: group.school_year, teacherName: group.teacher_name }, students, skillRows, fieldSkills, coverage);
+      });
+      const skills = summarizeSkills(allStudents, skillRows);
+      const dates = allStudents.flatMap((st) => st.skills.map((s) => s.recordedAt).filter(Boolean));
+      return { data: {
+        school: { id: school.id, name: school.name, schoolYear },
+        summary: { ...summarizeSchool(groups),
+          latestRecordedAt: dates.reduce((latest, d) => (latest === null || d > latest ? d : latest), null) },
+        fields: summarizeFields(allStudents, fieldSkills, skillRows),
+        skills,
+        groups,
+        priorities: buildSchoolPriorities(groups, skills),
+        typicalErrors: mergeTypicalErrors(errorsPerGroup, skillRows),
+      }, meta: { ...meta, source: 'SEP, Plan de Estudio 2022 (campos formativos)' } };
     },
     async exportGroup(auth, groupId, query, format) {
       const { data } = service.getGroup(auth, groupId, query);

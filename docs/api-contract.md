@@ -162,7 +162,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
-- **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
+- **Analytics (`/api/v1/analytics`):** `GET /school` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
 - **Interventions (`/api/v1/interventions`):** ciclo actividad aplicada → nueva prueba (ver contrato al final).
 
@@ -174,6 +174,21 @@ inexistente o ajeno: 404 `GROUP_NOT_FOUND`. Id inválido: 400 `VALIDATION_ERROR`
 El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno responde
 404 `STUDENT_NOT_FOUND`. Nunca se devuelve `internal_folio`.
 
+- `GET /school` (**solo director**; docente o alumno: 403): panel de la escuela de la sesión con los
+  grupos del ciclo escolar más reciente. Solo agregados: **nunca** nombres, folios ni ids de alumnos.
+  `{ data: { school, summary, fields, skills, groups, priorities, typicalErrors }, meta }`.
+  - `school`: `{ id, name, schoolYear }`.
+  - `summary`: `{ groupCount, teacherCount, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, coveragePercentage, latestRecordedAt }`.
+  - `fields`: los 4 campos formativos del Plan de Estudio 2022 de la SEP, en orden oficial:
+    `{ code, name, assessed, skills: [{ code, name }], average, level, label, evaluatedCount, needsSupportCount, distribution }`.
+    Un campo sin habilidades evaluadas en Axi trae `assessed: false` y `average: null` (nunca 0 %).
+    El dominio por campo de cada alumno es el promedio de sus habilidades evaluadas en ese campo.
+  - `skills`: `{ code, name, average, level, label, evaluatedCount, needsSupportCount }` de toda la escuela.
+  - `groups`: `{ id, name, grade, section, schoolYear, teacherName, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, fields, skills, prioritySkill, coveragePercentage }`.
+  - `priorities`: `{ type, title, detail, action, groupIds, skillCode? }` con `type` ∈ `evidence` (< 50 % con diagnóstico),
+    `skill` (habilidad con menor dominio de la escuela), `group_support` (hasta 3 grupos con más alumnos que necesitan apoyo),
+    `coverage` (< 25 % del temario visto).
+  - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`.
 - `GET /groups/:groupId`: `{ data: { group, skills, students, summary }, meta }`.
 - `GET /groups/:groupId/students/:studentId`: `{ data: { group, student, skills, history, recommendedActivity, typicalErrors }, meta }`.
 - `group`: `{ id, grade, section, schoolYear }`.

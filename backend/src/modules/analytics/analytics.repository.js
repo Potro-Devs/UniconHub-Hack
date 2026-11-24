@@ -37,7 +37,18 @@ export function createAnalyticsRepository(db) {
   const activities = db.prepare(`SELECT ra.*, sk.code AS skill_code
     FROM recommended_activities ra JOIN skills sk ON sk.id = ra.skill_id
     WHERE ra.grade_min <= ? AND ra.grade_max >= ? ORDER BY ra.id`);
+  const school = db.prepare('SELECT id, name FROM schools WHERE id = ?');
+  const schoolGroups = db.prepare(`
+    SELECT g.id, g.school_id, g.grade, g.section, g.school_year, u.full_name AS teacher_name
+    FROM groups g LEFT JOIN users u ON u.id = g.teacher_id
+    WHERE g.school_id = ? ORDER BY g.grade, g.section, g.id`);
+  const skillFields = db.prepare(`
+    SELECT DISTINCT sk.code AS skill_code, c.formative_field
+    FROM curriculum_contents c JOIN skills sk ON sk.id = c.skill_id ORDER BY sk.id`);
   return {
+    findSchool: (schoolId) => school.get(schoolId) ?? null,
+    listSchoolGroups: (schoolId) => schoolGroups.all(schoolId),
+    listSkillFields: () => skillFields.all(),
     listSkills: () => skills.all(),
     listGroupHistory: (groupId, schoolId) => history.all(schoolId, schoolId, groupId),
     listStudentHistory: (groupId, schoolId, studentId) =>

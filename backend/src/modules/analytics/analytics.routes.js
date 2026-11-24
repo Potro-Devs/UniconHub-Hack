@@ -13,6 +13,8 @@ export function createAnalyticsRouter({ db, requireAuth }) {
   }));
   const router = Router();
   const staff = requireAuth(ROLES.TEACHER, ROLES.DIRECTOR);
+  // Panel de la escuela: solo Dirección (agregados, sin datos personales de alumnos).
+  router.get('/school', requireAuth(ROLES.DIRECTOR), controller.getSchool);
   router.get('/groups/:groupId', staff, controller.getGroup);
   router.get('/groups/:groupId/export.xlsx', staff, controller.exportGroup('xlsx'));
   router.get('/groups/:groupId/export.pdf', staff, controller.exportGroup('pdf'));

@@ -17,6 +17,10 @@ export function createAnalyticsController(service) {
         } catch (error) { next(error); }
       };
     },
+    getSchool(req, res) {
+      const { data, meta } = service.getSchool(req.auth);
+      return sendData(res, data, { meta });
+    },
     getStudent(req, res) {
       const { data, meta } = service.getStudent(req.auth, req.params.groupId, req.params.studentId);
       return sendData(res, data, { meta });
