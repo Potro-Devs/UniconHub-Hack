@@ -10,7 +10,10 @@ import {
   getMasteryLevel,
   getMasteryLevelIndex,
   selectRecommendedActivity,
+  parseAnalyticsSelection,
+  selectAnalyticsStudents,
   summarizeGroupSkills,
+  summarizeGroupEvidence,
 } from '../../src/modules/analytics/analytics.domain.js';
 
 describe('getMasteryLevel · escala de 25%', () => {
@@ -101,6 +104,42 @@ describe('buildNextMasteryCut', () => {
 });
 
 describe('agregados del mapa del grupo', () => {
+  test('selección solo acepta escalares explícitos y apoyo en la habilidad elegida', () => {
+    const skills = [{ code: 'fractions' }, { code: 'place_value' }];
+    assert.deepEqual(parseAnalyticsSelection({}, skills), { skillCode: null, supportOnly: false });
+    assert.deepEqual(parseAnalyticsSelection({ skillCode: 'fractions', supportOnly: 'true' }, skills), { skillCode: 'fractions', supportOnly: true });
+    for (const bad of [null, [], { skillCode: '' }, { skillCode: ['fractions'] }, { supportOnly: true }, { supportOnly: ['true'] }, { supportOnly: 'yes' }, { extra: 1 }]) {
+      assert.throws(() => parseAnalyticsSelection(bad, skills), (error) => error.code === 'VALIDATION_ERROR');
+    }
+    const students = [
+      { id: 1, skills: [{ code: 'fractions', level: 'needs_support' }, { code: 'place_value', level: 'mastered' }] },
+      { id: 2, skills: [{ code: 'fractions', level: null }, { code: 'place_value', level: 'needs_support' }] },
+      { id: 3, skills: [{ code: 'fractions', level: 'mastered' }] },
+    ];
+    assert.deepEqual(selectAnalyticsStudents(students, { skillCode: null, supportOnly: true }).map((student) => student.id), [1, 2]);
+    assert.deepEqual(selectAnalyticsStudents(students, { skillCode: 'fractions', supportOnly: true }).map((student) => student.id), [1]);
+    assert.deepEqual(selectAnalyticsStudents(students, { skillCode: 'fractions', supportOnly: false }), students);
+  });
+
+  test('evidencia y distribución distinguen cero medido de ausencia y grupo vacío', () => {
+    const skills = [{ code: 'fractions', name: 'Fracciones' }];
+    const students = [
+      { skills: [{ code: 'fractions', masteryPercentage: 0, level: 'needs_support', recordedAt: '2026-10-01' }] },
+      { skills: [{ code: 'fractions', masteryPercentage: null, level: null, recordedAt: null }] },
+    ];
+    const summary = summarizeGroupSkills(skills, students)[0];
+    assert.equal(summary.average, 0);
+    assert.equal(summary.evidencePercentage, 50);
+    assert.equal(summary.distribution.needs_support, 1);
+    assert.equal(summary.distribution.not_evaluated, 1);
+    assert.deepEqual(summarizeGroupEvidence(students), { evaluatedStudentCount: 1, notEvaluatedStudentCount: 1, latestRecordedAt: '2026-10-01' });
+    const empty = summarizeGroupSkills(skills, [])[0];
+    assert.equal(empty.average, null);
+    assert.equal(empty.evidencePercentage, 0);
+    assert.equal(Object.values(empty.distribution).reduce((sum, n) => sum + n, 0), 0);
+    assert.deepEqual(summarizeGroupEvidence([]), { evaluatedStudentCount: 0, notEvaluatedStudentCount: 0, latestRecordedAt: null });
+  });
+
   test('toma corte por índice, sin mutar historial ni confundir dominio con última sesión', () => {
     const skills = [{ id: 1, code: 'fractions', name: 'Fracciones' }, { id: 2, code: 'place_value', name: 'Valor posicional' }];
     const history = Object.freeze([

@@ -14,6 +14,8 @@ export function createAnalyticsRouter({ db, requireAuth }) {
   const router = Router();
   const staff = requireAuth(ROLES.TEACHER, ROLES.DIRECTOR);
   router.get('/groups/:groupId', staff, controller.getGroup);
+  router.get('/groups/:groupId/export.xlsx', staff, controller.exportGroup('xlsx'));
+  router.get('/groups/:groupId/export.pdf', staff, controller.exportGroup('pdf'));
   router.get('/groups/:groupId/students/:studentId', staff, controller.getStudent);
   return router;
 }
