@@ -55,7 +55,7 @@ export function App() {
               <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
               <Route path="/docente/mapa" element={<GroupMapScreen />} />
               <Route path="/docente/perfil" element={<StudentProfileScreen />} />
-              <Route path="/docente/perfil/:studentIdx" element={<StudentProfileScreen />} />
+              <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
               <Route path="/docente/temario" element={<CurriculumScreen />} />
               <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
               <Route path="/docente/hoja" element={<PrintSheetScreen />} />

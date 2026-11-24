@@ -120,3 +120,59 @@ export function countByMasteryLevel(percentages) {
   }
   return { ...counts, not_evaluated: notEvaluated };
 }
+
+/** El dominio longitudinal y el resultado de la última sesión son distintos. */
+export function buildStudentSkills(skills, history) {
+  return skills.map((skill) => {
+    const cuts = history.filter((cut) => cut.skill_id === skill.id);
+    const latest = cuts.reduce((last, cut) => !last || cut.session_index > last.session_index ? cut : last, null);
+    const masteryPercentage = latest?.mastery_percentage ?? null;
+    const level = masteryPercentage === null ? null : getMasteryLevel(masteryPercentage);
+    return { code: skill.code, name: skill.name, masteryPercentage,
+      level: level?.code ?? null, label: level?.label ?? 'Sin evaluar',
+      autonomousPercentage: latest?.autonomous_percentage ?? null,
+      supportedPercentage: latest?.supported_percentage ?? null, recordedAt: latest?.recorded_at ?? null,
+      grade: latest?.grade ?? null };
+  });
+}
+
+/** La ausencia de evidencia nunca se convierte en cero. */
+export function summarizeGroupSkills(skills, students) {
+  return skills.map((skill) => {
+    const values = students.map((student) => student.skills.find((s) => s.code === skill.code))
+      .filter((s) => s?.masteryPercentage != null);
+    const average = values.length ? roundPercentage(values.reduce((sum, s) => sum + s.masteryPercentage, 0) / values.length) : null;
+    const level = average === null ? null : getMasteryLevel(average);
+    const gradeCounts = Object.fromEntries([...new Set(values.map((value) => value.grade).filter(Number.isInteger))]
+      .sort((a, b) => a - b)
+      .map((grade) => [grade, values.filter((value) => value.grade === grade).length]));
+    return { code: skill.code, name: skill.name, average, level: level?.code ?? null,
+      label: level?.label ?? 'Sin evaluar', evaluatedCount: values.length,
+      needsSupportCount: values.filter((s) => s.level === 'needs_support').length,
+      gradeCounts };
+  });
+}
+
+export function countStudentsNeedingSupport(students) {
+  return students.filter((student) => student.skills.some((skill) => skill.level === 'needs_support')).length;
+}
+
+/** Selección determinista desde catálogo; no inventa actividades ni infiere errores. */
+export function selectRecommendedActivity(activities, skillCode, typicalErrors) {
+  if (!skillCode) return null;
+  const candidates = activities.filter((activity) => activity.skill_code === skillCode);
+  const error = typicalErrors.find((entry) => entry.skillCode === skillCode);
+  const activity = candidates.find((entry) => error && entry.target_error_tag === error.errorTag) ?? candidates[0];
+  return activity ? { id: activity.id, title: activity.title, description: activity.description,
+    durationMinutes: activity.duration_minutes, grouping: activity.grouping, materials: activity.materials,
+    targetErrorTag: activity.target_error_tag } : null;
+}
+
+export function toHistoryDto(cut) {
+  const level = getMasteryLevel(cut.mastery_percentage);
+  return { id: cut.id, skillCode: cut.skill_code, skillName: cut.skill_name,
+    grade: cut.grade, schoolYear: cut.school_year ?? null, sessionIndex: cut.session_index,
+    sessionPercentage: cut.session_percentage, autonomousPercentage: cut.autonomous_percentage,
+    supportedPercentage: cut.supported_percentage, masteryPercentage: cut.mastery_percentage,
+    level: level.code, label: level.label, recordedAt: cut.recorded_at };
+}

@@ -1,11 +1,12 @@
 import { COLORS } from '@/config/brand';
+import { Link } from 'react-router-dom';
 import { readableTextOn, sortStudents } from './groups.logic';
 
 /**
  * Lista de alumnos inscritos: iniciales sobre su color y nombre completo. Nunca muestra el folio.
- * Las filas aún no enlazan al perfil (el perfil sigue con datos de ejemplo).
+ * El perfil conserva el ID real del alumno y el contexto del grupo.
  */
-export function StudentList({ students }) {
+export function StudentList({ students, groupId }) {
   const sorted = sortStudents(students);
   return (
     <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
@@ -42,9 +43,7 @@ export function StudentList({ students }) {
             >
               {s.initials}
             </span>
-            <span style={{ fontSize: '16px', minWidth: 0, overflowWrap: 'anywhere' }}>
-              {s.firstNames} {s.lastNames}
-            </span>
+            {groupId ? <Link to={`/docente/perfil/${s.id}?groupId=${groupId}`} style={{ fontSize: '16px', minWidth: 0, overflowWrap: 'anywhere', minHeight: '44px', display: 'flex', alignItems: 'center' }}>{s.firstNames} {s.lastNames}</Link> : <span style={{ fontSize: '16px', minWidth: 0, overflowWrap: 'anywhere' }}>{s.firstNames} {s.lastNames}</span>}
           </li>
         );
       })}

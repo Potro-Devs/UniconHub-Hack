@@ -1,6 +1,6 @@
 # Contrato de API REST (`/api/v1`)
 
-> Estado: **Health**, **Auth**, **Groups**, **Curriculum**, **Assessments** y **Diagnostics** implementados. El resto de los módulos está planificado.
+> Estado: **Health**, **Auth**, **Groups**, **Curriculum**, **Assessments**, **Diagnostics** y **Analytics** implementados. El resto de los módulos está planificado.
 
 Todas las respuestas siguen el formato estándar:
 - Éxito: `{ "data": ..., "meta": ... }`
@@ -161,4 +161,55 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
-- **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId/map`, `GET /students/:studentId/profile`
+- **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
+
+## Analytics de solo lectura (`/api/v1/analytics`)
+
+Ambas rutas requieren sesión docente o director. El docente solo consulta sus grupos;
+el director consulta grupos de su escuela. Sin sesión: 401; alumno: 403; grupo
+inexistente o ajeno: 404 `GROUP_NOT_FOUND`. Id inválido: 400 `VALIDATION_ERROR`.
+El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno responde
+404 `STUDENT_NOT_FOUND`. Nunca se devuelve `internal_folio`.
+
+- `GET /groups/:groupId`: `{ data: { group, skills, students, summary }, meta }`.
+- `GET /groups/:groupId/students/:studentId`: `{ data: { group, student, skills, history, recommendedActivity, typicalErrors }, meta }`.
+- `group`: `{ id, grade, section, schoolYear }`.
+- `student`: `{ id, name, initials, avatarColor }`; cada elemento de `students`
+  agrega `skills` con las cinco habilidades del catálogo.
+- Habilidad de alumno: `{ code, name, masteryPercentage, level, label,
+  autonomousPercentage, supportedPercentage, recordedAt, grade }`. `masteryPercentage`
+  es el último corte longitudinal inmutable (ponderación lineal de porcentajes
+  autónomos). `autonomousPercentage` y `supportedPercentage` son los resultados
+  separados de esa última sesión; `grade` identifica el grado de ese corte.
+  Sin evidencia: porcentajes, `level`, fecha y `grade` en `null`,
+  `label: "Sin evaluar"`. Cero es una medición válida.
+- Habilidad de grupo: `{ code, name, average, level, label, evaluatedCount,
+  needsSupportCount, gradeCounts }`. `gradeCounts` indica cuántos cortes más
+  recientes provienen de cada grado; el mapa y el perfil señalan los cortes de
+  grados distintos al grupo actual. Promedio solo sobre alumnos activos
+  evaluados, sin convertir datos faltantes en cero. La escala se aplica al
+  promedio redondeado a dos decimales, igual que al dominio de cada alumno.
+- `summary`: `{ studentCount, needsSupportCount, weakestSkill, coverage,
+  recommendedActivity, typicalErrors }`. `needsSupportCount` cuenta alumnos
+  únicos con alguna habilidad en `needs_support`. `weakestSkill` es la habilidad
+  evaluada con menor promedio, o `null`. No hay rankings entre alumnos.
+- `coverage`: `{ total, pending, in_progress, seen, coveragePercentage }`, sobre
+  contenidos del grado: cobertura = contenidos vistos / total; no significa
+  contenidos evaluados.
+- `recommendedActivity`: `{ id, title, description, durationMinutes, grouping,
+  materials, targetErrorTag }` del catálogo para la habilidad de menor promedio
+  y el grado actual, priorizando el error observado más frecuente. `null` si
+  no hay habilidad evaluada o actividad compatible. Es una sugerencia, no una
+  asignación. `meta.contentReview: "por validar con docente"` identifica el
+  contenido pedagógico de ejemplo.
+- `typicalErrors`: `[{ skillCode, errorTag, explanation, count }]`, respuestas
+  incorrectas reales de aplicaciones terminadas del grupo actual, alumnos
+  activos y escuela autorizada; el perfil filtra además al alumno. Orden:
+  frecuencia descendente, habilidad, etiqueta y explicación. Las respuestas
+  de sesiones en progreso no se cuentan.
+- `history`: `[{ id, skillCode, skillName, grade, schoolYear, sessionIndex,
+  sessionPercentage, autonomousPercentage, supportedPercentage,
+  masteryPercentage, level, label, recordedAt }]`. Incluye cortes de grados
+  anteriores de la misma escuela, por fecha ascendente e id. Cortes sin
+  asignación conservan `schoolYear: null`; no se inventa un ciclo. Fechas UTC
+  de SQLite. Analytics no modifica ningún corte ni recalcula respuestas.
