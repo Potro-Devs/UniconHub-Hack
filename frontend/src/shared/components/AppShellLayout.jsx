@@ -240,7 +240,9 @@ export function AppShellLayout() {
                 cursor: 'pointer',
               }}
             >
-              {isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →'}
+              {session?.role === 'director'
+                ? (isDir ? 'Ver grupos (solo lectura) →' : '← Volver a Dirección')
+                : (isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →')}
             </button>
 
             <button

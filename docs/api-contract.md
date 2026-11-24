@@ -30,6 +30,7 @@ Los endpoints protegidos esperan `Authorization: Bearer <token>`. El token (JWT 
 | `POST /login` | `{ email, password }` | `{ token, expiresAt, user: { id, fullName, email, role, schoolId } }` | 400, 401 `INVALID_CREDENTIALS`, 429 |
 | `GET /quick-login` | — | `{ enabled }`: el frontend decide si mostrar los botones de demo | — |
 | `POST /quick-login/teacher` | — | Igual que `/login` (docente demo) | 403 `QUICK_LOGIN_DISABLED`, 404 `DEMO_DATA_MISSING` |
+| `POST /quick-login/director` | — | Igual que `/login` (director demo, solo lectura de su escuela) | 403 `QUICK_LOGIN_DISABLED`, 404 `DEMO_DATA_MISSING` |
 | `POST /quick-login/student` | — | `{ token, expiresAt, student, group }` (primer alumno activo del grupo demo) | 403, 404 |
 | `POST /student-join` | `{ joinCode }` | `{ group, students: [StudentCard] }` | 400, 404 `GROUP_NOT_FOUND`, 429 |
 | `POST /student-join/select` | `{ joinCode, studentId }` | `{ token, expiresAt, student, group }` | 400, 404 `GROUP_NOT_FOUND` / `STUDENT_NOT_IN_GROUP`, 429 |

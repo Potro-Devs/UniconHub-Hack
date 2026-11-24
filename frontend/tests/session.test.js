@@ -87,7 +87,7 @@ describe('navegación', () => {
   test('homePathFor según el rol', () => {
     assert.equal(homePathFor(null), '/login');
     assert.equal(homePathFor(toSession(teacherData)), '/docente/grupos');
-    assert.equal(homePathFor({ role: 'director' }), '/docente/grupos');
+    assert.equal(homePathFor({ role: 'director' }), '/direccion/escuela');
     assert.equal(homePathFor(toSession(studentData)), '/alumno/inicio');
   });
 

@@ -78,6 +78,10 @@ function insertDemo(db, rng, bank, passwordHash) {
     "INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'teacher')",
     schoolId, DEMO.teacher.email, passwordHash, DEMO.teacher.fullName,
   );
+  run(
+    "INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'director')",
+    schoolId, DEMO.director.email, passwordHash, DEMO.director.fullName,
+  );
 
   // Habilidades
   const skillIds = Object.fromEntries(
@@ -309,6 +313,7 @@ function insertDemo(db, rng, bank, passwordHash) {
   return {
     seeded: true,
     teacherEmail: DEMO.teacher.email,
+    directorEmail: DEMO.director.email,
     joinCode: DEMO.currentGroup.joinCode,
     counts: {
       students: students.length,
@@ -355,6 +360,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
           `  · ${c.questions} reactivos · ${c.contents} contenidos · ${c.activities} actividades`,
           `  · ${c.responses} respuestas · ${c.masteryCuts} cortes de dominio · ${c.achievements} logros`,
           `  · Docente: ${result.teacherEmail} / ${DEMO.teacher.password}`,
+          `  · Dirección: ${result.directorEmail} / ${DEMO.director.password}`,
         ].join('\n'),
       );
     }

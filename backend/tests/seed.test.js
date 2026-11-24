@@ -35,6 +35,14 @@ describe('seed demo', () => {
     assert.ok(bcrypt.compareSync(DEMO.teacher.password, user.password_hash));
   });
 
+  test('incluye un director demo de la misma escuela que la docente', () => {
+    const director = db.prepare('SELECT school_id, role, password_hash FROM users WHERE email = ?').get(DEMO.director.email);
+    const teacher = db.prepare('SELECT school_id FROM users WHERE email = ?').get(DEMO.teacher.email);
+    assert.equal(director.role, 'director');
+    assert.equal(director.school_id, teacher.school_id);
+    assert.ok(bcrypt.compareSync(DEMO.director.password, director.password_hash));
+  });
+
   test('el grupo actual tiene 45 alumnos activos con iniciales y folio', () => {
     const rows = db.prepare(`
       SELECT s.* FROM students s

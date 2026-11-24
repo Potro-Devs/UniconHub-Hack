@@ -53,9 +53,10 @@ export function loadConfig(source = process.env) {
     auth: {
       teacherTokenTtl: source.TEACHER_TOKEN_TTL || '8h',
       studentTokenTtl: source.STUDENT_TOKEN_TTL || '2h',
-      // Accesos rápidos "Entrar como Docente / Alumno" (solo demo).
+      // Accesos rápidos "Entrar como Docente / Directivo / Alumno" (solo demo).
       quickLoginEnabled: parseBoolean(source.ENABLE_QUICK_LOGIN, !isProduction),
       quickLoginTeacherEmail: source.QUICK_LOGIN_TEACHER_EMAIL || 'docente@axi.demo',
+      quickLoginDirectorEmail: source.QUICK_LOGIN_DIRECTOR_EMAIL || 'direccion@axi.demo',
       // Intentos permitidos por IP en login y acceso de alumno.
       rateLimit: {
         windowMs: Number(source.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
