@@ -4,7 +4,9 @@ import { createGroupAccess } from '../groups/groups.access.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import { computeCoverage, CURRICULUM_REVIEW_NOTICE } from '../curriculum/curriculum.domain.js';
 import { buildStudentSkills, summarizeGroupSkills, countStudentsNeedingSupport,
-  findWeakestSkill, selectRecommendedActivity, toHistoryDto } from './analytics.domain.js';
+  findWeakestSkill, selectRecommendedActivity, toHistoryDto, parseAnalyticsSelection,
+  selectAnalyticsStudents, summarizeGroupEvidence } from './analytics.domain.js';
+import { renderAnalyticsPdf, renderAnalyticsXlsx } from './analytics.export.js';
 
 const groupDto = (group) => ({ id: group.id, grade: group.grade, section: group.section, schoolYear: group.school_year });
 const studentDto = (student) => ({ id: student.id, name: `${student.first_names} ${student.last_names}`,
@@ -15,10 +17,11 @@ const meta = { contentReview: CURRICULUM_REVIEW_NOTICE };
 
 export function createAnalyticsService({ repository, groupsRepository, curriculumRepository }) {
   const { findReadableGroup } = createGroupAccess(groupsRepository);
-  return {
-    getGroup(auth, groupId) {
+  const service = {
+    getGroup(auth, groupId, query = {}) {
       const group = findReadableGroup(auth, groupId);
       const skillRows = repository.listSkills();
+      const selection = parseAnalyticsSelection(query, skillRows);
       const history = repository.listGroupHistory(group.id, group.school_id);
       const students = groupsRepository.listActiveStudents(group.id).map((student) => ({
         ...studentDto(student), skills: buildStudentSkills(skillRows, history.filter((cut) => cut.student_id === student.id)),
@@ -28,8 +31,11 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
       const contents = curriculumRepository.listContentsWithProgress(group.id, group.grade);
       const coverage = computeCoverage(contents.length, contents.map((content) => ({ status: content.status ?? 'pending' })));
       const typicalErrors = errorDtos(repository.listTypicalErrors(group.id, group.school_id));
-      return { data: { group: groupDto(group), skills, students, summary: {
+      const selectedStudents = selectAnalyticsStudents(students, selection);
+      return { data: { group: groupDto(group), skills, students: selectedStudents,
+        selection: { ...selection, studentCount: selectedStudents.length }, summary: {
         studentCount: students.length, needsSupportCount: countStudentsNeedingSupport(students),
+        ...summarizeGroupEvidence(students),
         weakestSkill, coverage, typicalErrors,
         recommendedActivity: selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill?.code, typicalErrors),
       } }, meta };
@@ -49,5 +55,13 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
         recommendedActivity: selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill?.code, typicalErrors),
       }, meta };
     },
+    async exportGroup(auth, groupId, query, format) {
+      const { data } = service.getGroup(auth, groupId, query);
+      const buffer = await (format === 'xlsx' ? renderAnalyticsXlsx(data) : renderAnalyticsPdf(data));
+      return { buffer, filename: `diagnostico-grupo-${data.group.id}.${format}`,
+        contentType: format === 'xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf' };
+    },
   };
+  return service;
 }

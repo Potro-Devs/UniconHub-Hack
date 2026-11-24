@@ -135,6 +135,13 @@ npm run dev
 
 ### Ver el incremento de Analytics en un solo puerto
 
+El **Mapa del grupo** presenta promedios de dominio autónomo, distribución por nivel y evidencia disponible por habilidad. Los indicadores y las gráficas describen el grupo completo; el filtro por habilidad y la opción de mostrar solo alumnos que necesitan apoyo se aplican al detalle y a sus exportaciones.
+
+- **Excel (.xlsx):** resumen del grupo, resultados de la selección y metodología. Los porcentajes son valores numéricos; una celda sin evaluación queda vacía y conserva la etiqueta “Sin evaluar”.
+- **PDF:** reporte Carta en blanco y negro, con resumen, filtros, fecha y resultados paginados. “Logrado con apoyo” corresponde a la última sesión y se presenta separado del dominio longitudinal.
+
+Las descargas requieren la sesión del docente o director autorizado, se generan en memoria y no incluyen folios internos. Al descargarlas, contienen nombres de alumnos de la selección: conserva los archivos dentro del contexto escolar autorizado.
+
 ```bash
 npm run seed
 npm run build:frontend

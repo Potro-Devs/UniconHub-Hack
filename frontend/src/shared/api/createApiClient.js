@@ -29,11 +29,11 @@ export function createApiClient({ baseUrl, fetchImpl = (...args) => fetch(...arg
   /**
    * @param {string} method
    * @param {string} path Ruta relativa a `baseUrl` (p. ej. `/auth/login`).
-   * @param {{ body?: unknown, auth?: boolean, signal?: AbortSignal }} [options]
-   * @returns {Promise<any>} El campo `data` de la respuesta.
+   * @param {{ body?: unknown, auth?: boolean, signal?: AbortSignal, responseType?: 'json' | 'blob' }} [options]
+   * @returns {Promise<any>} El campo `data` de JSON, o un Blob para descargas autenticadas.
    */
-  async function request(method, path, { body, auth = true, signal } = {}) {
-    const headers = { Accept: 'application/json' };
+  async function request(method, path, { body, auth = true, signal, responseType = 'json' } = {}) {
+    const headers = { Accept: responseType === 'blob' ? '*/*' : 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     const token = auth ? getToken() : null;
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -51,6 +51,7 @@ export function createApiClient({ baseUrl, fetchImpl = (...args) => fetch(...arg
       throw new ApiError({ status: 0, code: 'NETWORK_ERROR', message: NETWORK_ERROR_MESSAGE });
     }
 
+    if (response.ok && responseType === 'blob') return response.blob();
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       const error = new ApiError({
@@ -69,6 +70,7 @@ export function createApiClient({ baseUrl, fetchImpl = (...args) => fetch(...arg
   return {
     request,
     get: (path, options) => request('GET', path, options),
+    download: (path, options) => request('GET', path, { ...options, responseType: 'blob' }),
     post: (path, body, options) => request('POST', path, { ...options, body }),
     patch: (path, body, options) => request('PATCH', path, { ...options, body }),
   };

@@ -2,6 +2,7 @@
  * Módulo analytics — Capa 3 (Dominio): escala de dominio y promedio ponderado evolutivo.
  * Funciones puras sin I/O (AGENTS.md §4.3 y §4.5).
  */
+import { DomainError } from '../../shared/errors/DomainError.js';
 
 /**
  * Escala de niveles con intervalos estrictos de 25%. `min` es inclusivo.
@@ -149,7 +150,11 @@ export function summarizeGroupSkills(skills, students) {
     return { code: skill.code, name: skill.name, average, level: level?.code ?? null,
       label: level?.label ?? 'Sin evaluar', evaluatedCount: values.length,
       needsSupportCount: values.filter((s) => s.level === 'needs_support').length,
-      gradeCounts };
+      gradeCounts,
+      evidencePercentage: students.length ? roundPercentage(values.length / students.length * 100) : 0,
+      distribution: countByMasteryLevel(students.map((student) =>
+        student.skills.find((entry) => entry.code === skill.code)?.masteryPercentage ?? null)),
+    };
   });
 }
 
@@ -175,4 +180,28 @@ export function toHistoryDto(cut) {
     sessionPercentage: cut.session_percentage, autonomousPercentage: cut.autonomous_percentage,
     supportedPercentage: cut.supported_percentage, masteryPercentage: cut.mastery_percentage,
     level: level.code, label: level.label, recordedAt: cut.recorded_at };
+}
+
+/** Solo filtros explícitos y escalares; nunca nombres de alumnos en la URL. */
+export function parseAnalyticsSelection(query, skills) {
+  const invalid = () => new DomainError('VALIDATION_ERROR', 'Elige una habilidad válida y si deseas ver solo alumnos que necesitan apoyo.');
+  if (!query || typeof query !== 'object' || Array.isArray(query)) throw invalid();
+  if (Object.keys(query).some((key) => !['skillCode', 'supportOnly'].includes(key))) throw invalid();
+  const { skillCode, supportOnly } = query;
+  if (skillCode !== undefined && (typeof skillCode !== 'string' || !skills.some((skill) => skill.code === skillCode))) throw invalid();
+  if (supportOnly !== undefined && !['true', 'false'].includes(supportOnly)) throw invalid();
+  return { skillCode: skillCode ?? null, supportOnly: supportOnly === 'true' };
+}
+
+export function selectAnalyticsStudents(students, selection) {
+  if (!selection.supportOnly) return students;
+  return students.filter((student) => student.skills.some((skill) =>
+    (!selection.skillCode || skill.code === selection.skillCode) && skill.level === 'needs_support'));
+}
+
+export function summarizeGroupEvidence(students) {
+  const evaluatedStudentCount = students.filter((student) => student.skills.some((skill) => skill.masteryPercentage !== null)).length;
+  const dates = students.flatMap((student) => student.skills.map((skill) => skill.recordedAt).filter(Boolean));
+  return { evaluatedStudentCount, notEvaluatedStudentCount: students.length - evaluatedStudentCount,
+    latestRecordedAt: dates.reduce((latest, date) => latest === null || date > latest ? date : latest, null) };
 }

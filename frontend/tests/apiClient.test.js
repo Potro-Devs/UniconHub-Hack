@@ -82,4 +82,43 @@ describe('createApiClient', () => {
   test('errorMessageOf da un mensaje genérico para errores desconocidos', () => {
     assert.match(errorMessageOf(new Error('interno')), /inesperado/);
   });
+
+  test('download devuelve Blob con autenticación y conserva señal de cancelación', async () => {
+    const binary = new Blob(['%PDF-1.3\ncontenido'], { type: 'application/pdf' });
+    const controller = new AbortController();
+    let captured;
+    const api = createApiClient({ baseUrl: '/api/v1', getToken: () => 'download-token', fetchImpl: async (url, init) => {
+      captured = { url, init };
+      return { ok: true, blob: async () => binary, json: async () => { throw new Error('No debe leer binarios como JSON'); } };
+    } });
+    const result = await api.download('/analytics/groups/1/export.pdf?skillCode=fractions', { signal: controller.signal });
+    assert.equal(result, binary);
+    assert.equal(await result.text(), '%PDF-1.3\ncontenido');
+    assert.equal(captured.url, '/api/v1/analytics/groups/1/export.pdf?skillCode=fractions');
+    assert.equal(captured.init.method, 'GET');
+    assert.equal(captured.init.headers.Authorization, 'Bearer download-token');
+    assert.equal(captured.init.headers['Content-Type'], undefined);
+    assert.equal(captured.init.signal, controller.signal);
+  });
+
+  test('download interpreta errores JSON y 401 autenticado notifica cierre de sesión', async () => {
+    const { impl } = fakeFetch(() => ({ status: 401, body: { error: { code: 'TOKEN_EXPIRED', message: 'Tu sesión expiró.' } } }));
+    let notified = 0;
+    const api = createApiClient({ baseUrl: '', fetchImpl: impl, getToken: () => 'abc', onUnauthorized: (error) => {
+      notified += 1;
+      assert.equal(error.code, 'TOKEN_EXPIRED');
+    } });
+    await assert.rejects(api.download('/report.pdf'), (error) => error instanceof ApiError && error.status === 401 && error.message === 'Tu sesión expiró.');
+    assert.equal(notified, 1);
+    await assert.rejects(api.download('/report.pdf', { auth: false }));
+    assert.equal(notified, 1);
+  });
+
+  test('download muestra errores HTTP y de red en vez de guardar archivos de error', async () => {
+    const { impl } = fakeFetch(() => ({ status: 404, body: { error: { code: 'GROUP_NOT_FOUND', message: 'No encontramos ese grupo.' } } }));
+    const api = createApiClient({ baseUrl: '', fetchImpl: impl });
+    await assert.rejects(api.download('/report.xlsx'), (error) => error.status === 404 && error.code === 'GROUP_NOT_FOUND');
+    const network = createApiClient({ baseUrl: '', fetchImpl: async () => { throw new TypeError('Failed to fetch'); } });
+    await assert.rejects(network.download('/report.pdf'), (error) => error.code === 'NETWORK_ERROR');
+  });
 });

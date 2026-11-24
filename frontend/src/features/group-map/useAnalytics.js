@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { analyticsApi } from './analytics.api';
 
 /** Abort and discard old requests when the active group or student changes. */
-export function useAnalytics(groupId, studentId) {
+export function useAnalytics(groupId, studentId, { skillCode = '', supportOnly = false } = {}) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState({ key: null, status: 'loading', data: null });
-  const key = `${groupId ?? ''}:${studentId ?? ''}`;
+  const key = `${groupId ?? ''}:${studentId ?? ''}:${skillCode}:${supportOnly}`;
   useEffect(() => {
     if (!groupId) {
       setState({ key, status: 'idle', data: null });
@@ -15,7 +15,7 @@ export function useAnalytics(groupId, studentId) {
     let cancelled = false;
     setState({ key, status: 'loading', data: null });
     const request = studentId === undefined
-      ? analyticsApi.group(groupId, { signal: controller.signal })
+      ? analyticsApi.group(groupId, { signal: controller.signal }, { skillCode, supportOnly })
       : analyticsApi.student(groupId, studentId, { signal: controller.signal });
     request.then((data) => {
       if (!cancelled) setState({ key, status: 'ready', data });
@@ -23,7 +23,7 @@ export function useAnalytics(groupId, studentId) {
       if (!cancelled) setState({ key, status: 'error', data: null, error });
     });
     return () => { cancelled = true; controller.abort(); };
-  }, [groupId, studentId, key, attempt]);
+  }, [groupId, studentId, skillCode, supportOnly, key, attempt]);
   return {
     ...(state.key === key ? state : { status: groupId ? 'loading' : 'idle', data: null }),
     retry: () => setAttempt((value) => value + 1),

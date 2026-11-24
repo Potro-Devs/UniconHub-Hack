@@ -75,6 +75,16 @@ describe('analytics API: evidencia real, lectura y privacidad', () => {
   const base = () => `/api/v1/analytics/groups/${fx.ids.groupId}`;
   const profile = (id = fx.ids.ana) => `${base()}/students/${id}`;
   const read = (path, token = fx.tokens.teacher) => api.call('GET', path, { token });
+  const binary = async (path, token = fx.tokens.teacher) => {
+    const server = createApp({ db: fx.db, config: configWith(), logger: silentLogger }).listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+      return { status: response.status, headers: response.headers, bytes: Buffer.from(await response.arrayBuffer()) };
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  };
   beforeEach(async () => {
     fx = fixtures();
     api = await startServer(createApp({ db: fx.db, config: configWith(), logger: silentLogger }));
@@ -203,6 +213,128 @@ describe('analytics API: evidencia real, lectura y privacidad', () => {
       assert.equal(response.status, 404);
       assert.ok(response.body.error.code);
     }
+  });
+
+  test('distribución y evidencia cuentan sin evaluar aparte; filtros conservan resumen global', async () => {
+    const original = (await read(base())).body.data;
+    const frac = original.skills.find((skill) => skill.code === 'fractions');
+    assert.deepEqual(frac.distribution, { needs_support: 1, in_progress: 0, achieved: 0, mastered: 1, not_evaluated: 1 });
+    assert.equal(frac.evidencePercentage, 66.67);
+    assert.equal(original.skills.find((skill) => skill.code === 'multiplication').evidencePercentage, 0);
+    for (const skill of original.skills) {
+      assert.equal(Object.values(skill.distribution).reduce((sum, n) => sum + n, 0), original.summary.studentCount);
+    }
+    assert.equal(original.summary.evaluatedStudentCount, 2);
+    assert.equal(original.summary.notEvaluatedStudentCount, 1);
+    assert.equal(original.summary.latestRecordedAt, '2026-11-01 10:00:00');
+    const filtered = (await read(`${base()}?skillCode=fractions&supportOnly=true`)).body.data;
+    assert.deepEqual(filtered.students.map((student) => student.id), [fx.ids.ana]);
+    assert.deepEqual(filtered.summary, original.summary);
+    assert.deepEqual(filtered.skills, original.skills);
+    assert.deepEqual(filtered.selection, { skillCode: 'fractions', supportOnly: true, studentCount: 1 });
+    const none = (await read(`${base()}?skillCode=place_value&supportOnly=true`)).body.data;
+    assert.deepEqual(none.students, []);
+    assert.deepEqual(none.summary, original.summary);
+    const all = (await read(`${base()}?supportOnly=false`)).body.data;
+    assert.equal(all.students.length, 3);
+    const empty = (await read(`/api/v1/analytics/groups/${fx.ids.emptyGroup}`)).body.data;
+    assert.ok(empty.skills.every((skill) => skill.evidencePercentage === 0 && skill.average === null));
+    assert.equal(empty.summary.latestRecordedAt, null);
+  });
+
+  test('filtros estrictos rechazan desconocidos, duplicados, arreglos y objetos', async () => {
+    const invalid = ['skillCode=', 'skillCode=unknown', 'skillCode=fractions&skillCode=place_value', 'skillCode[]=fractions', 'skillCode[x]=fractions', 'supportOnly=1', 'supportOnly=', 'supportOnly=TRUE', 'supportOnly=true&supportOnly=false', 'supportOnly[]=true', 'unused=x'];
+    for (const query of invalid) {
+      for (const suffix of ['', '/export.xlsx', '/export.pdf']) {
+        const response = await read(`${base()}${suffix}?${query}`);
+        assert.equal(response.status, 400, `${suffix}?${query}`);
+        assert.equal(response.body.error.code, 'VALIDATION_ERROR');
+      }
+    }
+  });
+
+  test('descargas conservan autorización y errores JSON antes de generar binarios', async () => {
+    for (const extension of ['xlsx', 'pdf']) {
+      const path = `${base()}/export.${extension}`;
+      for (const [token, expected] of [[null, 401], [fx.tokens.student, 403], [fx.tokens.otherTeacher, 404], [fx.tokens.otherDirector, 404]]) {
+        const response = await binary(path, token);
+        assert.equal(response.status, expected);
+        assert.match(response.headers.get('content-type'), /application\/json/);
+        assert.ok(JSON.parse(response.bytes.toString()).error.code);
+      }
+      const absent = await binary(`/api/v1/analytics/groups/999999/export.${extension}`);
+      assert.equal(absent.status, 404);
+    }
+  });
+
+  test('PDF entrega archivo privado con formato PDF y director autorizado puede descargar', async () => {
+    const response = await binary(`${base()}/export.pdf?skillCode=fractions&supportOnly=true`, fx.tokens.director);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /^application\/pdf/);
+    assert.match(response.headers.get('content-disposition'), /attachment;.*\.pdf/i);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+    assert.equal(response.bytes.subarray(0, 5).toString(), '%PDF-');
+    assert.match(response.bytes.subarray(-40).toString(), /%%EOF/);
+  });
+
+  test('Excel nativo conserva filtros JSON, porcentajes numéricos y ausencia como celda vacía', async () => {
+    const { default: ExcelJS } = await import('exceljs');
+    const fractions = fx.db.prepare("SELECT id FROM skills WHERE code = 'fractions'").get().id;
+    const priorAssignment = fx.db.prepare(`SELECT id FROM assignments WHERE group_id = (
+      SELECT id FROM groups WHERE grade = 2 AND section = 'A' LIMIT 1
+    )`).get().id;
+    fx.db.prepare(`INSERT INTO skill_mastery_history
+      (student_id,skill_id,assignment_id,grade,session_index,session_percentage,autonomous_percentage,supported_percentage,mastery_percentage,mastery_level,recorded_at)
+      VALUES (?,?,?,2,1,40,40,0,40,'in_progress','2025-06-01 10:00:00')`)
+      .run(fx.ids.celia, fractions, priorAssignment);
+    for (const query of ['', '?skillCode=fractions&supportOnly=true', '?skillCode=place_value&supportOnly=true']) {
+      const json = (await read(`${base()}${query}`)).body.data;
+      const response = await binary(`${base()}/export.xlsx${query}`);
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get('content-type'), /^application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/);
+      assert.match(response.headers.get('content-disposition'), /attachment;.*\.xlsx/i);
+      assert.match(response.headers.get('cache-control'), /no-store/);
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(response.bytes);
+      assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ['Resumen', 'Resultados', 'Metodología']);
+      const summary = workbook.getWorksheet('Resumen');
+      assert.equal(summary.getCell('A1').value, 'Contiene datos personales de menores. Uso escolar privado; no compartir fuera de la escuela.');
+      assert.equal(summary.getCell('C16').value, '2.º (1), 3.º (2)');
+      const sheet = workbook.getWorksheet('Resultados');
+      const expected = json.students.flatMap((student) => student.skills.filter((skill) => !json.selection.skillCode || skill.code === json.selection.skillCode).map((skill) => ({ student, skill })));
+      assert.equal(sheet.rowCount - 1, expected.length);
+      for (const [index, { student, skill }] of expected.entries()) {
+        const row = sheet.getRow(index + 2);
+        assert.equal(row.getCell(1).value, student.name);
+        assert.equal(row.getCell(2).value, student.initials);
+        assert.equal(row.getCell(3).value, skill.name);
+        assert.equal(row.getCell(4).value, skill.grade == null ? 'Sin evaluar' : `${skill.grade}.º`);
+        assert.equal(row.getCell(6).value, skill.label);
+        for (const [column, value] of [[5, skill.masteryPercentage], [7, skill.autonomousPercentage], [8, skill.supportedPercentage]]) {
+          const cell = row.getCell(column);
+          assert.equal(cell.value, value === null ? null : Math.round(value * 100) / 10000);
+          if (value !== null) assert.equal(cell.type, ExcelJS.ValueType.Number);
+          assert.equal(cell.numFmt, '0.00%');
+        }
+      }
+      workbook.eachSheet((worksheet) => worksheet.eachRow((row) => row.eachCell((cell) => {
+        assert.notEqual(cell.type, ExcelJS.ValueType.Formula);
+        const text = String(cell.value ?? '');
+        assert.ok(!/PRIVATE-FOLIO|internal_folio|password_hash/.test(text));
+      })));
+    }
+  });
+
+  test('Excel guarda nombres que empiezan con fórmula como texto literal', async () => {
+    const { default: ExcelJS } = await import('exceljs');
+    fx.db.prepare('UPDATE students SET first_names = ? WHERE id = ?').run('=1+1', fx.ids.ana);
+    const response = await binary(`${base()}/export.xlsx?skillCode=fractions&supportOnly=true`);
+    assert.equal(response.status, 200);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.bytes);
+    const cell = workbook.getWorksheet('Resultados').getCell('A2');
+    assert.equal(cell.value, '=1+1 Ejemplo');
+    assert.equal(cell.type, ExcelJS.ValueType.String);
   });
 
   test('despliegue sirve rutas SPA si existe frontend compilado', { skip: !existsSync(new URL('../../frontend/dist/index.html', import.meta.url)) }, async () => {

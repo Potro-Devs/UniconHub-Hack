@@ -213,3 +213,61 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
   anteriores de la misma escuela, por fecha ascendente e id. Cortes sin
   asignación conservan `schoolYear: null`; no se inventa un ciclo. Fechas UTC
   de SQLite. Analytics no modifica ningún corte ni recalcula respuestas.
+
+### Selección, distribución y exportación de Analytics
+
+`GET /analytics/groups/:groupId` y sus descargas aceptan únicamente estos
+parámetros de consulta opcionales:
+
+- `skillCode`: uno de los códigos del catálogo, por ejemplo `fractions`.
+- `supportOnly`: texto `true` o `false` (por defecto `false`).
+
+Parámetros desconocidos, repetidos, vacíos, arreglos, objetos, habilidades
+inexistentes o booleanos distintos de `true`/`false` responden 400
+`VALIDATION_ERROR`. No se envían búsquedas de nombres en la URL. Primero se
+valida acceso al grupo; un grupo ajeno sigue respondiendo 404.
+
+El resultado agrega `selection: { skillCode: string | null, supportOnly: boolean,
+studentCount: number }`. `studentCount` representa el número de alumnos de la
+selección. `supportOnly=true` filtra `data.students` a quienes tienen nivel
+`needs_support` en la habilidad elegida; sin `skillCode`, en al menos una
+habilidad. Elegir solo una habilidad sin `supportOnly` conserva a todos los
+alumnos. Cada alumno conserva sus habilidades para que el cliente pueda cambiar
+la visualización sin inventar métricas.
+
+`data.skills` y `data.summary` siempre representan el **grupo completo**,
+independientemente del filtro. Cada habilidad de grupo agrega:
+
+- `distribution: { needs_support, in_progress, achieved, mastered, not_evaluated }`:
+  conteos de alumnos activos; la suma coincide con `summary.studentCount`.
+- `evidencePercentage`: porcentaje de alumnos evaluados sobre el total de
+  alumnos activos, redondeado a dos decimales; grupo vacío devuelve `0`.
+
+`summary` agrega `evaluatedStudentCount` (al menos una habilidad evaluada),
+`notEvaluatedStudentCount` y `latestRecordedAt` (fecha UTC del corte más reciente
+de los alumnos activos, o `null`). Una medición de 0% sí cuenta como evidencia.
+
+| Endpoint | Respuesta |
+| --- | --- |
+| `GET /analytics/groups/:groupId/export.xlsx` | Excel nativo: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
+| `GET /analytics/groups/:groupId/export.pdf` | PDF Carta, blanco y negro: `application/pdf` |
+
+Las descargas usan los mismos filtros, validación y autorización (docente propio
+o director de la escuela); alumno recibe 403. Se devuelven con
+`Content-Disposition: attachment`, nombre `diagnostico-grupo-ID.xlsx` o `.pdf`
+y `Cache-Control: no-store`. Los errores mantienen JSON estándar; no se generan
+archivos antes de validar acceso y filtros. No se guardan reportes en disco.
+
+Excel incluye hojas `Resumen` (métricas globales, cobertura y distribución),
+`Resultados` (alumnos filtrados × habilidad elegida o todas) y `Metodología`.
+Los porcentajes son números entre 0 y 1 con formato porcentual; sin evidencia,
+las celdas numéricas están vacías y el nivel dice `Sin evaluar`. Los nombres se
+escriben como texto, nunca como fórmulas. Resultados tiene filtro de columnas y
+fila de encabezados congelada.
+
+PDF incluye resumen global, alcance de la selección, detalle con porcentaje y
+nivel escrito, resultados autónomos y con apoyo separados de la última sesión,
+y metodología. Incluye paginación y encabezados repetidos. Ambos formatos
+identifican grupo, ciclo, selección, fecha de generación en Ciudad de México,
+uso escolar privado y aviso de contenido pedagógico por validar con docente.
+No contienen folios internos ni datos de otros grupos o escuelas.
