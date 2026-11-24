@@ -6,7 +6,7 @@
 export const DEMO = Object.freeze({
   schoolName: 'Escuela Primaria Demo Axi',
   teacher: { email: 'docente@axi.demo', password: 'AxiDemo2026', fullName: 'Mtra. Elena Torres' },
-  // Misma contraseña que la docente demo: se reutiliza el hash del seed.
+  // Misma contraseña que la docente demo (en una base nueva se reutiliza el hash).
   director: { email: 'direccion@axi.demo', password: 'AxiDemo2026', fullName: 'Mtro. Ricardo Salinas' },
   currentGroup: { grade: 3, section: 'A', schoolYear: '2026-2027', joinCode: 'MAPA3A' },
   previousGroups: [

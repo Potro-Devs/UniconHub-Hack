@@ -47,7 +47,7 @@ const headerChip = {
 };
 
 /** Grupo activo en el encabezado: selector con 2+, texto con 1, `Sin grupo` con 0. */
-function ActiveGroupSwitcher() {
+function ActiveGroupSwitcher({ canCreate }) {
   const navigate = useNavigate();
   const { status, groups, activeGroup, setActiveGroupId } = useTeacherGroups();
 
@@ -56,6 +56,7 @@ function ActiveGroupSwitcher() {
   }
   if (!groups.length) {
     if (status === 'error') return <div style={{ ...headerChip, color: COLORS.muted, fontWeight: 400 }}>Grupo no disponible</div>;
+    if (!canCreate) return <div style={{ ...headerChip, color: COLORS.muted, fontWeight: 400 }}>Sin grupos</div>;
     return (
       <button
         type="button"
@@ -152,7 +153,9 @@ export function AppShellLayout() {
   const { session, signOut } = useSession();
 
   const isDir = pathname.startsWith('/direccion');
-  const navDef = isDir ? DIRECCION_NAV : DOCENTE_NAV;
+  const isDirector = session?.role === 'director';
+  // El director consulta los grupos en solo lectura: sin la captura de respuestas.
+  const navDef = isDir ? DIRECCION_NAV : DOCENTE_NAV.filter((item) => !(isDirector && item.id === 'captura'));
 
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -221,7 +224,7 @@ export function AppShellLayout() {
 
           <div style={{ marginTop: 'auto' }}>
             <MotionToggle />
-            {!isDir && <SidebarJoinCode />}
+            {!isDir && !isDirector && <SidebarJoinCode />}
 
             <button
               type="button"
@@ -240,7 +243,7 @@ export function AppShellLayout() {
                 cursor: 'pointer',
               }}
             >
-              {session?.role === 'director'
+              {isDirector
                 ? (isDir ? 'Ver grupos (solo lectura) →' : '← Volver a Dirección')
                 : (isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →')}
             </button>
@@ -288,7 +291,7 @@ export function AppShellLayout() {
                 <span style={{ fontWeight: 400, color: COLORS.muted }}>· Esc. Prim. Benito Juárez</span>
               </div>
             ) : (
-              <ActiveGroupSwitcher />
+              <ActiveGroupSwitcher canCreate={!isDirector} />
             )}
           </div>
 

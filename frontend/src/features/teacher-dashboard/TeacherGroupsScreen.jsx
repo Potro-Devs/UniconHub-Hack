@@ -157,6 +157,7 @@ export function TeacherGroupsScreen() {
   const navigate = useNavigate();
   const { session } = useSession();
   const { status, groups, activeGroup, setActiveGroupId, retry } = useTeacherGroups();
+  const canEdit = session?.role === 'teacher';
 
   const sorted = sortGroups(groups);
   const loading = status === 'loading';
@@ -175,15 +176,16 @@ export function TeacherGroupsScreen() {
       {status === 'ready' && activeGroup && <nav className="teacher-workflow" aria-label="Herramientas para acompañar al grupo">
         {[
           { to: '/docente/temario', icon: 'book', title: 'Preparar', description: 'Temario y próximas evaluaciones' },
-          { to: '/docente/captura', icon: 'pencil', title: 'Registrar', description: 'Respuestas de las hojas impresas' },
+          canEdit && { to: '/docente/captura', icon: 'pencil', title: 'Registrar', description: 'Respuestas de las hojas impresas' },
           { to: '/docente/mapa', icon: 'map', title: 'Acompañar', description: 'Resultados e historial de aprendizaje' },
-        ].map((item) => <button type="button" key={item.to} onClick={() => navigate(item.to)}><span><InterfaceIcon name={item.icon} /></span><span><strong>{item.title}</strong><small>{item.description}</small></span></button>)}
+        ].filter(Boolean).map((item) => <button type="button" key={item.to} onClick={() => navigate(item.to)}><span><InterfaceIcon name={item.icon} /></span><span><strong>{item.title}</strong><small>{item.description}</small></span></button>)}
       </nav>}
 
       <section aria-labelledby="groups-title" aria-busy={loading} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <h2 id="groups-title" className="font-display" style={sectionTitle}>
-          Tus grupos
+          {canEdit ? 'Tus grupos' : 'Grupos de la escuela'}
         </h2>
+        {!canEdit && <p style={{ ...mutedText, margin: 0 }}>Vista de solo lectura: puedes consultar resultados e historial, pero no modificar grupos.</p>}
 
         {loading && (
           <>
@@ -210,14 +212,14 @@ export function TeacherGroupsScreen() {
           <div style={{ ...card, alignItems: 'center', textAlign: 'center', padding: '32px 20px' }}>
             <Mascot size={120} />
             <h3 className="font-display" style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>
-              Aún no tienes grupos
+              {canEdit ? 'Aún no tienes grupos' : 'La escuela aún no tiene grupos'}
             </h3>
-            <p style={{ ...mutedText, margin: 0, maxWidth: '420px' }}>
+            {canEdit && <p style={{ ...mutedText, margin: 0, maxWidth: '420px' }}>
               Crea tu grupo para compartir el código con tus alumnos y empezar su diagnóstico.
-            </p>
-            <button type="button" onClick={() => navigate('/docente/grupos/nuevo')} style={buttonStyle('primary', { tall: true })}>
+            </p>}
+            {canEdit && <button type="button" onClick={() => navigate('/docente/grupos/nuevo')} style={buttonStyle('primary', { tall: true })}>
               Crear mi primer grupo
-            </button>
+            </button>}
           </div>
         )}
 
@@ -231,7 +233,7 @@ export function TeacherGroupsScreen() {
                 onUse={setActiveGroupId}
               />
             ))}
-            <CreateGroupTile />
+            {canEdit && <CreateGroupTile />}
           </div>
         )}
       </section>

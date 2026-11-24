@@ -148,10 +148,10 @@ export function PromoteGroupsScreen() {
           <Mascot size={120} mood="celebra" />
           <div style={{ flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div className="font-display" style={{ fontWeight: 700, fontSize: '26px', lineHeight: 1.15 }}>
-              Listo: {promoN} alumnos pasaron de grado
+              Así se vería: {promoN} alumnos pasarían de grado
             </div>
             <div style={{ fontSize: '15px', lineHeight: 1.45 }}>
-              El docente nuevo abre el perfil y ya ve diagnóstico e historial. Nadie empieza de cero.
+              El docente nuevo abriría el perfil y vería diagnóstico e historial. Vista de ejemplo: no se guardó ningún cambio.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
               <button
@@ -183,7 +183,7 @@ export function PromoteGroupsScreen() {
                   cursor: 'pointer',
                 }}
               >
-                Deshacer (demo)
+                Volver
               </button>
             </div>
           </div>

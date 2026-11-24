@@ -3,6 +3,7 @@ import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { FRACTION_SHEET } from '@/shared/data/seedData';
 import { useAppUi } from '@/shared/state/AppUiContext';
+import { useSession } from '@/shared/state/SessionContext';
 import { CartaPreviewFrame } from './CartaPreviewFrame';
 
 const HATCH = 'repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 6px)';
@@ -13,6 +14,8 @@ const HATCH = 'repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 6px)';
 export function PrintSheetScreen() {
   const navigate = useNavigate();
   const { say } = useAppUi();
+  const { session } = useSession();
+  const canCapture = session?.role === 'teacher';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -88,22 +91,24 @@ export function PrintSheetScreen() {
           >
             Imprimir 45 hojas
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/docente/captura')}
-            style={{
-              border: 0,
-              background: COLORS.primary,
-              color: '#fff',
-              borderRadius: '12px',
-              padding: '11px 14px',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Ya la apliqué: capturar →
-          </button>
+          {canCapture && (
+            <button
+              type="button"
+              onClick={() => navigate('/docente/captura')}
+              style={{
+                border: 0,
+                background: COLORS.primary,
+                color: '#fff',
+                borderRadius: '12px',
+                padding: '11px 14px',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Ya la apliqué: capturar →
+            </button>
+          )}
         </div>
       </div>
 

@@ -53,7 +53,10 @@ export function App() {
               }
             >
               <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
-              <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
+              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
+                {/* Pantallas de escritura: el director (solo lectura) vuelve a su inicio. */}
+                <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
+                </Route>
               <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
               <Route path="/docente/mapa" element={<GroupMapScreen />} />
               <Route path="/docente/perfil" element={<StudentProfileScreen />} />

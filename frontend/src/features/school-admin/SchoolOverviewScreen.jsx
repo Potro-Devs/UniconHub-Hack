@@ -41,16 +41,16 @@ export function SchoolOverviewScreen() {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px' }}>
         <div style={{ flex: '1 1 280px' }}>
           <h1 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '30px', lineHeight: 1.1 }}>
-            Esc. Prim. Benito Juárez
+            Escuela de ejemplo
           </h1>
           <div style={{ fontSize: '14px', color: COLORS.muted, marginTop: '4px' }}>
-            Turno matutino · Ciclo 2026–2027 · 7 docentes · 8 grupos
+            Así se verá el equipo docente de tu escuela. Los grupos reales están en “Ver grupos (solo lectura)”.
           </div>
         </div>
 
         <button
           type="button"
-          onClick={() => say('Se envió una invitación por correo al docente.')}
+          onClick={() => say('Disponible en una siguiente versión. Esta vista es de ejemplo y no guarda cambios.')}
           style={{
             border: 0,
             background: COLORS.primary,
