@@ -25,6 +25,7 @@ export function createDiagnosticsRouter({ db, requireAuth }) {
   const router = Router();
   router.get('/students/:studentId/assignments', student, controller.listStudentAssignments);
   router.get('/assignments/:assignmentId/start', student, controller.startAssignment);
+  router.post('/assignments/:assignmentId/questions/:questionId/hints', student, controller.requestHint);
   router.post('/assignments/:assignmentId/answer', student, controller.answerQuestion);
   router.post('/assignments/:assignmentId/complete', student, controller.completeAssignment);
   return router;

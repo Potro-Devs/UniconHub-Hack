@@ -45,16 +45,32 @@ export function createDiagnosticsRepository(db) {
       SET status = 'completed_screen',
           started_at = COALESCE(started_at, datetime('now')),
           completed_at = datetime('now')
-      WHERE id = ?`),
+      WHERE id = ? AND status IN ('pending', 'in_progress') AND is_screen_locked = 0`),
     targetById: db.prepare('SELECT id, status, started_at, completed_at FROM assignment_targets WHERE id = ?'),
     questionsOfAssignment: db.prepare(`
-      SELECT aq.position, q.id, q.skill_id, q.stem, q.hint_1, q.hint_2, q.hint_3, q.difficulty,
+      SELECT aq.position, q.id, q.skill_id, q.stem, q.hint_1, q.hint_2, q.hint_3,
              s.code AS skill_code, s.name AS skill_name
       FROM assignment_questions aq
       JOIN questions q ON q.id = aq.question_id
       JOIN skills s ON s.id = q.skill_id
       WHERE aq.assignment_id = ?
       ORDER BY aq.position`),
+    questionHintsInAssignment: db.prepare(`
+      SELECT q.id, q.hint_1, q.hint_2, q.hint_3
+      FROM assignment_questions aq
+      JOIN questions q ON q.id = aq.question_id
+      WHERE aq.assignment_id = ? AND aq.question_id = ?`),
+    hintLevel: db.prepare(
+      'SELECT max_hint_level FROM hint_requests WHERE assignment_target_id = ? AND question_id = ?',
+    ),
+    hintRequestsOfTarget: db.prepare(
+      'SELECT question_id, max_hint_level FROM hint_requests WHERE assignment_target_id = ?',
+    ),
+    upsertHintLevel: db.prepare(`
+      INSERT INTO hint_requests (assignment_target_id, question_id, max_hint_level)
+      VALUES (?, ?, ?)
+      ON CONFLICT(assignment_target_id, question_id) DO UPDATE
+      SET max_hint_level = excluded.max_hint_level, updated_at = datetime('now')`),
     publicOptionsOfAssignment: db.prepare(`
       SELECT o.id, o.question_id, o.label, o.text
       FROM question_options o
@@ -105,6 +121,11 @@ export function createDiagnosticsRepository(db) {
     markTargetCompletedScreen: (targetId) => statements.markCompletedScreen.run(targetId),
     findTargetById: (targetId) => statements.targetById.get(targetId) ?? null,
     listQuestionsOfAssignment: (assignmentId) => statements.questionsOfAssignment.all(assignmentId),
+    findQuestionHintsInAssignment: (assignmentId, questionId) =>
+      statements.questionHintsInAssignment.get(assignmentId, questionId) ?? null,
+    findHintLevel: (targetId, questionId) => statements.hintLevel.get(targetId, questionId)?.max_hint_level ?? 0,
+    listHintRequestsOfTarget: (targetId) => statements.hintRequestsOfTarget.all(targetId),
+    upsertHintLevel: (targetId, questionId, level) => statements.upsertHintLevel.run(targetId, questionId, level),
     listPublicOptionsOfAssignment: (assignmentId) => statements.publicOptionsOfAssignment.all(assignmentId),
     listResponsesOfTarget: (targetId) => statements.responsesOfTarget.all(targetId),
     findQuestionInAssignment: (assignmentId, questionId) =>

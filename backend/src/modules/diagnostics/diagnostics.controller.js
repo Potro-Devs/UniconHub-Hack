@@ -13,6 +13,8 @@ export function createDiagnosticsController(service) {
       sendData(res, assignments, { meta: { count: assignments.length } });
     },
     startAssignment: (req, res) => sendData(res, service.startAssignment(req.auth, req.params.assignmentId)),
+    requestHint: (req, res) =>
+      sendData(res, service.requestHint(req.auth, req.params.assignmentId, req.params.questionId, req.body)),
     answerQuestion: (req, res) =>
       sendData(res, service.answerQuestion(req.auth, req.params.assignmentId, req.body)),
     completeAssignment: (req, res) =>

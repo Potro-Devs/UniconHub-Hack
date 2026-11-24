@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
   assertCanAnswerOnScreen,
+  canRecordMasteryCut,
   classifyResponse,
   evaluateAchievements,
   initialTargetState,
@@ -169,5 +170,26 @@ describe('evaluateAchievements', () => {
 
   test('primera evaluación sin Dominado → sin mensaje', () => {
     assert.deepEqual(evaluateAchievements({ currentPercentage: 40 }), { celebrations: [], message: null });
+  });
+});
+
+describe('canRecordMasteryCut', () => {
+  test('requiere al menos 3 reactivos contestados (excluye unanswered)', () => {
+    assert.equal(
+      canRecordMasteryCut([
+        { outcome_status: 'correct_autonomous' },
+        { outcome_status: 'incorrect' },
+        { outcome_status: 'unanswered' },
+      ]),
+      false,
+    );
+    assert.equal(
+      canRecordMasteryCut([
+        { outcome_status: 'correct_autonomous' },
+        { outcome_status: 'achieved_with_support' },
+        { outcome_status: 'incorrect' },
+      ]),
+      true,
+    );
   });
 });

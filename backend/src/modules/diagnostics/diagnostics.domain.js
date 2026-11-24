@@ -4,6 +4,7 @@
  */
 import { DomainError } from '../../shared/errors/DomainError.js';
 import { getMasteryLevelIndex, roundPercentage } from '../analytics/analytics.domain.js';
+import { MIN_QUESTIONS_PER_SKILL } from '../assessments/assessments.domain.js';
 
 export const MAX_HINT_LEVEL = 3;
 
@@ -178,8 +179,16 @@ export function evaluateAchievements({ blockCompleted = false, previousPercentag
   const improved = roundPercentage(currentPercentage) > roundPercentage(previousPercentage);
   return {
     celebrations,
-    message: improved ? null : 'Esta habilidad todavía se está formando. La próxima vez probemos con una pista.',
+    message: improved ? null : 'Esta habilidad todavía se está formando. Seguiremos practicando paso a paso.',
   };
+}
+
+/**
+ * Solo registra un corte en `skill_mastery_history` si la habilidad tuvo al menos
+ * `MIN_QUESTIONS_PER_SKILL` reactivos contestados (evita cortes con datos insuficientes).
+ */
+export function canRecordMasteryCut(responses) {
+  return responses.filter((r) => r.outcome_status !== OUTCOME_STATUSES.UNANSWERED).length >= MIN_QUESTIONS_PER_SKILL;
 }
 
 // ───────────────────────── Validación y DTOs (API de diagnostics) ─────────────────────────
@@ -187,16 +196,27 @@ export function evaluateAchievements({ blockCompleted = false, previousPercentag
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const isPositiveInt = (value) => Number.isSafeInteger(value) && value > 0;
 
-const FEEDBACK_BY_OUTCOME = Object.freeze({
-  [OUTCOME_STATUSES.CORRECT_AUTONOMOUS]: '¡Excelente! Lo lograste por tu cuenta.',
-  [OUTCOME_STATUSES.ACHIEVED_WITH_SUPPORT]: '¡Logrado con apoyo! Las pistas te ayudaron a resolverlo.',
-  [OUTCOME_STATUSES.INCORRECT]: 'Buen intento. Sigamos practicando con el siguiente reto.',
-});
+export const ANSWER_SAVED_FEEDBACK = 'Respuesta guardada.';
+
+/**
+ * Valida el cuerpo de `POST /diagnostics/assignments/:assignmentId/questions/:questionId/hints`.
+ *
+ * @returns {{ level: number }}
+ */
+export function parseHintRequestInput(body) {
+  if (!isPlainObject(body) || !Number.isInteger(body.level) || body.level < 1 || body.level > MAX_HINT_LEVEL) {
+    throw new DomainError('VALIDATION_ERROR', `Elige un nivel de pista entre 1 y ${MAX_HINT_LEVEL}.`, {
+      field: 'level',
+    });
+  }
+  return { level: body.level };
+}
 
 /**
  * Valida el cuerpo de `POST /diagnostics/assignments/:assignmentId/answer`.
+ * Ignora cualquier `maxHintLevelUsed` del cliente: la fuente de verdad es el servidor.
  *
- * @returns {{ questionId: number, selectedOptionId: number, maxHintLevelUsed: number }}
+ * @returns {{ questionId: number, selectedOptionId: number }}
  */
 export function parseAnswerInput(body) {
   if (!isPlainObject(body)) {
@@ -208,20 +228,7 @@ export function parseAnswerInput(body) {
   if (!isPositiveInt(body.selectedOptionId)) {
     throw new DomainError('VALIDATION_ERROR', 'Elige una opción válida.', { field: 'selectedOptionId' });
   }
-  const maxHintLevelUsed = body.maxHintLevelUsed === undefined ? 0 : body.maxHintLevelUsed;
-  if (!Number.isInteger(maxHintLevelUsed) || maxHintLevelUsed < 0 || maxHintLevelUsed > MAX_HINT_LEVEL) {
-    throw new DomainError('VALIDATION_ERROR', `El nivel de pista debe estar entre 0 y ${MAX_HINT_LEVEL}.`, {
-      field: 'maxHintLevelUsed',
-    });
-  }
-  return { questionId: body.questionId, selectedOptionId: body.selectedOptionId, maxHintLevelUsed };
-}
-
-/**
- * Retroalimentación neutra y no punitiva para el alumno (AGENTS.md §3 y §4.4).
- */
-export function feedbackForOutcome(outcomeStatus) {
-  return FEEDBACK_BY_OUTCOME[outcomeStatus] ?? FEEDBACK_BY_OUTCOME[OUTCOME_STATUSES.INCORRECT];
+  return { questionId: body.questionId, selectedOptionId: body.selectedOptionId };
 }
 
 /**
@@ -245,20 +252,20 @@ export function toStudentAssignmentDto(row, skills) {
 }
 
 /**
- * Reactivo para el portal del alumno: nunca expone `is_correct`, `error_tag` ni `error_explanation`.
+ * Reactivo para el portal del alumno: nunca expone `is_correct`, `error_tag`, `error_explanation`
+ * ni pistas que aún no haya pedido en el servidor.
  */
-export function toStartQuestionDto(q, options, response) {
+export function toStartQuestionDto(q, options, response, hintLevel = 0) {
   return {
     id: q.id,
     position: q.position,
     skill: { code: q.skill_code, name: q.skill_name },
     stem: q.stem,
-    difficulty: q.difficulty,
-    hints: [q.hint_1, q.hint_2, q.hint_3],
+    hints: [q.hint_1, q.hint_2, q.hint_3].slice(0, hintLevel),
     options: options.map((o) => ({ id: o.id, label: o.label, text: o.text })),
     answered: Boolean(response),
     selectedOptionId: response?.selected_option_id ?? null,
-    maxHintLevelUsed: response?.max_hint_level_used ?? 0,
+    maxHintLevelUsed: Math.max(response?.max_hint_level_used ?? 0, hintLevel),
   };
 }
 

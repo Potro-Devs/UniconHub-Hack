@@ -172,10 +172,22 @@ function createFixtures() {
   };
 }
 
-function assertNoLeak(payload) {
+function assertNoLeak(payload, { allowOutcome = false } = {}) {
   const json = JSON.stringify(payload);
-  for (const forbidden of ['internal_folio', 'internalFolio', 'AXI-', 'is_correct', 'isCorrect', 'errorTag', 'errorExplanation', 'error_tag', 'error_explanation']) {
-    assert.ok(!json.includes(forbidden), `no debe exponer ${forbidden}`);
+  const forbidden = [
+    'internal_folio',
+    'internalFolio',
+    'AXI-',
+    'is_correct',
+    'isCorrect',
+    'errorTag',
+    'errorExplanation',
+    'error_tag',
+    'error_explanation',
+  ];
+  if (!allowOutcome) forbidden.push('outcomeStatus');
+  for (const term of forbidden) {
+    assert.ok(!json.includes(term), `no debe exponer ${term}`);
   }
 }
 
@@ -195,10 +207,12 @@ describe('diagnostics API', () => {
 
   describe('sesión, roles y aislamiento', () => {
     test('sin sesión → 401 en todos los endpoints', async () => {
+      const q0 = fx.questions.frac[0];
       for (const [method, path, body] of [
         ['GET', `/api/v1/diagnostics/students/${fx.ids.sofia}/assignments`],
         ['GET', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/start`],
-        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, { questionId: 1, selectedOptionId: 1 }],
+        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`, { level: 1 }],
+        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, { questionId: q0.id, selectedOptionId: q0.correctOptionId }],
         ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/complete`],
       ]) {
         const res = await api.call(method, path, { body });
@@ -208,11 +222,13 @@ describe('diagnostics API', () => {
     });
 
     test('docente y director reciben 403 en todo', async () => {
+      const q0 = fx.questions.frac[0];
       for (const token of [fx.tokens.teacherA, fx.tokens.directorA]) {
         for (const [method, path, body] of [
           ['GET', `/api/v1/diagnostics/students/${fx.ids.sofia}/assignments`],
           ['GET', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/start`],
-          ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, { questionId: 1, selectedOptionId: 1 }],
+          ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`, { level: 1 }],
+          ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, { questionId: q0.id, selectedOptionId: q0.correctOptionId }],
           ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/complete`],
         ]) {
           const res = await api.call(method, path, { token, body });
@@ -241,6 +257,14 @@ describe('diagnostics API', () => {
         assert.equal(startRes.status, 404);
         assert.equal(startRes.body.error.code, 'ASSIGNMENT_NOT_FOUND');
       }
+
+      const missingQuestion = await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${fx.questions.mult[0].id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 1 } },
+      );
+      assert.equal(missingQuestion.status, 404);
+      assert.equal(missingQuestion.body.error.code, 'QUESTION_NOT_FOUND');
     });
 
     test('ids de ruta inválidos → 400', async () => {
@@ -256,11 +280,19 @@ describe('diagnostics API', () => {
         });
         assert.equal(res2.status, 400);
         assert.equal(res2.body.error.code, 'VALIDATION_ERROR');
+
+        const res3 = await api.call(
+          'POST',
+          `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${bad}/hints`,
+          { token: fx.tokens.sofia, body: { level: 1 } },
+        );
+        assert.equal(res3.status, 400);
+        assert.equal(res3.body.error.code, 'VALIDATION_ERROR');
       }
     });
   });
 
-  describe('listado, inicio y respuesta de pruebas', () => {
+  describe('listado, inicio, pistas en servidor y respuesta', () => {
     test('GET /students/:studentId/assignments lista pruebas en pantalla y papel sin datos privados', async () => {
       const res = await api.call('GET', `/api/v1/diagnostics/students/${fx.ids.sofia}/assignments`, {
         token: fx.tokens.sofia,
@@ -278,7 +310,7 @@ describe('diagnostics API', () => {
       assert.equal(byId.get(fx.ids.mateoOnly), undefined);
     });
 
-    test('GET /assignments/:id/start pasa a in_progress, oculta respuestas y conserva progreso al reabrir', async () => {
+    test('start oculta pistas no pedidas; hints entrega en orden 1→2→3 y persiste al reabrir', async () => {
       const start1 = await api.call('GET', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/start`, {
         token: fx.tokens.sofia,
       });
@@ -287,33 +319,110 @@ describe('diagnostics API', () => {
       assert.equal(start1.body.data.assignment.status, 'in_progress');
       assert.ok(start1.body.data.assignment.startedAt);
       assert.equal(start1.body.data.questions.length, 3);
-      assert.deepEqual(start1.body.data.questions[0].hints, ['Pista 1', 'Pista 2', 'Pista 3']);
+      assert.deepEqual(start1.body.data.questions[0].hints, []);
+      assert.equal(start1.body.data.questions[0].difficulty, undefined);
       assert.equal(start1.body.data.questions[0].answered, false);
 
       const q0 = fx.questions.frac[0];
-      const ans = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
-        token: fx.tokens.sofia,
-        body: { questionId: q0.id, selectedOptionId: q0.correctOptionId, maxHintLevelUsed: 1 },
-      });
-      assert.equal(ans.status, 200);
-      assert.equal(ans.body.data.outcomeStatus, 'achieved_with_support');
-      assert.equal(ans.body.data.answeredCount, 1);
+      // Pedir pista 2 antes de 1 → 422 INVALID_HINT_SEQUENCE
+      const skipHint = await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 2 } },
+      );
+      assert.equal(skipHint.status, 422);
+      assert.equal(skipHint.body.error.code, 'INVALID_HINT_SEQUENCE');
 
+      // Pedir niveles inválidos → 400
+      for (const badBody of [[], {}, { level: 0 }, { level: 4 }, { level: 1.5 }, { level: '1' }]) {
+        const badHint = await api.call(
+          'POST',
+          `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`,
+          { token: fx.tokens.sofia, body: badBody },
+        );
+        assert.equal(badHint.status, 400);
+        assert.equal(badHint.body.error.code, 'VALIDATION_ERROR');
+      }
+
+      const h1 = await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 1 } },
+      );
+      assert.equal(h1.status, 200);
+      assertNoLeak(h1.body);
+      assert.deepEqual(h1.body.data, {
+        questionId: q0.id,
+        level: 1,
+        hint: 'Pista 1',
+        remainingHints: 2,
+      });
+
+      // Repetir nivel 1 → 422 INVALID_HINT_SEQUENCE
+      const dupHint = await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 1 } },
+      );
+      assert.equal(dupHint.status, 422);
+      assert.equal(dupHint.body.error.code, 'INVALID_HINT_SEQUENCE');
+
+      const h2 = await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 2 } },
+      );
+      assert.equal(h2.status, 200);
+      assert.equal(h2.body.data.hint, 'Pista 2');
+      assert.equal(h2.body.data.remainingHints, 1);
+
+      // Reabrir devuelve solo las 2 pistas ya pedidas
       const start2 = await api.call('GET', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/start`, {
         token: fx.tokens.sofia,
       });
       assert.equal(start2.status, 200);
-      assert.equal(start2.body.data.assignment.answeredCount, 1);
-      assert.equal(start2.body.data.questions[0].answered, true);
-      assert.equal(start2.body.data.questions[0].selectedOptionId, q0.correctOptionId);
-      assert.equal(start2.body.data.questions[0].maxHintLevelUsed, 1);
-      assert.equal(start2.body.data.questions[1].answered, false);
+      assert.deepEqual(start2.body.data.questions[0].hints, ['Pista 1', 'Pista 2']);
+      assert.equal(start2.body.data.questions[0].maxHintLevelUsed, 2);
+      assert.deepEqual(start2.body.data.questions[1].hints, []);
+
+      // El cliente intenta mentir con maxHintLevelUsed: 0; el servidor usa 2
+      const ans = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
+        token: fx.tokens.sofia,
+        body: { questionId: q0.id, selectedOptionId: q0.correctOptionId, maxHintLevelUsed: 0 },
+      });
+      assert.equal(ans.status, 200);
+      assertNoLeak(ans.body);
+      assert.deepEqual(ans.body.data, {
+        questionId: q0.id,
+        selectedOptionId: q0.correctOptionId,
+        maxHintLevelUsed: 2,
+        feedback: 'Respuesta guardada.',
+        answeredCount: 1,
+        questionCount: 3,
+      });
+
+      const savedRow = fx.db
+        .prepare('SELECT outcome_status, max_hint_level_used FROM student_responses WHERE question_id = ?')
+        .get(q0.id);
+      assert.equal(savedRow.outcome_status, 'achieved_with_support');
+      assert.equal(savedRow.max_hint_level_used, 2);
+
+      // Pedir pista de pregunta ya contestada → 409 ALREADY_ANSWERED
+      const hintAfterAnswer = await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${q0.id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 3 } },
+      );
+      assert.equal(hintAfterAnswer.status, 409);
+      assert.equal(hintAfterAnswer.body.error.code, 'ALREADY_ANSWERED');
     });
 
     test('bloqueo papel (409 SCREEN_LOCKED) y prueba cerrada (422 ASSIGNMENT_CLOSED)', async () => {
+      const q0 = fx.questions.frac[0];
       for (const [method, path, body] of [
         ['GET', `/api/v1/diagnostics/assignments/${fx.ids.paperA}/start`],
-        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.paperA}/answer`, { questionId: 1, selectedOptionId: 1 }],
+        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.paperA}/questions/${q0.id}/hints`, { level: 1 }],
+        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.paperA}/answer`, { questionId: q0.id, selectedOptionId: q0.correctOptionId }],
         ['POST', `/api/v1/diagnostics/assignments/${fx.ids.paperA}/complete`],
       ]) {
         const res = await api.call(method, path, { token: fx.tokens.sofia, body });
@@ -328,34 +437,25 @@ describe('diagnostics API', () => {
       assert.equal(closed.body.error.code, 'ASSIGNMENT_CLOSED');
     });
 
-    test('POST /answer clasifica autónomo, con apoyo e incorrecto con feedback no punitivo, y rechaza duplicados/inválidos', async () => {
+    test('POST /answer oculta si acertó, devuelve feedback neutro y rechaza duplicados/inválidos', async () => {
       const [q0, q1, q2] = fx.questions.frac;
       const r0 = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
         token: fx.tokens.sofia,
         body: { questionId: q0.id, selectedOptionId: q0.correctOptionId },
       });
       assert.equal(r0.status, 200);
-      assert.equal(r0.body.data.outcomeStatus, 'correct_autonomous');
-      assert.equal(r0.body.data.isCorrect, true);
-
-      const r1 = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
-        token: fx.tokens.sofia,
-        body: { questionId: q1.id, selectedOptionId: q1.correctOptionId, maxHintLevelUsed: 2 },
-      });
-      assert.equal(r1.status, 200);
-      assert.equal(r1.body.data.outcomeStatus, 'achieved_with_support');
-      assert.equal(r1.body.data.isCorrect, true);
+      assertNoLeak(r0.body);
+      assert.equal(r0.body.data.isCorrect, undefined);
+      assert.equal(r0.body.data.outcomeStatus, undefined);
+      assert.equal(r0.body.data.feedback, 'Respuesta guardada.');
 
       const r2 = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
         token: fx.tokens.sofia,
-        body: { questionId: q2.id, selectedOptionId: q2.wrongOptionId, maxHintLevelUsed: 3 },
+        body: { questionId: q2.id, selectedOptionId: q2.wrongOptionId },
       });
       assert.equal(r2.status, 200);
-      assert.equal(r2.body.data.outcomeStatus, 'incorrect');
-      assert.equal(r2.body.data.isCorrect, false);
-      for (const banned of ['reprobado', 'malo', 'deficiente', 'bajo']) {
-        assert.ok(!r2.body.data.feedback.toLowerCase().includes(banned));
-      }
+      assertNoLeak(r2.body);
+      assert.equal(r2.body.data.feedback, 'Respuesta guardada.');
 
       const dup = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
         token: fx.tokens.sofia,
@@ -376,8 +476,6 @@ describe('diagnostics API', () => {
         {},
         { questionId: 0, selectedOptionId: q0.correctOptionId },
         { questionId: q0.id, selectedOptionId: '1' },
-        { questionId: q0.id, selectedOptionId: q0.correctOptionId, maxHintLevelUsed: 4 },
-        { questionId: q0.id, selectedOptionId: q0.correctOptionId, maxHintLevelUsed: null },
         { questionId: fx.questions.mult[0].id, selectedOptionId: fx.questions.mult[0].correctOptionId },
         { questionId: q0.id, selectedOptionId: q1.correctOptionId },
       ]) {
@@ -392,48 +490,62 @@ describe('diagnostics API', () => {
   });
 
   describe('cierre de prueba, historial ponderado, logros y atomicidad', () => {
-    test('POST /complete registra unanswered, corta promedio ponderado multisesión, guarda logros y bloquea reintento', async () => {
-      // Sesión 1 (screenA): 1 autónomo, 1 con apoyo, 1 sin responder → 33.33% autónomo
-      const [f0, f1] = fx.questions.frac.slice(0, 3);
+    test('POST /complete rechaza cerrar sin respuestas (422 NOTHING_ANSWERED)', async () => {
+      const res = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/complete`, {
+        token: fx.tokens.sofia,
+      });
+      assert.equal(res.status, 422);
+      assert.equal(res.body.error.code, 'NOTHING_ANSWERED');
+      assert.equal(fx.db.prepare('SELECT COUNT(*) AS n FROM skill_mastery_history').get().n, 0);
+      assert.equal(fx.db.prepare('SELECT COUNT(*) AS n FROM student_responses').get().n, 0);
+    });
+
+    test('POST /complete corta habilidades con >= 3 respuestas, emite un solo block_completed y excluye unanswered de answeredCount', async () => {
+      // Sesión 1 (screenA): 3 contestadas (1 autónoma, 1 con apoyo, 1 incorrecta) → 33.33% autónomo
+      const [f0, f1, f2] = fx.questions.frac.slice(0, 3);
       await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
         token: fx.tokens.sofia,
-        body: { questionId: f0.id, selectedOptionId: f0.correctOptionId, maxHintLevelUsed: 0 },
+        body: { questionId: f0.id, selectedOptionId: f0.correctOptionId },
+      });
+      await api.call(
+        'POST',
+        `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${f1.id}/hints`,
+        { token: fx.tokens.sofia, body: { level: 1 } },
+      );
+      await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
+        token: fx.tokens.sofia,
+        body: { questionId: f1.id, selectedOptionId: f1.correctOptionId },
       });
       await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
         token: fx.tokens.sofia,
-        body: { questionId: f1.id, selectedOptionId: f1.correctOptionId, maxHintLevelUsed: 2 },
+        body: { questionId: f2.id, selectedOptionId: f2.wrongOptionId },
       });
 
       const comp1 = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/complete`, {
         token: fx.tokens.sofia,
       });
       assert.equal(comp1.status, 200);
+      assertNoLeak(comp1.body, { allowOutcome: true });
       assert.equal(comp1.body.data.status, 'completed_screen');
       assert.ok(comp1.body.data.completedAt);
       assert.deepEqual(comp1.body.data.summary, {
         total: 3,
         correctAutonomous: 1,
         achievedWithSupport: 1,
-        incorrect: 0,
-        unanswered: 1,
+        incorrect: 1,
+        unanswered: 0,
         autonomousPercentage: 33.33,
         supportedPercentage: 33.33,
       });
+      assert.equal(comp1.body.data.skills[0].masteryRecorded, true);
       assert.equal(comp1.body.data.skills[0].masteryPercentage, 33.33);
       assert.equal(comp1.body.data.skills[0].masteryLevel, 'in_progress');
-      assert.ok(comp1.body.data.celebrations.some((c) => c.code === 'block_completed' && c.size === 'small'));
+      assert.equal(comp1.body.data.celebrations.filter((c) => c.code === 'block_completed').length, 1);
 
-      // El listado excluye reactivos omitidos (`unanswered`) de `answeredCount`
-      const afterComp1 = await api.call('GET', `/api/v1/diagnostics/students/${fx.ids.sofia}/assignments`, {
-        token: fx.tokens.sofia,
-      });
-      const listedScreenA = afterComp1.body.data.find((a) => a.id === fx.ids.screenA);
-      assert.equal(listedScreenA.questionCount, 3);
-      assert.equal(listedScreenA.answeredCount, 2);
-
-      // Bloquea re-apertura, respuesta y re-cierre tras completar
+      // Bloquea re-apertura, pistas, respuesta y re-cierre tras completar
       for (const [method, path, body] of [
         ['GET', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/start`],
+        ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/questions/${f0.id}/hints`, { level: 1 }],
         ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, { questionId: f0.id, selectedOptionId: f0.correctOptionId }],
         ['POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/complete`],
       ]) {
@@ -442,61 +554,87 @@ describe('diagnostics API', () => {
         assert.equal(res.body.error.code, 'ALREADY_COMPLETED');
       }
 
-      // Sesión 2 (screenMulti): 3/3 autónomos en fracciones (100%) + 0/3 en multiplicación (0%)
+      // Sesión 2 (screenMulti): 3/3 autónomos en fracciones (corte 2: 77.78%) + 1/3 en multiplicación (< 3 contestadas → sin corte)
       for (const q of fx.questions.frac.slice(3, 6)) {
         await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenMulti}/answer`, {
           token: fx.tokens.sofia,
           body: { questionId: q.id, selectedOptionId: q.correctOptionId },
         });
       }
+      await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenMulti}/answer`, {
+        token: fx.tokens.sofia,
+        body: { questionId: fx.questions.mult[0].id, selectedOptionId: fx.questions.mult[0].correctOptionId },
+      });
+
       const comp2 = await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenMulti}/complete`, {
         token: fx.tokens.sofia,
       });
       assert.equal(comp2.status, 200);
+      assertNoLeak(comp2.body, { allowOutcome: true });
       assert.equal(comp2.body.data.skills.length, 2);
+      assert.equal(comp2.body.data.celebrations.filter((c) => c.code === 'block_completed').length, 1);
+
       // Promedio ponderado fracciones: (1 * 33.33 + 2 * 100) / 3 = 77.78
       assert.equal(comp2.body.data.skills[0].code, 'fractions');
+      assert.equal(comp2.body.data.skills[0].masteryRecorded, true);
       assert.equal(comp2.body.data.skills[0].masteryPercentage, 77.78);
       assert.equal(comp2.body.data.skills[0].masteryLevel, 'mastered');
+
+      // Multiplicación solo tuvo 1 contestada (< 3) → no genera corte en skill_mastery_history
       assert.equal(comp2.body.data.skills[1].code, 'multiplication');
-      assert.equal(comp2.body.data.skills[1].unanswered, 3);
-      assert.equal(comp2.body.data.skills[1].masteryPercentage, 0);
+      assert.equal(comp2.body.data.skills[1].unanswered, 2);
+      assert.equal(comp2.body.data.skills[1].masteryRecorded, false);
+      assert.equal(comp2.body.data.skills[1].masteryPercentage, null);
+      assert.equal(comp2.body.data.skills[1].masteryLevel, null);
+
+      // El listado excluye los 2 reactivos omitidos (`unanswered`) de `answeredCount`
+      const afterComp2 = await api.call('GET', `/api/v1/diagnostics/students/${fx.ids.sofia}/assignments`, {
+        token: fx.tokens.sofia,
+      });
+      const listedMulti = afterComp2.body.data.find((a) => a.id === fx.ids.screenMulti);
+      assert.equal(listedMulti.questionCount, 6);
+      assert.equal(listedMulti.answeredCount, 4);
 
       const cuts = fx.db
         .prepare('SELECT session_index, mastery_percentage FROM skill_mastery_history WHERE student_id = ? ORDER BY id')
         .all(fx.ids.sofia);
-      assert.equal(cuts.length, 3);
+      assert.equal(cuts.length, 2);
       assert.equal(cuts[1].session_index, 2);
       assert.equal(cuts[1].mastery_percentage, 77.78);
-
-      const achCount = fx.db
-        .prepare('SELECT COUNT(*) AS n FROM student_achievements WHERE student_id = ?')
-        .get(fx.ids.sofia).n;
-      assert.ok(achCount >= 3);
     });
 
-    test('atomicidad: si falla la inserción de un logro al cerrar, no queda nada guardado', () => {
+    test('atomicidad y guardia de estado en markTargetCompletedScreen', async () => {
+      const f0 = fx.questions.frac[0];
+      await api.call('POST', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/answer`, {
+        token: fx.tokens.sofia,
+        body: { questionId: f0.id, selectedOptionId: f0.correctOptionId },
+      });
+
       const baseRepo = createDiagnosticsRepository(fx.db);
-      const failingRepo = {
-        ...baseRepo,
-        insertAchievement: () => {
-          throw new Error('fallo simulado');
-        },
-      };
-      const service = createDiagnosticsService({
-        repository: failingRepo,
+      const auth = { sub: String(fx.ids.sofia), role: 'student', schoolId: fx.ids.schoolA, groupId: fx.ids.groupA };
+
+      // 1) Si falla la inserción de logros, hace rollback de todo completeAssignment
+      const failAchService = createDiagnosticsService({
+        repository: { ...baseRepo, insertAchievement: () => { throw new Error('fallo simulado'); } },
         groupsRepository: createGroupsRepository(fx.db),
         transaction: (fn) => withTransaction(fx.db, fn),
       });
-      const auth = { sub: String(fx.ids.sofia), role: 'student', schoolId: fx.ids.schoolA, groupId: fx.ids.groupA };
-
-      assert.throws(() => service.completeAssignment(auth, fx.ids.screenA), /fallo simulado/);
+      assert.throws(() => failAchService.completeAssignment(auth, fx.ids.screenA), /fallo simulado/);
       assert.equal(fx.db.prepare('SELECT COUNT(*) AS n FROM skill_mastery_history').get().n, 0);
-      assert.equal(fx.db.prepare('SELECT COUNT(*) AS n FROM student_responses').get().n, 0);
-      const target = fx.db
-        .prepare('SELECT status FROM assignment_targets WHERE assignment_id = ? AND student_id = ?')
-        .get(fx.ids.screenA, fx.ids.sofia);
-      assert.equal(target.status, 'pending');
+      assert.equal(fx.db.prepare("SELECT COUNT(*) AS n FROM student_responses WHERE outcome_status = 'unanswered'").get().n, 0);
+
+      // 2) Si markTargetCompletedScreen reporta 0 cambios (bloqueado en paralelo), revierte y lanza ALREADY_COMPLETED (409)
+      const failLockService = createDiagnosticsService({
+        repository: { ...baseRepo, markTargetCompletedScreen: () => ({ changes: 0 }) },
+        groupsRepository: createGroupsRepository(fx.db),
+        transaction: (fn) => withTransaction(fx.db, fn),
+      });
+      assert.throws(
+        () => failLockService.completeAssignment(auth, fx.ids.screenA),
+        (err) => err.code === 'ALREADY_COMPLETED',
+      );
+      assert.equal(fx.db.prepare('SELECT COUNT(*) AS n FROM student_achievements').get().n, 0);
+      assert.equal(fx.db.prepare("SELECT COUNT(*) AS n FROM student_responses WHERE outcome_status = 'unanswered'").get().n, 0);
     });
 
     test('consistencia con el seed: el primer alumno demo ve sus 5 pruebas y la de papel está bloqueada', async () => {

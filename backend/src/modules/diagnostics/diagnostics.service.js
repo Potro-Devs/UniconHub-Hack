@@ -10,12 +10,16 @@ import { HttpError } from '../../shared/errors/HttpError.js';
 import { buildNextMasteryCut, getMasteryLevel } from '../analytics/analytics.domain.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import {
+  ANSWER_SAVED_FEEDBACK,
+  CELEBRATION_SIZES,
+  MAX_HINT_LEVEL,
   OUTCOME_STATUSES,
   assertCanAnswerOnScreen,
+  canRecordMasteryCut,
   classifyResponse,
   evaluateAchievements,
-  feedbackForOutcome,
   parseAnswerInput,
+  parseHintRequestInput,
   scoreSession,
   toStartQuestionDto,
   toStudentAssignmentDto,
@@ -23,6 +27,7 @@ import {
 
 const STUDENT_NOT_FOUND = () => new HttpError(404, 'STUDENT_NOT_FOUND', 'No encontramos a ese alumno.');
 const ASSIGNMENT_NOT_FOUND = () => new HttpError(404, 'ASSIGNMENT_NOT_FOUND', 'No encontramos esa prueba.');
+const QUESTION_NOT_FOUND = () => new HttpError(404, 'QUESTION_NOT_FOUND', 'No encontramos ese reactivo en la prueba.');
 
 function groupBy(rows, key) {
   const map = new Map();
@@ -83,6 +88,9 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
       const options = groupBy(repository.listPublicOptionsOfAssignment(target.assignment_id), 'question_id');
       const responses = repository.listResponsesOfTarget(target.target_id);
       const responseByQuestion = new Map(responses.map((r) => [r.question_id, r]));
+      const hintLevels = new Map(
+        repository.listHintRequestsOfTarget(target.target_id).map((h) => [h.question_id, h.max_hint_level]),
+      );
 
       return {
         assignment: {
@@ -92,12 +100,50 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
           status: current.status,
           startedAt: current.started_at,
           questionCount: questionRows.length,
-          answeredCount: responses.length,
+          answeredCount: responses.filter((r) => r.outcome_status !== OUTCOME_STATUSES.UNANSWERED).length,
         },
         questions: questionRows.map((q) =>
-          toStartQuestionDto(q, options.get(q.id) ?? [], responseByQuestion.get(q.id) ?? null),
+          toStartQuestionDto(
+            q,
+            options.get(q.id) ?? [],
+            responseByQuestion.get(q.id) ?? null,
+            hintLevels.get(q.id) ?? 0,
+          ),
         ),
       };
+    },
+
+    requestHint(auth, assignmentId, questionId, body) {
+      const target = requireAnswerableTarget(auth, assignmentId);
+      const qId = parsePositiveId(questionId, 'id del reactivo');
+      const { level } = parseHintRequestInput(body);
+
+      const question = repository.findQuestionHintsInAssignment(target.assignment_id, qId);
+      if (!question) throw QUESTION_NOT_FOUND();
+      if (repository.findResponse(target.target_id, qId)) {
+        throw new HttpError(409, 'ALREADY_ANSWERED', 'Ya respondiste esta pregunta.');
+      }
+
+      return transaction(() => {
+        const currentLevel = repository.findHintLevel(target.target_id, qId);
+        if (level !== currentLevel + 1) {
+          throw new DomainError('INVALID_HINT_SEQUENCE', 'Debes pedir las pistas en orden.', {
+            currentLevel,
+            expectedLevel: currentLevel + 1,
+            requestedLevel: level,
+          });
+        }
+        if (target.status === 'pending') {
+          repository.markTargetInProgress(target.target_id);
+        }
+        repository.upsertHintLevel(target.target_id, qId, level);
+        return {
+          questionId: qId,
+          level,
+          hint: [question.hint_1, question.hint_2, question.hint_3][level - 1],
+          remainingHints: MAX_HINT_LEVEL - level,
+        };
+      });
     },
 
     answerQuestion(auth, assignmentId, body) {
@@ -120,33 +166,39 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
         throw new HttpError(409, 'ALREADY_ANSWERED', 'Ya respondiste esta pregunta.');
       }
 
-      const classified = classifyResponse({
-        selectedOption: option,
-        maxHintLevelUsed: input.maxHintLevelUsed,
-      });
-
       return transaction(() => {
+        const maxHintLevelUsed = repository.findHintLevel(target.target_id, input.questionId);
+        const classified = classifyResponse({ selectedOption: option, maxHintLevelUsed });
+
         if (target.status === 'pending') {
           repository.markTargetInProgress(target.target_id);
         }
-        repository.insertResponse({
-          targetId: target.target_id,
-          questionId: input.questionId,
-          selectedOptionId: input.selectedOptionId,
-          outcomeStatus: classified.outcome_status,
-          maxHintLevelUsed: classified.max_hint_level_used,
-          errorTag: classified.error_tag,
-        });
+        try {
+          repository.insertResponse({
+            targetId: target.target_id,
+            questionId: input.questionId,
+            selectedOptionId: input.selectedOptionId,
+            outcomeStatus: classified.outcome_status,
+            maxHintLevelUsed: classified.max_hint_level_used,
+            errorTag: classified.error_tag,
+          });
+        } catch (err) {
+          if (err?.code === 'ERR_SQLITE_ERROR' && /UNIQUE/i.test(err.message)) {
+            throw new HttpError(409, 'ALREADY_ANSWERED', 'Ya respondiste esta pregunta.');
+          }
+          throw err;
+        }
+
         const questionCount = repository.listQuestionsOfAssignment(target.assignment_id).length;
-        const answeredCount = repository.listResponsesOfTarget(target.target_id).length;
+        const answeredCount = repository
+          .listResponsesOfTarget(target.target_id)
+          .filter((r) => r.outcome_status !== OUTCOME_STATUSES.UNANSWERED).length;
 
         return {
           questionId: input.questionId,
           selectedOptionId: input.selectedOptionId,
-          outcomeStatus: classified.outcome_status,
           maxHintLevelUsed: classified.max_hint_level_used,
-          isCorrect: option.is_correct === 1,
-          feedback: feedbackForOutcome(classified.outcome_status),
+          feedback: ANSWER_SAVED_FEEDBACK,
           answeredCount,
           questionCount,
         };
@@ -160,8 +212,12 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
       return transaction(() => {
         const questionRows = repository.listQuestionsOfAssignment(target.assignment_id);
         const existing = repository.listResponsesOfTarget(target.target_id);
-        const existingIds = new Set(existing.map((r) => r.question_id));
+        if (existing.filter((r) => r.outcome_status !== OUTCOME_STATUSES.UNANSWERED).length === 0) {
+          throw new DomainError('NOTHING_ANSWERED', 'Contesta al menos una pregunta antes de terminar la prueba.');
+        }
 
+        // Cómo contar reactivos sin contestar en el corte queda por validar con docente.
+        const existingIds = new Set(existing.map((r) => r.question_id));
         for (const q of questionRows) {
           if (!existingIds.has(q.id)) {
             repository.insertResponse({
@@ -191,46 +247,62 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
           skillGroups.get(q.skill_id).responses.push(responseByQuestion.get(q.id));
         }
 
+        repository.insertAchievement({
+          studentId,
+          code: 'block_completed',
+          size: CELEBRATION_SIZES.SMALL,
+          skillId: null,
+          assignmentId: target.assignment_id,
+        });
+        const celebrations = [{ code: 'block_completed', size: CELEBRATION_SIZES.SMALL, skillCode: null, skillName: null }];
         const skills = [];
-        const celebrations = [];
+
         for (const sg of skillGroups.values()) {
           const session = scoreSession(sg.responses);
           const previousCuts = repository.listMasteryCuts(studentId, sg.skillId);
           const previousPercentage = previousCuts.length
             ? previousCuts[previousCuts.length - 1].mastery_percentage
             : null;
-          const cut = buildNextMasteryCut(previousCuts, session);
 
-          repository.insertMasteryCut({
-            studentId,
-            skillId: sg.skillId,
-            assignmentId: target.assignment_id,
-            grade: target.grade,
-            cut,
-          });
+          let masteryRecorded = false;
+          let masteryPercentage = previousPercentage;
+          let message = null;
 
-          const { celebrations: awarded, message } = evaluateAchievements({
-            blockCompleted: true,
-            previousPercentage,
-            currentPercentage: cut.mastery_percentage,
-          });
-          for (const c of awarded) {
-            repository.insertAchievement({
+          if (canRecordMasteryCut(sg.responses)) {
+            const cut = buildNextMasteryCut(previousCuts, session);
+            repository.insertMasteryCut({
               studentId,
-              code: c.code,
-              size: c.size,
               skillId: sg.skillId,
               assignmentId: target.assignment_id,
+              grade: target.grade,
+              cut,
             });
-            celebrations.push({
-              code: c.code,
-              size: c.size,
-              skillCode: sg.code,
-              skillName: sg.name,
+            const outcome = evaluateAchievements({
+              blockCompleted: false,
+              previousPercentage,
+              currentPercentage: cut.mastery_percentage,
             });
+            for (const c of outcome.celebrations) {
+              repository.insertAchievement({
+                studentId,
+                code: c.code,
+                size: c.size,
+                skillId: sg.skillId,
+                assignmentId: target.assignment_id,
+              });
+              celebrations.push({
+                code: c.code,
+                size: c.size,
+                skillCode: sg.code,
+                skillName: sg.name,
+              });
+            }
+            masteryRecorded = true;
+            masteryPercentage = cut.mastery_percentage;
+            message = outcome.message;
           }
 
-          const level = getMasteryLevel(cut.mastery_percentage);
+          const level = masteryPercentage == null ? null : getMasteryLevel(masteryPercentage);
           skills.push({
             code: sg.code,
             name: sg.name,
@@ -241,14 +313,18 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
             unanswered: session.unanswered,
             autonomousPercentage: session.autonomousPercentage,
             supportedPercentage: session.supportedPercentage,
-            masteryPercentage: cut.mastery_percentage,
-            masteryLevel: level.code,
-            masteryLabel: level.label,
+            masteryRecorded,
+            masteryPercentage,
+            masteryLevel: level?.code ?? null,
+            masteryLabel: level?.label ?? null,
             message,
           });
         }
 
-        repository.markTargetCompletedScreen(target.target_id);
+        const { changes } = repository.markTargetCompletedScreen(target.target_id);
+        if (changes === 0) {
+          throw new DomainError('ALREADY_COMPLETED', 'Esta prueba ya se terminó o se bloqueó en papel.');
+        }
         const updated = repository.findTargetById(target.target_id);
         const { sessionPercentage: _, ...summary } = scoreSession(allResponses);
 
