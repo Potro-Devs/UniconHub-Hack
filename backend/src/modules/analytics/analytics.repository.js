@@ -21,7 +21,8 @@ export function createAnalyticsRepository(db) {
         WHERE e.student_id = h.student_id AND e.group_id = ? AND e.status = 'active')
     ORDER BY h.student_id, h.skill_id, h.session_index, h.id`);
   const errors = db.prepare(`
-    SELECT sk.code AS skill_code, r.error_tag, o.error_explanation AS explanation, COUNT(*) AS count
+    SELECT sk.code AS skill_code, r.error_tag, o.error_explanation AS explanation, COUNT(*) AS count,
+      COUNT(DISTINCT t.student_id) AS student_count
     FROM student_responses r JOIN assignment_targets t ON t.id = r.assignment_target_id
     JOIN assignments a ON a.id = t.assignment_id JOIN questions q ON q.id = r.question_id
     JOIN skills sk ON sk.id = q.skill_id JOIN question_options o ON o.id = r.selected_option_id

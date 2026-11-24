@@ -163,6 +163,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
 - **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
+- **Interventions (`/api/v1/interventions`):** ciclo actividad aplicada → nueva prueba (ver contrato al final).
 
 ## Analytics de solo lectura (`/api/v1/analytics`)
 
@@ -184,6 +185,12 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
   separados de esa última sesión; `grade` identifica el grado de ese corte.
   Sin evidencia: porcentajes, `level`, fecha y `grade` en `null`,
   `label: "Sin evaluar"`. Cero es una medición válida.
+  `autonomyTrend` compara las dos sesiones más recientes de la habilidad (pueden
+  ser de grados distintos): `{ trend, label, delta, previousAutonomous,
+  latestAutonomous, previousSupported, latestSupported, fromSupport }`.
+  `trend` es `toward_autonomy` si el acierto autónomo sube 10 puntos o más,
+  `more_support` si baja 10 o más y `steady` en otro caso. `fromSupport` indica
+  que además bajó el porcentaje logrado con apoyo. Con una sola sesión: `null`.
 - Habilidad de grupo: `{ code, name, average, level, label, evaluatedCount,
   needsSupportCount, gradeCounts }`. `gradeCounts` indica cuántos cortes más
   recientes provienen de cada grado; el mapa y el perfil señalan los cortes de
@@ -191,7 +198,17 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
   evaluados, sin convertir datos faltantes en cero. La escala se aplica al
   promedio redondeado a dos decimales, igual que al dominio de cada alumno.
 - `summary`: `{ studentCount, needsSupportCount, weakestSkill, coverage,
-  recommendedActivity, typicalErrors }`. `needsSupportCount` cuenta alumnos
+  recommendedActivity, typicalErrors, autonomyProgress, nextStep }`.
+  `autonomyProgress`: `{ threshold, comparedStudentCount,
+  towardAutonomyStudentCount, fromSupportStudentCount, highlight, skills }`,
+  donde `skills` es `[{ code, name, comparedCount, towardAutonomyCount,
+  steadyCount, moreSupportCount, fromSupportCount }]` y `highlight` es la
+  habilidad con más alumnos `fromSupport` (`{ skillCode, skillName,
+  studentCount }`) o `null`. `nextStep` ("Qué hago mañana"): `{ skillCode,
+  skillName, average, label, error, activity }` para la habilidad de menor
+  promedio; `error` es el error típico de esa habilidad con más alumnos
+  distintos (`{ errorTag, explanation, studentCount }`) o `null`; `activity` es
+  `recommendedActivity`. `null` si no hay habilidad evaluada. `needsSupportCount` cuenta alumnos
   únicos con alguna habilidad en `needs_support`. `weakestSkill` es la habilidad
   evaluada con menor promedio, o `null`. No hay rankings entre alumnos.
 - `coverage`: `{ total, pending, in_progress, seen, coveragePercentage }`, sobre
@@ -203,7 +220,8 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
   no hay habilidad evaluada o actividad compatible. Es una sugerencia, no una
   asignación. `meta.contentReview: "por validar con docente"` identifica el
   contenido pedagógico de ejemplo.
-- `typicalErrors`: `[{ skillCode, errorTag, explanation, count }]`, respuestas
+- `typicalErrors`: `[{ skillCode, errorTag, explanation, count, studentCount }]`
+  (`count` respuestas, `studentCount` alumnos distintos), respuestas
   incorrectas reales de aplicaciones terminadas del grupo actual, alumnos
   activos y escuela autorizada; el perfil filtra además al alumno. Orden:
   frecuencia descendente, habilidad, etiqueta y explicación. Las respuestas
@@ -323,3 +341,36 @@ orientación sin entregar la respuesta.
 Estos juegos son exclusivamente práctica: no escriben respuestas, dominio,
 historial, logros ni asignaciones. No tienen temporizadores, vidas, castigos,
 clasificaciones entre alumnos ni guardado del progreso de juego.
+
+## Ciclo de acompañamiento (`/api/v1/interventions`)
+
+Registra que el docente aplicó una actividad del catálogo y compara a **los
+mismos alumnos** antes y después. No guarda datos de alumnos: el antes y el
+después se calculan desde `student_responses` de pruebas terminadas del grupo,
+solo con alumnos de matrícula activa.
+
+| Método y ruta | Acceso | `data` |
+| --- | --- | --- |
+| `GET /groups/:groupId` | docente dueño o director de la escuela | `{ interventions: Intervention[] }` (más reciente primero) |
+| `POST /groups/:groupId` | solo docente dueño (201) | `Intervention` |
+
+El cuerpo de `POST` es exactamente `{ activityId, note? }`: `activityId` entero
+positivo de una actividad cuyo rango de grados incluye el grado del grupo;
+`note` texto opcional de hasta 300 caracteres (vacío se guarda como `null`).
+Claves extra o tipos incorrectos: 400 `VALIDATION_ERROR`. Actividad de otro
+grado o inexistente: 404 `ACTIVITY_NOT_FOUND`. Sin sesión: 401; alumno: 403;
+director en `POST`: 403; grupo ajeno: 404 `GROUP_NOT_FOUND`.
+
+`Intervention` es `{ id, appliedAt, note, activity: { id, title,
+durationMinutes, grouping }, skillCode, skillName, targetErrorTag,
+errorExplanation, outcome }`. `outcome` es `{ status, baselineCount,
+reevaluatedCount, overcameCount, stillWithErrorCount, awaitingCount }`:
+
+- `baselineCount`: alumnos que mostraron `targetErrorTag` (o cualquier respuesta
+  incorrecta de la habilidad si la actividad no tiene etiqueta) hasta `appliedAt`.
+- `reevaluatedCount`: de ellos, quienes contestaron reactivos de la habilidad
+  después de `appliedAt`; `stillWithErrorCount` volvió a mostrar el error y
+  `overcameCount` ya no. `awaitingCount` aún no presenta nueva prueba y no se
+  cuenta como avance ni como pendiente de mejora.
+- `status`: `awaiting_retest` si nadie del grupo base ha sido reevaluado;
+  `measured` en otro caso.

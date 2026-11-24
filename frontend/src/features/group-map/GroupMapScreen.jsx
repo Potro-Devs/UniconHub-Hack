@@ -7,7 +7,10 @@ import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { errorMessageOf } from '@/shared/api/client';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { buttonStyle, card, pageTitle } from '@/shared/styles/ui';
-import { AnalyticsState, MasteryValue, RecommendedActivity, StudentIdentity, TypicalErrors, stack } from './AnalyticsComponents';
+import { AnalyticsState, AutonomyProgress, MasteryValue, RecommendedActivity, StudentIdentity, TypicalErrors, stack } from './AnalyticsComponents';
+import { ApplyActivityForm, InterventionsPanel } from '@/features/interventions/InterventionComponents';
+import { useInterventions } from '@/features/interventions/useInterventions';
+import { useSession } from '@/shared/state/SessionContext';
 import { analyticsApi } from './analytics.api';
 import { useAnalytics } from './useAnalytics';
 import './analytics-map.css';
@@ -60,6 +63,8 @@ function StudentResults({ students, skills, width, openProfile, currentGrade }) 
 export function GroupMapScreen() {
   const groups = useTeacherGroups();
   const request = useAnalytics(groups.activeGroup?.id);
+  const interventions = useInterventions(groups.activeGroup?.id);
+  const { session } = useSession();
   const navigate = useNavigate();
   const { width } = useBreakpoint();
   const [skillCode, setSkillCode] = useState('');
@@ -100,6 +105,7 @@ export function GroupMapScreen() {
       <div aria-busy={detailRequest.status === 'loading'}>{detailRequest.status === 'loading' ? <p role="status" className="map-loading">Consultando resultados…</p> : detailRequest.status === 'error' ? <div role="alert" style={card}><p>{errorMessageOf(detailRequest.error)}</p><button type="button" style={buttonStyle('secondary')} onClick={detailRequest.retry}>Reintentar</button></div> : <StudentResults students={visibleStudents} skills={visibleSkills} width={width} openProfile={openProfile} currentGrade={groups.activeGroup.grade} />}</div>
       <p className="map-footnote">Los porcentajes representan dominio autónomo ponderado del historial. “Logrado con apoyo” se consulta por separado en el perfil. Sin evaluar no equivale a 0%.</p>
     </section>
-    <div className="map-actions-grid"><RecommendedActivity activity={summary.recommendedActivity} /><TypicalErrors errors={summary.typicalErrors} /></div>
+    <div className="map-actions-grid"><RecommendedActivity activity={summary.recommendedActivity}>{session?.role === 'teacher' && <ApplyActivityForm key={`${groups.activeGroup.id}-${summary.recommendedActivity?.id}`} groupId={groups.activeGroup.id} activity={summary.recommendedActivity} onApplied={interventions.retry} />}</RecommendedActivity><TypicalErrors errors={summary.typicalErrors} /></div>
+    <div className="map-actions-grid"><AutonomyProgress progress={summary.autonomyProgress} /><InterventionsPanel request={interventions} /></div>
   </div>;
 }
