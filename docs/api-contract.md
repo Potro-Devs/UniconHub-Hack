@@ -1,6 +1,6 @@
 # Contrato de API REST (`/api/v1`)
 
-> Estado: **Health**, **Auth**, **Groups** y **Assessments** implementados. El resto de los módulos está planificado.
+> Estado: **Health**, **Auth**, **Groups**, **Curriculum** y **Assessments** implementados. El resto de los módulos está planificado.
 
 Todas las respuestas siguen el formato estándar:
 - Éxito: `{ "data": ..., "meta": ... }`
@@ -13,7 +13,7 @@ Todas las respuestas siguen el formato estándar:
 | 400 | `VALIDATION_ERROR`, `INVALID_JSON` | Cuerpo incompleto, con formato inválido o JSON mal formado |
 | 401 | `AUTH_REQUIRED`, `INVALID_TOKEN`, `TOKEN_EXPIRED`, `SESSION_INVALID` | Falta el token, es inválido o expiró, o el usuario ya no existe |
 | 403 | `FORBIDDEN` | El rol de la sesión no puede usar el endpoint |
-| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND`, `ASSIGNMENT_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
+| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND`, `CONTENT_NOT_FOUND`, `ASSIGNMENT_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
 | 409 | `SCREEN_LOCKED`, `ALREADY_COMPLETED`, `GROUP_ALREADY_EXISTS`, `GROUP_HAS_HISTORY` | Prueba bloqueada en pantalla (papel) o ya terminada; grupo duplicado; cambio de grado/ciclo en un grupo con historial |
 | 422 | Otros códigos de `DomainError` | Regla de negocio incumplida (p. ej. `INSUFFICIENT_QUESTIONS_PER_SKILL`) |
 | 429 | `TOO_MANY_ATTEMPTS` | Demasiados intentos de login o de acceso de alumno (`details.retryAfterSeconds`) |
@@ -79,6 +79,29 @@ Todos los endpoints exigen sesión.
 - **Crear grupo:** si el usuario de la sesión ya no existe, dejó de ser `teacher` o cambió de escuela → 401 `SESSION_INVALID`.
 - El `joinCode` (6 caracteres, sin 0/O/1/I/L) se genera al crear y no cambia al editar.
 
+## Curriculum (`/api/v1/curriculum`)
+
+Todos los endpoints exigen sesión. El temario de ejemplo del seed está **por validar con docente** (`meta.contentReview`).
+
+| Método y ruta | Roles | Cuerpo | Respuesta `data` | Errores |
+| --- | --- | --- | --- | --- |
+| `GET /groups/:groupId` | teacher, director | — | `[CurriculumContent]` del grado del grupo, por `sortOrder` · `meta: { count, group: { id, grade, phase }, coverage: Coverage, contentReview }` | 400, 401, 403, 404 `GROUP_NOT_FOUND` |
+| `GET /groups/:groupId/coverage` | teacher, director | — | `Coverage` · `meta: { group: { id, grade, phase } }` | 400, 401, 403, 404 `GROUP_NOT_FOUND` |
+| `PATCH /groups/:groupId/contents/:contentId` | teacher | `{ status?, notes? }` (al menos uno) | `CurriculumContent` actualizado | 400, 401, 403, 404 `GROUP_NOT_FOUND` / `CONTENT_NOT_FOUND` |
+
+- `CurriculumContent`: `{ id, title, pda, formativeField, formativeFieldName, phase, grade, sortOrder, skill: { code, name } | null, status, notes, updatedAt }`. `formativeField` es el código del esquema (`lenguajes`, `saberes_pensamiento_cientifico`, `etica_naturaleza_sociedades`, `de_lo_humano_comunitario`) y `formativeFieldName` su nombre en el Plan de Estudio 2022. Sin registro de avance: `status: "pending"`, `notes: null`, `updatedAt: null`.
+- `Coverage`: `{ total, pending, in_progress, seen, coveragePercentage, bySkill: [{ code, name, total, pending, in_progress, seen, coveragePercentage }] }`. `coveragePercentage` = `seen / total × 100` (2 decimales). `bySkill` solo incluye contenidos con habilidad; los demás cuentan en el total general.
+- **Autorización:** igual que Groups. `teacher`: solo sus grupos (lectura y escritura). `director`: solo lectura de su escuela; `PATCH` → 403. `student`: 403 en todo. Grupo ajeno o inexistente → 404 `GROUP_NOT_FOUND`.
+- **Validación** (`400 VALIDATION_ERROR`):
+  - Ids de ruta: enteros positivos.
+  - `status`: `pending`, `in_progress` o `seen`.
+  - `notes`: texto de hasta **500 caracteres** (se recortan espacios; vacío se guarda como `null`) o `null` para borrar. Otro tipo (`[]`, `{}`, número) → 400.
+  - Cuerpo vacío, sin `status` ni `notes`, o que no es objeto → 400.
+- **Contenido:** debe ser del **mismo grado** que el grupo; si es de otro grado o no existe → 404 `CONTENT_NOT_FOUND`.
+- **Guardado:** upsert en `group_curriculum_progress` (un registro por grupo y contenido). Un campo ausente conserva su valor; `updated_at` se actualiza en cada `PATCH`.
+- Otros campos del cuerpo del PATCH se ignoran.
+- `notes` es texto libre de la docente: no debe incluir nombres de alumnos y nunca se envía a servicios de IA externos.
+
 ## Assessments (`/api/v1/assessments`)
 
 Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo**: estas respuestas incluyen la opción correcta y los errores típicos; el portal del alumno usa `diagnostics`.
@@ -113,7 +136,7 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
 - **Health:** `GET /api/v1/health`
 - **Auth (`/api/v1/auth`):** ver la sección anterior.
 - **Groups (`/api/v1/groups`):** ver la sección anterior.
-- **Curriculum (`/api/v1/curriculum`):** `GET /groups/:groupId`, `PATCH /groups/:groupId/contents/:contentId`, `GET /groups/:groupId/coverage`
+- **Curriculum (`/api/v1/curriculum`):** ver la sección anterior.
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** `GET /students/:studentId/assignments`, `GET /assignments/:assignmentId/start`, `POST /assignments/:assignmentId/answer`, `POST /assignments/:assignmentId/complete`

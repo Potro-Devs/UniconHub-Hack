@@ -3,6 +3,7 @@ import express from 'express';
 import { env } from './config/env.js';
 import { createAssessmentsRouter } from './modules/assessments/assessments.routes.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
+import { createCurriculumRouter } from './modules/curriculum/curriculum.routes.js';
 import { createGroupsRouter } from './modules/groups/groups.routes.js';
 import { createRequireAuth } from './shared/middleware/authenticate.js';
 import { createErrorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
@@ -33,6 +34,7 @@ export function createApp({ db, config = env, logger = console }) {
 
   app.use('/api/v1/auth', createAuthRouter({ db, config, requireAuth }));
   app.use('/api/v1/groups', createGroupsRouter({ db, requireAuth }));
+  app.use('/api/v1/curriculum', createCurriculumRouter({ db, requireAuth }));
   app.use('/api/v1/assessments', createAssessmentsRouter({ db, requireAuth }));
 
   app.use('/api', notFoundHandler);
