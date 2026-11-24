@@ -10,8 +10,9 @@ import { initialsOf } from '@/shared/state/session';
 
 const destinations = [
   { path: '/alumno/inicio', name: 'Inicio', icon: 'home' },
-  { path: '/alumno/clases', name: 'Mis actividades', icon: 'book' },
-  { path: '/alumno/logros', name: 'Mis logros', icon: 'star' },
+  { path: '/alumno/clases', name: 'Clases', icon: 'book' },
+  { path: '/alumno/juegos', name: 'Juegos', icon: 'games' },
+  { path: '/alumno/logros', name: 'Logros', icon: 'star' },
 ];
 
 export function StudentShellLayout() {
@@ -27,7 +28,7 @@ export function StudentShellLayout() {
     <a className="skip-link" href="#student-content">Ir a mis actividades</a>
     <header className="student-header">
       <button className="brand-link" type="button" onClick={() => navigate('/alumno/inicio')} aria-label={`${APP_NAME}, inicio`}><Mascot size={48} color={axiColor} /><span className="font-display">{APP_NAME}</span></button>
-      <nav className="student-nav" aria-label="Mi espacio">{destinations.map((item) => <button key={item.path} type="button" aria-current={pathname === item.path ? 'page' : undefined} onClick={() => navigate(item.path)}><InterfaceIcon name={item.icon} /><span>{item.name}</span></button>)}</nav>
+      <nav className="student-nav" aria-label="Mi espacio">{destinations.map((item) => <button key={item.path} type="button" aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) ? 'page' : undefined} onClick={() => navigate(item.path)}><InterfaceIcon name={item.icon} /><span>{item.name}</span></button>)}</nav>
       <div className="student-account">
         {initials && <span className="student-account__initials" aria-label="Iniciales del alumno">{initials}</span>}
         <button type="button" className="quiet-button" onClick={leave}>Salir</button>
