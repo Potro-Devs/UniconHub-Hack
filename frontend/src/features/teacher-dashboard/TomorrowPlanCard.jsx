@@ -18,7 +18,16 @@ export function TomorrowPlanCard({ group, fallback }) {
   const { session } = useSession();
   const request = useAnalytics(group.studentCount > 0 ? group.id : null);
   const step = request.status === 'ready' ? request.data.summary.nextStep : null;
-  if (!step?.activity) return fallback;
+  if (!step) return fallback;
+  if (!step.currentGradeEvidence) return <section aria-labelledby="tomorrow-title" style={{ ...card, gap: '14px', border: `2px solid ${COLORS.primary}` }}>
+    <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: COLORS.primaryText }}>Qué hago mañana · {group.name}</div>
+    <h2 id="tomorrow-title" className="font-display" style={{ margin: 0, fontSize: '24px', lineHeight: 1.2 }}>Primero, una evaluación del grado actual</h2>
+    <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5 }}>
+      {step.skillName} es la habilidad prioritaria, pero su historial disponible es de otro grado. Aún no hay resultados de {group.grade}.º para proponer una actividad cuyo avance podamos medir.
+    </p>
+    <button type="button" style={buttonStyle('primary')} onClick={() => navigate('/docente/temario')}>Ir al temario</button>
+  </section>;
+  if (!step.activity) return fallback;
   const { activity, error } = step;
   return <section aria-labelledby="tomorrow-title" style={{ ...card, gap: '18px', border: `2px solid ${COLORS.primary}` }}>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

@@ -34,10 +34,16 @@ function fixtures() {
       VALUES (?,?,?,?,?,'screen',${when})`, target, question, correctAnswer ? correct : wrong,
     correctAnswer ? 'correct_autonomous' : 'incorrect', correctAnswer ? null : 'add_across');
   };
+  const answerQuestion = (studentId, questionId, optionId, outcome, errorTag, when) => {
+    const assignment = insert("INSERT INTO assignments (group_id,created_by,title,modality) VALUES (?,?,'Prueba','screen')", groupId, teacher);
+    const target = insert("INSERT INTO assignment_targets (assignment_id,student_id,status) VALUES (?,?,'completed_screen')", assignment, studentId);
+    insert(`INSERT INTO student_responses (assignment_target_id,question_id,selected_option_id,outcome_status,error_tag,source,answered_at)
+      VALUES (?,?,?,?,?,'screen',${when})`, target, questionId, optionId, outcome, errorTag);
+  };
   // Antes: Ana, Beto y Celia muestran el error; Dani no.
   for (const id of [ana, beto, celia]) answer(id, false, "'2026-09-25 09:00:00'");
   answer(dani, true, "'2026-09-25 09:00:00'");
-  return { db, groupId, teacher, otherTeacher, director, school, activity, sixthOnly, ana, beto, dani, answer };
+  return { db, groupId, teacher, otherTeacher, director, school, activity, sixthOnly, ana, beto, dani, answer, answerQuestion };
 }
 
 describe('interventions API', () => {
@@ -71,6 +77,54 @@ describe('interventions API', () => {
     assert.deepEqual(res.body.data.interventions[0].outcome, { status: 'measured', baselineCount: 3, reevaluatedCount: 2,
       overcameCount: 1, stillWithErrorCount: 1, awaitingCount: 1 });
     assert.doesNotMatch(JSON.stringify(res.body), /FOLIO|Ana|Beto/);
+  });
+
+  test('cuenta respuestas posteriores aunque tengan el mismo segundo que la intervención', async () => {
+    await server.call('POST', `/api/v1/interventions/groups/${ctx.groupId}`,
+      { token: as(ctx.teacher, 'teacher'), body: { activityId: ctx.activity } });
+    ctx.answer(ctx.ana, true, "'2026-09-25 09:00:00'");
+    const res = await server.call('GET', `/api/v1/interventions/groups/${ctx.groupId}`, { token: as(ctx.teacher, 'teacher') });
+    assert.deepEqual(res.body.data.interventions[0].outcome, { status: 'measured', baselineCount: 3, reevaluatedCount: 1,
+      overcameCount: 1, stillWithErrorCount: 0, awaitingCount: 2 });
+  });
+
+  test('la línea base usa solo la evaluación previa más reciente por alumno', async () => {
+    ctx.answer(ctx.ana, true, "'2026-09-25 09:00:00'");
+    const res = await server.call('POST', `/api/v1/interventions/groups/${ctx.groupId}`,
+      { token: as(ctx.teacher, 'teacher'), body: { activityId: ctx.activity } });
+    assert.equal(res.body.data.outcome.baselineCount, 2);
+    assert.equal(res.body.data.outcome.awaitingCount, 2);
+  });
+
+  test('no cuenta reevaluaciones en reactivos que no contienen el error objetivo', async () => {
+    await server.call('POST', `/api/v1/interventions/groups/${ctx.groupId}`,
+      { token: as(ctx.teacher, 'teacher'), body: { activityId: ctx.activity } });
+    const question = Number(ctx.db.prepare(`INSERT INTO questions (skill_id,grade,stem,hint_1,hint_2,hint_3)
+      VALUES ((SELECT id FROM skills WHERE code='fractions'),3,'Otro reactivo','Uno','Dos','Tres')`).run().lastInsertRowid);
+    const correct = Number(ctx.db.prepare("INSERT INTO question_options (question_id,label,text,is_correct) VALUES (?,'A','Correcta',1)")
+      .run(question).lastInsertRowid);
+    ctx.answerQuestion(ctx.ana, question, correct, 'correct_autonomous', null, "'2026-09-25 09:00:00'");
+    const res = await server.call('GET', `/api/v1/interventions/groups/${ctx.groupId}`, { token: as(ctx.teacher, 'teacher') });
+    assert.deepEqual(res.body.data.interventions[0].outcome, { status: 'awaiting_retest', baselineCount: 3, reevaluatedCount: 0,
+      overcameCount: 0, stillWithErrorCount: 0, awaitingCount: 3 });
+  });
+
+  test('no toma la explicación de un error etiquetado en otra habilidad', async () => {
+    const fractions = ctx.db.prepare("SELECT id FROM skills WHERE code='fractions'").get().id;
+    const unrelatedSkill = Number(ctx.db.prepare("INSERT INTO skills (code,name) VALUES ('multiplication','Multiplicaciones')")
+      .run().lastInsertRowid);
+    const activity = Number(ctx.db.prepare(`INSERT INTO recommended_activities
+      (skill_id,grade_min,grade_max,title,description,target_error_tag)
+      VALUES (?,3,3,'Actividad ficticia','Por validar','tag_solo_otra_habilidad')`).run(fractions).lastInsertRowid);
+    const question = Number(ctx.db.prepare(`INSERT INTO questions (skill_id,grade,stem,hint_1,hint_2,hint_3)
+      VALUES (?,3,'Otro reactivo','Uno','Dos','Tres')`).run(unrelatedSkill).lastInsertRowid);
+    ctx.db.prepare(`INSERT INTO question_options
+      (question_id,label,text,is_correct,error_tag,error_explanation)
+      VALUES (?,'B','Distractor',0,'tag_solo_otra_habilidad','Explicación ajena')`).run(question);
+    const res = await server.call('POST', `/api/v1/interventions/groups/${ctx.groupId}`,
+      { token: as(ctx.teacher, 'teacher'), body: { activityId: activity } });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.data.errorExplanation, null);
   });
 
   test('valida cuerpo y catálogo del grado', async () => {
@@ -115,10 +169,29 @@ describe('analytics: avance hacia la autonomía y plan de mañana', () => {
       assert.deepEqual(autonomyProgress.highlight, { skillCode: 'fractions', skillName: 'Fracciones', studentCount: 1 });
       assert.equal(typicalErrors[0].studentCount, 3);
       assert.equal(nextStep.skillCode, 'fractions');
+      assert.equal(nextStep.currentGradeEvidence, true);
       assert.deepEqual(nextStep.error, { errorTag: 'add_across', explanation: 'Suma numeradores y denominadores', studentCount: 3 });
       assert.equal(nextStep.activity.id, ctx.activity);
       const anaRow = res.body.data.students.find((entry) => entry.name.startsWith('Ana'));
       assert.equal(anaRow.skills[0].autonomyTrend.trend, 'toward_autonomy');
+    } finally { await server.close(); ctx.db.close(); }
+  });
+
+  test('no propone actividad si la habilidad prioritaria solo tiene historial de otro grado', async () => {
+    const ctx = fixtures();
+    const skill = ctx.db.prepare("SELECT id FROM skills WHERE code = 'fractions'").get().id;
+    ctx.db.prepare(`INSERT INTO skill_mastery_history
+      (student_id,skill_id,grade,session_index,session_percentage,autonomous_percentage,supported_percentage,mastery_percentage,mastery_level)
+      VALUES (?, ?, 2, 1, 20, 20, 0, 20, 'needs_support')`).run(ctx.ana, skill);
+    const server = await startServer(createApp({ db: ctx.db, config: configWith(), logger: silentLogger }));
+    try {
+      const res = await server.call('GET', `/api/v1/analytics/groups/${ctx.groupId}`, {
+        token: tokenFor({ sub: String(ctx.teacher), role: 'teacher', schoolId: ctx.school }),
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.summary.nextStep.currentGradeEvidence, false);
+      assert.equal(res.body.data.summary.nextStep.activity, null);
+      assert.equal(res.body.data.summary.recommendedActivity, null);
     } finally { await server.close(); ctx.db.close(); }
   });
 });

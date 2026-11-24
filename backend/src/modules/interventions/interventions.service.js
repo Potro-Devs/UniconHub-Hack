@@ -14,7 +14,7 @@ const toDto = (row, outcome) => ({
 export function createInterventionsService({ repository, groupsRepository }) {
   const { findReadableGroup, findOwnGroup } = createGroupAccess(groupsRepository);
   const withOutcome = (groupId, row) => toDto(row, summarizeInterventionOutcome(repository.findOutcomeIds({
-    groupId, skillId: row.skill_id, errorTag: row.target_error_tag, appliedAt: row.applied_at })));
+    groupId, skillId: row.skill_id, errorTag: row.target_error_tag, responseCutoffId: row.response_cutoff_id })));
   return {
     list(auth, groupId) {
       const group = findReadableGroup(auth, groupId);

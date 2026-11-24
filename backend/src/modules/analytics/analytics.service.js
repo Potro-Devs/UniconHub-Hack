@@ -32,14 +32,17 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
       const coverage = computeCoverage(contents.length, contents.map((content) => ({ status: content.status ?? 'pending' })));
       const typicalErrors = errorDtos(repository.listTypicalErrors(group.id, group.school_id));
       const selectedStudents = selectAnalyticsStudents(students, selection);
-      const recommendedActivity = selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill?.code, typicalErrors);
+      const currentGradeEvidence = Boolean(weakestSkill?.gradeCounts?.[group.grade]);
+      const recommendedActivity = currentGradeEvidence
+        ? selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill.code, typicalErrors)
+        : null;
       return { data: { group: groupDto(group), skills, students: selectedStudents,
         selection: { ...selection, studentCount: selectedStudents.length }, summary: {
         studentCount: students.length, needsSupportCount: countStudentsNeedingSupport(students),
         ...summarizeGroupEvidence(students),
         weakestSkill, coverage, typicalErrors, recommendedActivity,
         autonomyProgress: summarizeAutonomyProgress(skillRows, students),
-        nextStep: buildNextStep(weakestSkill, typicalErrors, recommendedActivity),
+        nextStep: buildNextStep(weakestSkill, typicalErrors, recommendedActivity, group.grade),
       } }, meta };
     },
     getStudent(auth, groupId, studentId) {
@@ -54,7 +57,8 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
       return { data: { group: groupDto(group), student: studentDto(student), skills,
         history: history.map(toHistoryDto).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt) || a.id - b.id),
         typicalErrors,
-        recommendedActivity: selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill?.code, typicalErrors),
+        recommendedActivity: weakestSkill?.grade === group.grade
+          ? selectRecommendedActivity(repository.listActivities(group.grade), weakestSkill.code, typicalErrors) : null,
       }, meta };
     },
     async exportGroup(auth, groupId, query, format) {

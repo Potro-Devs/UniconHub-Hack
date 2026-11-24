@@ -9,6 +9,7 @@ CREATE TABLE group_interventions (
   target_error_tag  TEXT,
   created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
   note              TEXT CHECK (note IS NULL OR length(note) <= 300),
+  response_cutoff_id INTEGER NOT NULL DEFAULT 0,
   applied_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -75,19 +75,25 @@ describe('summarizeAutonomyProgress', () => {
 });
 
 describe('buildNextStep', () => {
-  const weakest = { code: 'fractions', name: 'Fracciones', average: 30, label: 'En proceso' };
+  const weakest = { code: 'fractions', name: 'Fracciones', average: 30, label: 'En proceso', gradeCounts: { 3: 2 } };
   test('elige el error de la habilidad con más alumnos distintos', () => {
     const errors = [
       { skillCode: 'place_value', errorTag: 'x', explanation: 'Otro', studentCount: 40 },
       { skillCode: 'fractions', errorTag: 'a', explanation: 'A', studentCount: 3 },
       { skillCode: 'fractions', errorTag: 'b', explanation: 'B', studentCount: 9 },
     ];
-    const step = buildNextStep(weakest, errors, { id: 1, title: 'Actividad' });
+    const step = buildNextStep(weakest, errors, { id: 1, title: 'Actividad' }, 3);
     assert.deepEqual(step.error, { errorTag: 'b', explanation: 'B', studentCount: 9 });
+    assert.equal(step.currentGradeEvidence, true);
     assert.equal(step.activity.id, 1);
+  });
+  test('no propone una intervención medible sin evidencia del grado actual', () => {
+    const step = buildNextStep({ ...weakest, gradeCounts: { 2: 2 } }, [], { id: 1 }, 3);
+    assert.equal(step.currentGradeEvidence, false);
+    assert.equal(step.activity, null);
   });
   test('sin habilidad evaluada no hay plan; sin errores el plan no inventa uno', () => {
     assert.equal(buildNextStep(null, [], null), null);
-    assert.equal(buildNextStep(weakest, [], null).error, null);
+    assert.equal(buildNextStep(weakest, [], null, 3).error, null);
   });
 });

@@ -196,14 +196,16 @@ export function summarizeAutonomyProgress(skills, students) {
  * Plan concreto para la siguiente clase: la habilidad prioritaria, el error típico más
  * frecuente en ella (por alumnos distintos) y la actividad del catálogo que lo atiende.
  */
-export function buildNextStep(weakestSkill, typicalErrors, activity) {
+export function buildNextStep(weakestSkill, typicalErrors, activity, currentGrade) {
   if (!weakestSkill) return null;
   const error = typicalErrors.filter((entry) => entry.skillCode === weakestSkill.code)
     .reduce((top, entry) => !top || entry.studentCount > top.studentCount ? entry : top, null);
+  const currentGradeEvidence = Number.isInteger(currentGrade)
+    && (weakestSkill.gradeCounts?.[currentGrade] ?? 0) > 0;
   return { skillCode: weakestSkill.code, skillName: weakestSkill.name,
     average: weakestSkill.average, label: weakestSkill.label,
     error: error ? { errorTag: error.errorTag, explanation: error.explanation, studentCount: error.studentCount } : null,
-    activity };
+    currentGradeEvidence, activity: currentGradeEvidence ? activity : null };
 }
 
 /** La ausencia de evidencia nunca se convierte en cero. */
