@@ -181,3 +181,84 @@ export function evaluateAchievements({ blockCompleted = false, previousPercentag
     message: improved ? null : 'Esta habilidad todavía se está formando. La próxima vez probemos con una pista.',
   };
 }
+
+// ───────────────────────── Validación y DTOs (API de diagnostics) ─────────────────────────
+
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isPositiveInt = (value) => Number.isSafeInteger(value) && value > 0;
+
+const FEEDBACK_BY_OUTCOME = Object.freeze({
+  [OUTCOME_STATUSES.CORRECT_AUTONOMOUS]: '¡Excelente! Lo lograste por tu cuenta.',
+  [OUTCOME_STATUSES.ACHIEVED_WITH_SUPPORT]: '¡Logrado con apoyo! Las pistas te ayudaron a resolverlo.',
+  [OUTCOME_STATUSES.INCORRECT]: 'Buen intento. Sigamos practicando con el siguiente reto.',
+});
+
+/**
+ * Valida el cuerpo de `POST /diagnostics/assignments/:assignmentId/answer`.
+ *
+ * @returns {{ questionId: number, selectedOptionId: number, maxHintLevelUsed: number }}
+ */
+export function parseAnswerInput(body) {
+  if (!isPlainObject(body)) {
+    throw new DomainError('VALIDATION_ERROR', 'Faltan los datos de tu respuesta.');
+  }
+  if (!isPositiveInt(body.questionId)) {
+    throw new DomainError('VALIDATION_ERROR', 'Elige una pregunta válida.', { field: 'questionId' });
+  }
+  if (!isPositiveInt(body.selectedOptionId)) {
+    throw new DomainError('VALIDATION_ERROR', 'Elige una opción válida.', { field: 'selectedOptionId' });
+  }
+  const maxHintLevelUsed = body.maxHintLevelUsed === undefined ? 0 : body.maxHintLevelUsed;
+  if (!Number.isInteger(maxHintLevelUsed) || maxHintLevelUsed < 0 || maxHintLevelUsed > MAX_HINT_LEVEL) {
+    throw new DomainError('VALIDATION_ERROR', `El nivel de pista debe estar entre 0 y ${MAX_HINT_LEVEL}.`, {
+      field: 'maxHintLevelUsed',
+    });
+  }
+  return { questionId: body.questionId, selectedOptionId: body.selectedOptionId, maxHintLevelUsed };
+}
+
+/**
+ * Retroalimentación neutra y no punitiva para el alumno (AGENTS.md §3 y §4.4).
+ */
+export function feedbackForOutcome(outcomeStatus) {
+  return FEEDBACK_BY_OUTCOME[outcomeStatus] ?? FEEDBACK_BY_OUTCOME[OUTCOME_STATUSES.INCORRECT];
+}
+
+/**
+ * Resumen de una prueba asignada al alumno (sin exponer respuestas correctas).
+ */
+export function toStudentAssignmentDto(row, skills) {
+  return {
+    id: row.id,
+    title: row.title,
+    modality: row.modality,
+    assignmentStatus: row.assignment_status,
+    status: row.target_status,
+    isScreenLocked: row.is_screen_locked === 1,
+    createdAt: row.created_at,
+    startedAt: row.started_at ?? null,
+    completedAt: row.completed_at ?? null,
+    questionCount: row.question_count,
+    answeredCount: row.answered_count,
+    skills: skills.map((s) => ({ code: s.code, name: s.name, questionCount: s.question_count })),
+  };
+}
+
+/**
+ * Reactivo para el portal del alumno: nunca expone `is_correct`, `error_tag` ni `error_explanation`.
+ */
+export function toStartQuestionDto(q, options, response) {
+  return {
+    id: q.id,
+    position: q.position,
+    skill: { code: q.skill_code, name: q.skill_name },
+    stem: q.stem,
+    difficulty: q.difficulty,
+    hints: [q.hint_1, q.hint_2, q.hint_3],
+    options: options.map((o) => ({ id: o.id, label: o.label, text: o.text })),
+    answered: Boolean(response),
+    selectedOptionId: response?.selected_option_id ?? null,
+    maxHintLevelUsed: response?.max_hint_level_used ?? 0,
+  };
+}
+
