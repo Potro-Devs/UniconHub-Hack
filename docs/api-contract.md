@@ -1,6 +1,6 @@
 # Contrato de API REST (`/api/v1`)
 
-> Estado: **Health**, **Auth**, **Groups**, **Curriculum** y **Assessments** implementados. El resto de los módulos está planificado.
+> Estado: **Health**, **Auth**, **Groups**, **Curriculum**, **Assessments** y **Diagnostics** implementados. El resto de los módulos está planificado.
 
 Todas las respuestas siguen el formato estándar:
 - Éxito: `{ "data": ..., "meta": ... }`
@@ -13,8 +13,8 @@ Todas las respuestas siguen el formato estándar:
 | 400 | `VALIDATION_ERROR`, `INVALID_JSON` | Cuerpo incompleto, con formato inválido o JSON mal formado |
 | 401 | `AUTH_REQUIRED`, `INVALID_TOKEN`, `TOKEN_EXPIRED`, `SESSION_INVALID` | Falta el token, es inválido o expiró, o el usuario ya no existe |
 | 403 | `FORBIDDEN` | El rol de la sesión no puede usar el endpoint |
-| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND`, `CONTENT_NOT_FOUND`, `ASSIGNMENT_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
-| 409 | `SCREEN_LOCKED`, `ALREADY_COMPLETED`, `GROUP_ALREADY_EXISTS`, `GROUP_HAS_HISTORY` | Prueba bloqueada en pantalla (papel) o ya terminada; grupo duplicado; cambio de grado/ciclo en un grupo con historial |
+| 404 | `NOT_FOUND`, `GROUP_NOT_FOUND`, `STUDENT_NOT_FOUND`, `CONTENT_NOT_FOUND`, `ASSIGNMENT_NOT_FOUND`, `QUESTION_NOT_FOUND` | La ruta no existe, o el recurso no existe o no es accesible para la sesión |
+| 409 | `SCREEN_LOCKED`, `ALREADY_COMPLETED`, `ALREADY_ANSWERED`, `GROUP_ALREADY_EXISTS`, `GROUP_HAS_HISTORY` | Prueba bloqueada en pantalla (papel), ya terminada o reactivo ya contestado; grupo duplicado; cambio de grado/ciclo en un grupo con historial |
 | 422 | Otros códigos de `DomainError` | Regla de negocio incumplida (p. ej. `INSUFFICIENT_QUESTIONS_PER_SKILL`) |
 | 429 | `TOO_MANY_ATTEMPTS` | Demasiados intentos de login o de acceso de alumno (`details.retryAfterSeconds`) |
 | 500 | `INTERNAL_ERROR` | Error inesperado (sin detalles internos) |
@@ -131,6 +131,27 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
   - Crea `assignments` (`status = 'active'`), `assignment_questions` (`position` 1..n) y `assignment_targets` en **una sola transacción**: si algo falla, no queda nada.
   - Destinatarios: todos `pending`. En `paper` quedan con `isScreenLocked: true` desde el inicio (AGENTS.md §4.9); en `screen`, sin bloqueo.
 
+## Diagnostics (`/api/v1/diagnostics`)
+
+Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docente o director → 403 en todo.** Nunca expone `isCorrect`, `errorTag`, `errorExplanation` ni `internal_folio`.
+
+| Método y ruta | Roles | Cuerpo | Respuesta `data` | Errores |
+| --- | --- | --- | --- | --- |
+| `GET /students/:studentId/assignments` | student | — | `[StudentAssignment]` (más recientes primero) · `meta: { count }` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
+| `GET /assignments/:assignmentId/start` | student | — | `{ assignment, questions: [StartQuestion] }` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED`, 422 `ASSIGNMENT_CLOSED` |
+| `POST /assignments/:assignmentId/questions/:questionId/hints` | student | `{ level }` (`1..3`) | `{ questionId, level, hint, remainingHints }` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `QUESTION_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED` / `ALREADY_ANSWERED`, 422 `ASSIGNMENT_CLOSED` / `INVALID_HINT_SEQUENCE` |
+| `POST /assignments/:assignmentId/answer` | student | `{ questionId, selectedOptionId }` | `AnswerResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED` / `ALREADY_ANSWERED`, 422 `ASSIGNMENT_CLOSED` |
+| `POST /assignments/:assignmentId/complete` | student | — | `CompletionResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED`, 422 `ASSIGNMENT_CLOSED` / `NOTHING_ANSWERED` |
+
+- `StudentAssignment`: `{ id, title, modality, assignmentStatus, status, isScreenLocked, createdAt, startedAt, completedAt, questionCount, answeredCount, skills: [{ code, name, questionCount }] }`. `answeredCount` excluye reactivos marcados como `unanswered`.
+- `StartQuestion`: `{ id, position, skill: { code, name }, stem, hints: [...], options: [{ id, label, text }], answered, selectedOptionId, maxHintLevelUsed }`. Al abrir por primera vez (`pending`), pasa a `in_progress` con `startedAt`. Inicialmente `hints` es `[]`; solo incluye las pistas ya solicitadas en el servidor al reanudar.
+- **Pistas controladas en servidor (`hints`):** el alumno pide las pistas en orden estricto (`1 → 2 → 3`). Pedir un nivel distinto a `nivelActual + 1` responde `422 INVALID_HINT_SEQUENCE`.
+- `AnswerResult`: `{ questionId, selectedOptionId, maxHintLevelUsed, feedback, answeredCount, questionCount }`. Nunca expone si la respuesta fue correcta (`isCorrect` ni `outcomeStatus`); el servidor ignora cualquier `maxHintLevelUsed` enviado por el cliente y usa el registrado al pedir pistas. `feedback` es siempre `"Respuesta guardada."`.
+- `CompletionResult`: `{ assignmentId, status: "completed_screen", completedAt, summary: { total, correctAutonomous, achievedWithSupport, incorrect, unanswered, autonomousPercentage, supportedPercentage }, skills: [{ code, name, total, correctAutonomous, achievedWithSupport, incorrect, unanswered, autonomousPercentage, supportedPercentage, masteryRecorded, masteryPercentage, masteryLevel, masteryLabel, message }], celebrations: [{ code, size, skillCode, skillName }] }`.
+- **Autorización y aislamiento:** el alumno solo accede a su propio `studentId`, estando `active` en el `groupId` de su token y sobre asignaciones de ese grupo donde sea destinatario. Cualquier otro caso responde 404 (`STUDENT_NOT_FOUND` o `ASSIGNMENT_NOT_FOUND`).
+- **Bloqueo pantalla vs. papel (AGENTS.md §4.9):** si la prueba es `paper`, tiene `is_screen_locked = 1` o `status = 'completed_paper'`, `start`, `hints`, `answer` y `complete` responden `409 SCREEN_LOCKED`. Si ya terminó (`completed_screen`), responden `409 ALREADY_COMPLETED`.
+- **Cierre transaccional (`complete`):** exige al menos una respuesta (`422 NOTHING_ANSWERED`), marca reactivos omitidos como `unanswered` (el peso de reactivos sin contestar en el corte queda por validar con docente), registra un solo `block_completed` por prueba y solo genera corte inmutable en `skill_mastery_history` (`masteryRecorded: true`) para habilidades con al menos 3 reactivos contestados.
+
 ## Módulos
 
 - **Health:** `GET /api/v1/health`
@@ -139,5 +160,5 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
 - **Curriculum (`/api/v1/curriculum`):** ver la sección anterior.
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
-- **Diagnostics (`/api/v1/diagnostics`):** `GET /students/:studentId/assignments`, `GET /assignments/:assignmentId/start`, `POST /assignments/:assignmentId/answer`, `POST /assignments/:assignmentId/complete`
+- **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
 - **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId/map`, `GET /students/:studentId/profile`

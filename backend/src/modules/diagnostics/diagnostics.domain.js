@@ -4,6 +4,7 @@
  */
 import { DomainError } from '../../shared/errors/DomainError.js';
 import { getMasteryLevelIndex, roundPercentage } from '../analytics/analytics.domain.js';
+import { MIN_QUESTIONS_PER_SKILL } from '../assessments/assessments.domain.js';
 
 export const MAX_HINT_LEVEL = 3;
 
@@ -178,6 +179,93 @@ export function evaluateAchievements({ blockCompleted = false, previousPercentag
   const improved = roundPercentage(currentPercentage) > roundPercentage(previousPercentage);
   return {
     celebrations,
-    message: improved ? null : 'Esta habilidad todavía se está formando. La próxima vez probemos con una pista.',
+    message: improved ? null : 'Esta habilidad todavía se está formando. Seguiremos practicando paso a paso.',
   };
 }
+
+/**
+ * Solo registra un corte en `skill_mastery_history` si la habilidad tuvo al menos
+ * `MIN_QUESTIONS_PER_SKILL` reactivos contestados (evita cortes con datos insuficientes).
+ */
+export function canRecordMasteryCut(responses) {
+  return responses.filter((r) => r.outcome_status !== OUTCOME_STATUSES.UNANSWERED).length >= MIN_QUESTIONS_PER_SKILL;
+}
+
+// ───────────────────────── Validación y DTOs (API de diagnostics) ─────────────────────────
+
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isPositiveInt = (value) => Number.isSafeInteger(value) && value > 0;
+
+export const ANSWER_SAVED_FEEDBACK = 'Respuesta guardada.';
+
+/**
+ * Valida el cuerpo de `POST /diagnostics/assignments/:assignmentId/questions/:questionId/hints`.
+ *
+ * @returns {{ level: number }}
+ */
+export function parseHintRequestInput(body) {
+  if (!isPlainObject(body) || !Number.isInteger(body.level) || body.level < 1 || body.level > MAX_HINT_LEVEL) {
+    throw new DomainError('VALIDATION_ERROR', `Elige un nivel de pista entre 1 y ${MAX_HINT_LEVEL}.`, {
+      field: 'level',
+    });
+  }
+  return { level: body.level };
+}
+
+/**
+ * Valida el cuerpo de `POST /diagnostics/assignments/:assignmentId/answer`.
+ * Ignora cualquier `maxHintLevelUsed` del cliente: la fuente de verdad es el servidor.
+ *
+ * @returns {{ questionId: number, selectedOptionId: number }}
+ */
+export function parseAnswerInput(body) {
+  if (!isPlainObject(body)) {
+    throw new DomainError('VALIDATION_ERROR', 'Faltan los datos de tu respuesta.');
+  }
+  if (!isPositiveInt(body.questionId)) {
+    throw new DomainError('VALIDATION_ERROR', 'Elige una pregunta válida.', { field: 'questionId' });
+  }
+  if (!isPositiveInt(body.selectedOptionId)) {
+    throw new DomainError('VALIDATION_ERROR', 'Elige una opción válida.', { field: 'selectedOptionId' });
+  }
+  return { questionId: body.questionId, selectedOptionId: body.selectedOptionId };
+}
+
+/**
+ * Resumen de una prueba asignada al alumno (sin exponer respuestas correctas).
+ */
+export function toStudentAssignmentDto(row, skills) {
+  return {
+    id: row.id,
+    title: row.title,
+    modality: row.modality,
+    assignmentStatus: row.assignment_status,
+    status: row.target_status,
+    isScreenLocked: row.is_screen_locked === 1,
+    createdAt: row.created_at,
+    startedAt: row.started_at ?? null,
+    completedAt: row.completed_at ?? null,
+    questionCount: row.question_count,
+    answeredCount: row.answered_count,
+    skills: skills.map((s) => ({ code: s.code, name: s.name, questionCount: s.question_count })),
+  };
+}
+
+/**
+ * Reactivo para el portal del alumno: nunca expone `is_correct`, `error_tag`, `error_explanation`
+ * ni pistas que aún no haya pedido en el servidor.
+ */
+export function toStartQuestionDto(q, options, response, hintLevel = 0) {
+  return {
+    id: q.id,
+    position: q.position,
+    skill: { code: q.skill_code, name: q.skill_name },
+    stem: q.stem,
+    hints: [q.hint_1, q.hint_2, q.hint_3].slice(0, hintLevel),
+    options: options.map((o) => ({ id: o.id, label: o.label, text: o.text })),
+    answered: Boolean(response),
+    selectedOptionId: response?.selected_option_id ?? null,
+    maxHintLevelUsed: Math.max(response?.max_hint_level_used ?? 0, hintLevel),
+  };
+}
+
