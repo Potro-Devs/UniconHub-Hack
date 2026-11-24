@@ -122,6 +122,35 @@ export function countByMasteryLevel(percentages) {
   return { ...counts, not_evaluated: notEvaluated };
 }
 
+/** Puntos porcentuales de cambio en el acierto autónomo que cuentan como avance o como más apoyo. */
+export const AUTONOMY_TREND_THRESHOLD = 10;
+
+export const AUTONOMY_TRENDS = Object.freeze({
+  toward_autonomy: 'Avanza hacia resolver sin pistas',
+  steady: 'Se mantiene',
+  more_support: 'Usó más apoyo recientemente',
+});
+
+/**
+ * Compara las dos sesiones más recientes de una habilidad (pueden ser de grados distintos).
+ * `fromSupport` indica que el alumno usó menos pistas y a la vez resolvió más por sí mismo:
+ * es la conducta observable de avance ("Logrado con apoyo" → acierto autónomo).
+ *
+ * @param {Array<{ session_index: number, autonomous_percentage: number, supported_percentage: number }>} cuts
+ */
+export function computeAutonomyTrend(cuts) {
+  if (!Array.isArray(cuts) || cuts.length < 2) return null;
+  const [previous, latest] = [...cuts].sort((a, b) => a.session_index - b.session_index).slice(-2);
+  const delta = roundPercentage(latest.autonomous_percentage - previous.autonomous_percentage);
+  const trend = delta >= AUTONOMY_TREND_THRESHOLD ? 'toward_autonomy'
+    : delta <= -AUTONOMY_TREND_THRESHOLD ? 'more_support' : 'steady';
+  return { trend, label: AUTONOMY_TRENDS[trend], delta,
+    previousAutonomous: previous.autonomous_percentage, latestAutonomous: latest.autonomous_percentage,
+    previousSupported: previous.supported_percentage, latestSupported: latest.supported_percentage,
+    fromSupport: trend === 'toward_autonomy' && previous.supported_percentage > 0
+      && latest.supported_percentage < previous.supported_percentage };
+}
+
 /** El dominio longitudinal y el resultado de la última sesión son distintos. */
 export function buildStudentSkills(skills, history) {
   return skills.map((skill) => {
@@ -133,8 +162,48 @@ export function buildStudentSkills(skills, history) {
       level: level?.code ?? null, label: level?.label ?? 'Sin evaluar',
       autonomousPercentage: latest?.autonomous_percentage ?? null,
       supportedPercentage: latest?.supported_percentage ?? null, recordedAt: latest?.recorded_at ?? null,
-      grade: latest?.grade ?? null };
+      grade: latest?.grade ?? null,
+      autonomyTrend: computeAutonomyTrend(cuts) };
   });
+}
+
+/**
+ * Avance hacia la autonomía por habilidad. Solo cuenta alumnos con dos sesiones o más;
+ * quien tiene una sola sesión no se clasifica.
+ */
+export function summarizeAutonomyProgress(skills, students) {
+  const bySkill = skills.map((skill) => {
+    const trends = students.map((student) => student.skills.find((entry) => entry.code === skill.code)?.autonomyTrend)
+      .filter(Boolean);
+    const count = (trend) => trends.filter((entry) => entry.trend === trend).length;
+    return { code: skill.code, name: skill.name, comparedCount: trends.length,
+      towardAutonomyCount: count('toward_autonomy'), steadyCount: count('steady'),
+      moreSupportCount: count('more_support'), fromSupportCount: trends.filter((entry) => entry.fromSupport).length };
+  });
+  const advancing = (student) => student.skills.some((skill) => skill.autonomyTrend?.trend === 'toward_autonomy');
+  const fromSupport = (student) => student.skills.some((skill) => skill.autonomyTrend?.fromSupport);
+  const highlight = bySkill.filter((entry) => entry.fromSupportCount > 0)
+    .reduce((best, entry) => !best || entry.fromSupportCount > best.fromSupportCount ? entry : best, null);
+  return { threshold: AUTONOMY_TREND_THRESHOLD,
+    comparedStudentCount: students.filter((student) => student.skills.some((skill) => skill.autonomyTrend)).length,
+    towardAutonomyStudentCount: students.filter(advancing).length,
+    fromSupportStudentCount: students.filter(fromSupport).length,
+    highlight: highlight ? { skillCode: highlight.code, skillName: highlight.name, studentCount: highlight.fromSupportCount } : null,
+    skills: bySkill };
+}
+
+/**
+ * Plan concreto para la siguiente clase: la habilidad prioritaria, el error típico más
+ * frecuente en ella (por alumnos distintos) y la actividad del catálogo que lo atiende.
+ */
+export function buildNextStep(weakestSkill, typicalErrors, activity) {
+  if (!weakestSkill) return null;
+  const error = typicalErrors.filter((entry) => entry.skillCode === weakestSkill.code)
+    .reduce((top, entry) => !top || entry.studentCount > top.studentCount ? entry : top, null);
+  return { skillCode: weakestSkill.code, skillName: weakestSkill.name,
+    average: weakestSkill.average, label: weakestSkill.label,
+    error: error ? { errorTag: error.errorTag, explanation: error.explanation, studentCount: error.studentCount } : null,
+    activity };
 }
 
 /** La ausencia de evidencia nunca se convierte en cero. */
