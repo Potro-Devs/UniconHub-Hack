@@ -8,6 +8,7 @@ import { createDiagnosticsRouter } from './modules/diagnostics/diagnostics.route
 import { createGroupsRouter } from './modules/groups/groups.routes.js';
 import { createAnalyticsRouter } from './modules/analytics/analytics.routes.js';
 import { createGamesRouter } from './modules/games/games.routes.js';
+import { createInterventionsRouter } from './modules/interventions/interventions.routes.js';
 import { installFrontend } from './shared/middleware/serveFrontend.js';
 import { createRequireAuth } from './shared/middleware/authenticate.js';
 import { createErrorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
@@ -43,6 +44,7 @@ export function createApp({ db, config = env, logger = console }) {
   app.use('/api/v1/diagnostics', createDiagnosticsRouter({ db, requireAuth }));
   app.use('/api/v1/analytics', createAnalyticsRouter({ db, requireAuth }));
   app.use('/api/v1/games', createGamesRouter({ db, requireAuth }));
+  app.use('/api/v1/interventions', createInterventionsRouter({ db, requireAuth }));
 
   app.use('/api', notFoundHandler);
   installFrontend(app);
