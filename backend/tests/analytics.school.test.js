@@ -90,6 +90,7 @@ describe('analytics.school.domain', () => {
     const merged = mergeTypicalErrors([
       [{ skillCode: 'fractions', errorTag: 'x', explanation: 'X', studentCount: 3 }],
       [{ skillCode: 'fractions', errorTag: 'x', explanation: 'X', studentCount: 4 },
+        { skillCode: 'fractions', errorTag: 'x', explanation: 'X de otro grado', studentCount: 0 },
         { skillCode: 'reading_comprehension', errorTag: 'y', explanation: 'Y', studentCount: 5 }],
     ], SKILLS);
     assert.deepEqual(merged.map((e) => [e.errorTag, e.studentCount, e.groupCount]), [['x', 7, 2], ['y', 5, 1]]);
@@ -125,9 +126,11 @@ describe('GET /api/v1/analytics/school', () => {
     const { school, summary, fields, groups, priorities } = body.data;
     assert.equal(school.name, DEMO.schoolName);
     assert.equal(school.schoolYear, DEMO.currentGroup.schoolYear);
-    assert.equal(groups.length, 1, 'solo los grupos del ciclo actual');
-    assert.equal(groups[0].name, '3.º A');
-    assert.equal(summary.studentCount, 45);
+    assert.equal(groups.length, 7, 'solo los grupos del ciclo actual');
+    assert.deepEqual(groups.map((g) => g.name), ['1.º A', '2.º A', '3.º A', '3.º B', '4.º A', '5.º A', '6.º A']);
+    assert.equal(summary.studentCount, groups.reduce((n, g) => n + g.studentCount, 0));
+    assert.equal(summary.teacherCount, 7);
+    assert.ok(priorities.some((p) => p.type === 'evidence'), '6.º A tiene poco diagnóstico');
     assert.equal(fields.length, 4);
     assert.equal(fields.find((f) => f.code === 'lenguajes').assessed, true);
     assert.equal(fields.find((f) => f.code === 'de_lo_humano_comunitario').assessed, false);

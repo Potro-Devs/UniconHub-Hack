@@ -140,21 +140,21 @@ export function summarizeSchoolGroup(group, students, skillRows, fieldSkills, cu
  */
 export function mergeTypicalErrors(perGroup, skillRows, limit = 5) {
   const byKey = new Map();
-  for (const errors of perGroup) {
+  perGroup.forEach((errors, groupIndex) => {
     for (const e of errors) {
       const key = `${e.skillCode}|${e.errorTag}`;
       const prev = byKey.get(key) ?? { skillCode: e.skillCode, errorTag: e.errorTag, explanation: e.explanation,
-        studentCount: 0, groupCount: 0 };
+        studentCount: 0, groups: new Set() };
       prev.studentCount += e.studentCount;
-      prev.groupCount += 1;
+      prev.groups.add(groupIndex);
       byKey.set(key, prev);
     }
-  }
+  });
   const skillName = Object.fromEntries(skillRows.map((s) => [s.code, s.name]));
   return [...byKey.values()]
     .sort((a, b) => b.studentCount - a.studentCount || a.skillCode.localeCompare(b.skillCode) || a.errorTag.localeCompare(b.errorTag))
     .slice(0, limit)
-    .map((e) => ({ ...e, skillName: skillName[e.skillCode] ?? e.skillCode }));
+    .map(({ groups, ...e }) => ({ ...e, groupCount: groups.size, skillName: skillName[e.skillCode] ?? e.skillCode }));
 }
 
 /**

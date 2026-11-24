@@ -114,7 +114,8 @@ describe('seed demo', () => {
   test('la distribución de niveles es realista (≥ 3 niveles por habilidad)', () => {
     const rows = db.prepare(`
       SELECT s.code, count(DISTINCT h.mastery_level) AS levels FROM skill_mastery_history h
-      JOIN skills s ON s.id = h.skill_id WHERE h.grade = 3 GROUP BY s.code`).all();
+      JOIN skills s ON s.id = h.skill_id JOIN assignments a ON a.id = h.assignment_id
+      JOIN groups g ON g.id = a.group_id WHERE g.join_code = ? GROUP BY s.code`).all(DEMO.currentGroup.joinCode);
     assert.equal(rows.length, 4); // fracciones aún no se captura
     for (const r of rows) assert.ok(r.levels >= 3, `${r.code} solo tiene ${r.levels} niveles`);
   });
@@ -145,16 +146,41 @@ describe('seed demo', () => {
     for (const r of rows) assert.ok(r.n >= 3);
   });
 
+  test('agrega 6 grupos más del ciclo actual con otros docentes y datos variados', () => {
+    const groups = db.prepare(`SELECT g.id, u.email, u.role FROM groups g JOIN users u ON u.id = g.teacher_id
+      WHERE g.school_year = ? AND g.join_code <> ?`).all(DEMO.currentGroup.schoolYear, DEMO.currentGroup.joinCode);
+    assert.equal(result.schoolGroupsAdded, 6);
+    assert.equal(groups.length, 6);
+    assert.ok(groups.every((g) => g.role === 'teacher' && g.email !== DEMO.teacher.email));
+    const cuts = scalar(db, `SELECT count(*) FROM skill_mastery_history h JOIN assignments a ON a.id = h.assignment_id
+      WHERE a.group_id IN (${groups.map((g) => g.id).join(',')})`);
+    assert.ok(cuts > 500);
+  });
+
   test('no vuelve a cargar los datos si ya existen', () => {
-    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded', directorAdded: false });
-    assert.equal(scalar(db, 'SELECT count(*) FROM students'), 45);
+    const before = scalar(db, 'SELECT count(*) FROM students');
+    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded', directorAdded: false, schoolGroupsAdded: 0 });
+    assert.equal(scalar(db, 'SELECT count(*) FROM students'), before);
+  });
+
+  test('una base sembrada sin los grupos extra los recibe al volver a correr el seed', () => {
+    const fresh = openDatabase(':memory:');
+    runMigrations(fresh);
+    runSeed(fresh);
+    const extra = fresh.prepare("SELECT id FROM groups WHERE school_year = ? AND join_code <> ?").all(DEMO.currentGroup.schoolYear, DEMO.currentGroup.joinCode);
+    // Simula una base anterior: los grupos extra "no existen" (otro código y sección).
+    extra.forEach(({ id }, i) => fresh.prepare("UPDATE groups SET join_code = ?, section = 'Z' WHERE id = ?").run(`ZZZZZ${i + 2}`, id));
+    assert.equal(runSeed(fresh).schoolGroupsAdded, 6);
+    assert.equal(runSeed(fresh).schoolGroupsAdded, 0);
+    fresh.close();
   });
 
   test('una base sembrada sin director lo recibe al volver a correr el seed', () => {
     db.prepare('DELETE FROM users WHERE email = ?').run(DEMO.director.email);
-    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded', directorAdded: true });
+    const before = scalar(db, 'SELECT count(*) FROM students');
+    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded', directorAdded: true, schoolGroupsAdded: 0 });
     assert.equal(db.prepare('SELECT role FROM users WHERE email = ?').get(DEMO.director.email).role, 'director');
-    assert.equal(scalar(db, 'SELECT count(*) FROM students'), 45);
+    assert.equal(scalar(db, 'SELECT count(*) FROM students'), before);
   });
 });
 

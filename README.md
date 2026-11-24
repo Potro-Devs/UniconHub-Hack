@@ -79,7 +79,8 @@ npm run seed:reset   # borra la base y la vuelve a crear (detén antes el backen
 El seed es reproducible (semilla fija) y carga:
 
 - **Escuela demo** y la **docente** `docente@axi.demo` / contraseña `AxiDemo2026`.
-- **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (botón *Entrar como Directivo*). Entra al **Panel de la escuela**: resultados reales por campo formativo de la SEP, por habilidad y por grupo, con prioridades para decidir. Consulta los grupos en solo lectura y no ve herramientas de aula (temario, hojas impresas, captura).
+- **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (botón *Entrar como Directivo*). Su único menú es el **Panel de la escuela**: indicadores generales, resultados por campo formativo de la SEP y por habilidad, prioridades para decidir, errores típicos frecuentes y un resumen por grupo (solo promedios, sin datos de alumnos).
+- **6 grupos más del ciclo actual** (1.º A, 2.º A, 3.º B, 4.º A, 5.º A y 6.º A) con otros docentes ficticios (`docente.1a@axi.demo`… misma contraseña) y diagnósticos variados, para que el panel tenga promedios que comparar. En una base ya sembrada, `npm run seed` los agrega sin borrar nada.
 - **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
 - **Temario 1.º–6.º** con las 5 habilidades clave y el avance del temario de 3.º A.
 - **120 reactivos** (4 por habilidad y grado), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas.

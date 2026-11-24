@@ -31,6 +31,7 @@ import {
   formativeFieldFor,
 } from './seed/demo.data.js';
 import { generateQuestionBank } from './seed/questions.generator.js';
+import { insertSchoolGroups } from './seed/schoolGroups.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
 export { DEMO };
@@ -58,7 +59,9 @@ export function isSeeded(db) {
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
   if (isSeeded(db)) {
-    return { seeded: false, reason: 'already_seeded', directorAdded: ensureDemoDirector(db) };
+    const directorAdded = ensureDemoDirector(db);
+    const schoolGroupsAdded = withTransaction(db, () => insertSchoolGroups(db));
+    return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded };
   }
 
   const rng = createRng(seed);
@@ -326,8 +329,12 @@ function insertDemo(db, rng, bank, passwordHash) {
     run("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', 1)", paperId, s.id);
   }
 
+  // Otros grupos del ciclo actual (otros docentes) para el panel de Dirección
+  const schoolGroupsAdded = insertSchoolGroups(db);
+
   return {
     seeded: true,
+    schoolGroupsAdded,
     teacherEmail: DEMO.teacher.email,
     directorEmail: DEMO.director.email,
     joinCode: DEMO.currentGroup.joinCode,
@@ -366,6 +373,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     runMigrations(db);
     const result = runSeed(db);
     if (!result.seeded) {
+      if (result.schoolGroupsAdded) {
+        console.log(`Se agregaron ${result.schoolGroupsAdded} grupos demo del ciclo actual (otros docentes).`);
+      }
       if (result.directorAdded) {
         console.log(`Se agregó el director demo: ${DEMO.director.email} / ${DEMO.director.password}`);
       }
@@ -380,6 +390,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
           `  · ${c.responses} respuestas · ${c.masteryCuts} cortes de dominio · ${c.achievements} logros`,
           `  · Docente: ${result.teacherEmail} / ${DEMO.teacher.password}`,
           `  · Dirección: ${result.directorEmail} / ${DEMO.director.password}`,
+          `  · ${result.schoolGroupsAdded} grupos más del ciclo actual con otros docentes (misma contraseña)`,
         ].join('\n'),
       );
     }
