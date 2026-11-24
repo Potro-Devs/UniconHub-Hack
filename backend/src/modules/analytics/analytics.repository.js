@@ -10,6 +10,16 @@ export function createAnalyticsRepository(db) {
       AND EXISTS (SELECT 1 FROM group_enrollments e
         WHERE e.student_id = h.student_id AND e.group_id = ? AND e.status = 'active')
     ORDER BY h.student_id, h.skill_id, h.session_index, h.id`);
+  const studentHistory = db.prepare(`
+    SELECT h.*, sk.code AS skill_code, sk.name AS skill_name, g.school_year
+    FROM skill_mastery_history h JOIN skills sk ON sk.id = h.skill_id
+    JOIN students s ON s.id = h.student_id
+    LEFT JOIN assignments a ON a.id = h.assignment_id LEFT JOIN groups g ON g.id = a.group_id
+    WHERE s.school_id = ? AND (h.assignment_id IS NULL OR g.school_id = ?)
+      AND h.student_id = ?
+      AND EXISTS (SELECT 1 FROM group_enrollments e
+        WHERE e.student_id = h.student_id AND e.group_id = ? AND e.status = 'active')
+    ORDER BY h.student_id, h.skill_id, h.session_index, h.id`);
   const errors = db.prepare(`
     SELECT sk.code AS skill_code, r.error_tag, o.error_explanation AS explanation, COUNT(*) AS count
     FROM student_responses r JOIN assignment_targets t ON t.id = r.assignment_target_id
@@ -29,6 +39,8 @@ export function createAnalyticsRepository(db) {
   return {
     listSkills: () => skills.all(),
     listGroupHistory: (groupId, schoolId) => history.all(schoolId, schoolId, groupId),
+    listStudentHistory: (groupId, schoolId, studentId) =>
+      studentHistory.all(schoolId, schoolId, studentId, groupId),
     listTypicalErrors: (groupId, schoolId, studentId = null) => errors.all(groupId, schoolId, studentId, studentId),
     listActivities: (grade) => activities.all(grade, grade),
   };

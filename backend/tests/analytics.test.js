@@ -33,6 +33,7 @@ function fixtures() {
   const beto = student('Beto', 'PRIVATE-FOLIO-BETO');
   const celia = student('Celia', 'PRIVATE-FOLIO-CELIA');
   const foreign = student('Persona ajena', 'PRIVATE-FOLIO-OTHER', otherGroup);
+  insert("INSERT INTO group_enrollments (group_id,student_id,status) VALUES (?,?,'withdrawn')", groupId, foreign);
   const fractions = insert("INSERT INTO skills (code,name) VALUES ('fractions','Fracciones')");
   const place = insert("INSERT INTO skills (code,name) VALUES ('place_value','Valor posicional')");
   insert("INSERT INTO skills (code,name) VALUES ('multiplication','Multiplicaciones')");
@@ -98,6 +99,8 @@ describe('analytics API: evidencia real, lectura y privacidad', () => {
     assert.equal(ana.label, 'Necesita apoyo');
     assert.equal(ana.autonomousPercentage, 0);
     assert.equal(ana.supportedPercentage, 66.67);
+    assert.equal(ana.grade, 3);
+    assert.deepEqual(frac.gradeCounts, { 3: 2 });
     const celia = data.students.find((s) => s.id === fx.ids.celia).skills.find((s) => s.code === 'fractions');
     assert.equal(celia.masteryPercentage, null);
     assert.equal(data.skills.find((s) => s.code === 'multiplication').average, null);
@@ -124,12 +127,19 @@ describe('analytics API: evidencia real, lectura y privacidad', () => {
     assert.deepEqual(history.map((h) => h.grade).sort(), [1, 2, 3]);
     assert.deepEqual(history.map((h) => h.schoolYear).sort(), ['2024-2025', '2025-2026', '2026-2027']);
     assert.equal(history.length, 3);
+    assert.equal(body.data.skills.find((skill) => skill.code === 'fractions').grade, 3);
     assert.ok(history.every((h) => h.recordedAt));
     assert.equal(fx.db.prepare('SELECT total_changes() AS n').get().n, changesBefore);
     const serialized = JSON.stringify(body);
     for (const privateText of ['internal_folio', 'internalFolio', 'PRIVATE-FOLIO', 'password_hash', 'hidden-hash', 'CURP']) {
       assert.ok(!serialized.includes(privateText), privateText);
     }
+  });
+
+  test('docente anterior recibe 404 para alumno que se cambió de grupo', async () => {
+    const response = await read(profile(fx.ids.foreign));
+    assert.equal(response.status, 404);
+    assert.equal(response.body.error.code, 'STUDENT_NOT_FOUND');
   });
 
   test('grupo vacío y alumno sin cortes tienen estados explícitos', async () => {
@@ -200,10 +210,14 @@ describe('analytics API: evidencia real, lectura y privacidad', () => {
     await once(server, 'listening');
     try {
       const url = `http://127.0.0.1:${server.address().port}`;
-      for (const path of ['/', '/docente/mapa', `/docente/perfil/${fx.ids.ana}`]) {
+      for (const path of ['/', '/index.html', '/docente/mapa', `/docente/perfil/${fx.ids.ana}`]) {
         const response = await fetch(url + path, { headers: { accept: 'text/html' } });
         assert.equal(response.status, 200);
         assert.match(response.headers.get('content-type'), /text\/html/);
+        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+        assert.equal(response.headers.get('x-frame-options'), 'DENY');
+        assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
+        assert.equal(response.headers.get('cache-control'), 'no-cache');
         assert.equal(await response.text(), readFileSync(new URL('../../frontend/dist/index.html', import.meta.url), 'utf8'));
       }
       const api404 = await fetch(`${url}/api/v1/no-existe`, { headers: { accept: 'text/html' } });

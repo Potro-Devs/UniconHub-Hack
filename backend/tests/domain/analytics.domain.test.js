@@ -10,6 +10,7 @@ import {
   getMasteryLevel,
   getMasteryLevelIndex,
   selectRecommendedActivity,
+  summarizeGroupSkills,
 } from '../../src/modules/analytics/analytics.domain.js';
 
 describe('getMasteryLevel · escala de 25%', () => {
@@ -103,15 +104,25 @@ describe('agregados del mapa del grupo', () => {
   test('toma corte por índice, sin mutar historial ni confundir dominio con última sesión', () => {
     const skills = [{ id: 1, code: 'fractions', name: 'Fracciones' }, { id: 2, code: 'place_value', name: 'Valor posicional' }];
     const history = Object.freeze([
-      Object.freeze({ skill_id: 1, session_index: 3, mastery_percentage: 66.67, autonomous_percentage: 80, supported_percentage: 20, recorded_at: '2026-11-01' }),
+      Object.freeze({ skill_id: 1, session_index: 3, mastery_percentage: 66.67, autonomous_percentage: 80, supported_percentage: 20, recorded_at: '2026-11-01', grade: 4 }),
       Object.freeze({ skill_id: 1, session_index: 1, mastery_percentage: 40, autonomous_percentage: 40, supported_percentage: 60, recorded_at: '2026-09-01' }),
     ]);
     const result = buildStudentSkills(skills, history);
     assert.equal(result[0].masteryPercentage, 66.67);
     assert.equal(result[0].autonomousPercentage, 80);
     assert.equal(result[0].supportedPercentage, 20);
+    assert.equal(result[0].grade, 4);
     assert.equal(result[1].masteryPercentage, null);
     assert.equal(result[1].label, 'Sin evaluar');
+  });
+
+  test('conserva el grado del último corte y lo desglosa para el grupo', () => {
+    const skills = [{ id: 1, code: 'fractions', name: 'Fracciones' }];
+    const students = [
+      { skills: [{ code: 'fractions', masteryPercentage: 40, grade: 2, level: 'in_progress' }] },
+      { skills: [{ code: 'fractions', masteryPercentage: 80, grade: 3, level: 'mastered' }] },
+    ];
+    assert.deepEqual(summarizeGroupSkills(skills, students)[0].gradeCounts, { 2: 1, 3: 1 });
   });
 
   test('cuenta alumnos únicos aunque necesiten apoyo en varias habilidades', () => {

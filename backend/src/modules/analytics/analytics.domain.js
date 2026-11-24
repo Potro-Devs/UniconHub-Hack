@@ -131,7 +131,8 @@ export function buildStudentSkills(skills, history) {
     return { code: skill.code, name: skill.name, masteryPercentage,
       level: level?.code ?? null, label: level?.label ?? 'Sin evaluar',
       autonomousPercentage: latest?.autonomous_percentage ?? null,
-      supportedPercentage: latest?.supported_percentage ?? null, recordedAt: latest?.recorded_at ?? null };
+      supportedPercentage: latest?.supported_percentage ?? null, recordedAt: latest?.recorded_at ?? null,
+      grade: latest?.grade ?? null };
   });
 }
 
@@ -142,9 +143,13 @@ export function summarizeGroupSkills(skills, students) {
       .filter((s) => s?.masteryPercentage != null);
     const average = values.length ? roundPercentage(values.reduce((sum, s) => sum + s.masteryPercentage, 0) / values.length) : null;
     const level = average === null ? null : getMasteryLevel(average);
+    const gradeCounts = Object.fromEntries([...new Set(values.map((value) => value.grade).filter(Number.isInteger))]
+      .sort((a, b) => a - b)
+      .map((grade) => [grade, values.filter((value) => value.grade === grade).length]));
     return { code: skill.code, name: skill.name, average, level: level?.code ?? null,
       label: level?.label ?? 'Sin evaluar', evaluatedCount: values.length,
-      needsSupportCount: values.filter((s) => s.level === 'needs_support').length };
+      needsSupportCount: values.filter((s) => s.level === 'needs_support').length,
+      gradeCounts };
   });
 }
 

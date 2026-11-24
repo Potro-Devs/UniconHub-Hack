@@ -39,7 +39,7 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
       const id = parsePositiveId(studentId, 'id del alumno');
       const student = groupsRepository.findActiveStudentInGroup(id, group.id);
       if (!student) throw new HttpError(404, 'STUDENT_NOT_FOUND', 'No encontramos ese alumno en el grupo.');
-      const history = repository.listGroupHistory(group.id, group.school_id).filter((cut) => cut.student_id === id);
+      const history = repository.listStudentHistory(group.id, group.school_id, id);
       const skills = buildStudentSkills(repository.listSkills(), history);
       const weakestSkill = findWeakestSkill(skills.map((skill) => ({ ...skill, average: skill.masteryPercentage })));
       const typicalErrors = errorDtos(repository.listTypicalErrors(group.id, group.school_id, id));

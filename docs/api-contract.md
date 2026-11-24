@@ -177,15 +177,18 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
 - `student`: `{ id, name, initials, avatarColor }`; cada elemento de `students`
   agrega `skills` con las cinco habilidades del catálogo.
 - Habilidad de alumno: `{ code, name, masteryPercentage, level, label,
-  autonomousPercentage, supportedPercentage, recordedAt }`. `masteryPercentage`
+  autonomousPercentage, supportedPercentage, recordedAt, grade }`. `masteryPercentage`
   es el último corte longitudinal inmutable (ponderación lineal de porcentajes
   autónomos). `autonomousPercentage` y `supportedPercentage` son los resultados
-  separados de esa última sesión. Sin evidencia: porcentajes, `level` y fecha
-  en `null`, `label: "Sin evaluar"`. Cero es una medición válida.
+  separados de esa última sesión; `grade` identifica el grado de ese corte.
+  Sin evidencia: porcentajes, `level`, fecha y `grade` en `null`,
+  `label: "Sin evaluar"`. Cero es una medición válida.
 - Habilidad de grupo: `{ code, name, average, level, label, evaluatedCount,
-  needsSupportCount }`. Promedio solo sobre alumnos activos evaluados, sin
-  convertir datos faltantes en cero. La escala se aplica al promedio redondeado
-  a dos decimales, igual que al dominio de cada alumno.
+  needsSupportCount, gradeCounts }`. `gradeCounts` indica cuántos cortes más
+  recientes provienen de cada grado; el mapa y el perfil señalan los cortes de
+  grados distintos al grupo actual. Promedio solo sobre alumnos activos
+  evaluados, sin convertir datos faltantes en cero. La escala se aplica al
+  promedio redondeado a dos decimales, igual que al dominio de cada alumno.
 - `summary`: `{ studentCount, needsSupportCount, weakestSkill, coverage,
   recommendedActivity, typicalErrors }`. `needsSupportCount` cuenta alumnos
   únicos con alguna habilidad en `needs_support`. `weakestSkill` es la habilidad
