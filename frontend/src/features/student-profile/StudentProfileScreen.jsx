@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
@@ -17,9 +18,17 @@ export function StudentProfileScreen() {
   const { studentId } = useParams();
   const [params] = useSearchParams();
   const groups = useTeacherGroups();
-  const groupId = params.get('groupId') || groups.activeGroup?.id;
+  const requestedGroupId = params.get('groupId');
+  const groupId = requestedGroupId || groups.activeGroup?.id;
   const request = useAnalytics(studentId ? groupId : null, studentId);
   const navigate = useNavigate();
+  useEffect(() => {
+    if (requestedGroupId && groups.status === 'ready'
+      && groups.groups.some((group) => String(group.id) === requestedGroupId)
+      && String(groups.activeGroup?.id) !== requestedGroupId) {
+      groups.setActiveGroupId(requestedGroupId);
+    }
+  }, [requestedGroupId, groups.status, groups.groups, groups.activeGroup?.id, groups.setActiveGroupId]);
   const back = <button type="button" style={{ ...buttonStyle('ghost'), alignSelf: 'flex-start' }} onClick={() => { if (params.get('groupId')) groups.setActiveGroupId(params.get('groupId')); navigate('/docente/mapa'); }}>Volver al mapa del grupo</button>;
   if (!studentId) return <div style={stack}>{back}<section style={card}><h1 style={pageTitle}>Selecciona un alumno</h1><p style={mutedText}>Abre su nombre en el mapa del grupo para consultar su perfil.</p></section></div>;
   if (groups.status !== 'ready' || !groups.activeGroup || request.status !== 'ready') return <div style={stack}>{back}<AnalyticsState groups={groups} request={request} /></div>;
@@ -31,7 +40,7 @@ export function StudentProfileScreen() {
       <p style={{ ...mutedText, margin: 0 }}>El dominio autónomo pondera las sesiones del historial, dando mayor peso a las recientes. El apoyo corresponde a los aciertos con pistas de la última sesión.</p>
       {skills.map((skill) => <div key={skill.code} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 16px', paddingTop: '14px', borderTop: `1px solid ${COLORS.border}` }}>
         <strong style={{ flex: '1 1 180px', fontSize: '16px' }}>{skill.name}</strong>
-        <MasteryValue percentage={skill.masteryPercentage} level={skill.level} label={skill.label} />
+        <MasteryValue percentage={skill.masteryPercentage} level={skill.level} label={skill.label} grade={skill.grade} currentGrade={group.grade} />
         <div style={{ ...mutedText, flexBasis: '100%' }}>{skill.supportedPercentage == null ? 'Sin sesión registrada.' : `Último corte: ${dateLabel(skill.recordedAt)} · Logrado con apoyo: ${skill.supportedPercentage}% · Autónomo en la última sesión: ${skill.autonomousPercentage}%`}</div>
       </div>)}
     </section>

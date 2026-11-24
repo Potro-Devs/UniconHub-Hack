@@ -7,7 +7,10 @@ export function useAnalytics(groupId, studentId) {
   const [state, setState] = useState({ key: null, status: 'loading', data: null });
   const key = `${groupId ?? ''}:${studentId ?? ''}`;
   useEffect(() => {
-    if (!groupId) return;
+    if (!groupId) {
+      setState({ key, status: 'idle', data: null });
+      return;
+    }
     const controller = new AbortController();
     let cancelled = false;
     setState({ key, status: 'loading', data: null });
@@ -22,7 +25,7 @@ export function useAnalytics(groupId, studentId) {
     return () => { cancelled = true; controller.abort(); };
   }, [groupId, studentId, key, attempt]);
   return {
-    ...(state.key === key ? state : { status: 'loading', data: null }),
+    ...(state.key === key ? state : { status: groupId ? 'loading' : 'idle', data: null }),
     retry: () => setAttempt((value) => value + 1),
   };
 }

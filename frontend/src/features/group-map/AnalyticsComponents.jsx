@@ -5,10 +5,11 @@ import { buttonStyle, card, mutedText, sectionTitle } from '@/shared/styles/ui';
 
 export const stack = { display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 };
 
-export function MasteryValue({ percentage, level, label }) {
+export function MasteryValue({ percentage, level, label, grade, currentGrade }) {
   const colors = LEVELS.find((item) => item.code === level);
+  const gradeNote = grade != null && currentGrade != null && grade !== currentGrade ? ` · de ${grade}.º` : '';
   return <span style={{ display: 'inline-block', borderRadius: '10px', padding: '7px 9px', background: colors?.bg ?? COLORS.bg, color: colors?.fg ?? COLORS.muted, fontSize: '14px', lineHeight: 1.4, fontWeight: 700 }}>
-    {percentage == null ? 'Sin evaluar' : `${percentage}% · ${label}`}
+    {percentage == null ? 'Sin evaluar' : `${percentage}% · ${label}${gradeNote}`}
   </span>;
 }
 
