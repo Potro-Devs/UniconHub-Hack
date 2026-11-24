@@ -112,13 +112,13 @@ export function StudentExerciseScreen() {
         ? '¡Muy bien! Vas por buen camino. Sigamos con la siguiente pregunta.'
         : '¡Muy bien! Terminaste esta pregunta.'
       : axiMood === 'pista' && hint > 0
-      ? ex.h[hint - 1]
+      ? 'Tu pista está junto a la pregunta. Mírala y vuelve a intentarlo.'
       : axiMood === 'calma'
       ? hint > 0
-        ? `¡Casi! Tú puedes. Revisa la pista: ${ex.h[hint - 1]}`
+        ? 'Puedes revisar la pista que está junto a la pregunta.'
         : '¡Casi! Tú puedes. Tómate un respiro, prueba con una pista e inténtalo de nuevo.'
       : hint > 0
-      ? ex.h[hint - 1]
+      ? 'Tu pista está junto a la pregunta.'
       : 'Lee con calma. Si te atoras, pídeme una pista.';
 
   const hintTag =
@@ -144,13 +144,13 @@ export function StudentExerciseScreen() {
     : 'Lo pensaste con calma, paso a paso.';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="kid-exercise" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Encabezado y puntos de progreso */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <div className="font-display" style={{ fontWeight: 700, fontSize: '18px', lineHeight: 1 }}>
-          {activeQuiz.title} · Ejercicio {safeExIdx + 1} de {exercises.length}
+          {activeQuiz.title} · Pregunta {safeExIdx + 1} de {exercises.length}
         </div>
-        <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+        <div aria-label={`Pregunta ${safeExIdx + 1} de ${exercises.length}`} style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
           {exercises.map((_, idx) => (
             <span
               key={idx}
@@ -199,6 +199,12 @@ export function StudentExerciseScreen() {
           {q.q}
         </div>
 
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ margin: 0, fontSize: '16px', color: COLORS.muted }}>Toca la respuesta que elegiste.</p>
+          <button type="button" className="kid-button kid-button-small" disabled={hint >= 3 || fb === 'ok'} onClick={askHint}>{hint >= 3 ? 'Ya viste las 3 pistas' : `Necesito una pista (${hint + 1}/3)`}</button>
+        </div>
+        {hint > 0 && <div role="status" style={{ background: COLORS.noticeBg, borderRadius: '18px', padding: '16px', fontSize: '18px', lineHeight: 1.5 }}><strong>Pista {hint}: </strong>{ex.h[hint - 1]}</div>}
+
         {q.bar && (
           <div
             style={{
@@ -237,26 +243,29 @@ export function StudentExerciseScreen() {
             const isTried = tried.includes(m);
 
             const bg = okSel ? 'oklch(0.93 0.07 165)' : isTried ? '#EEF1F6' : '#fff';
-            const fg = isTried ? COLORS.mutedLight : COLORS.ink;
-            const border = okSel ? 'oklch(0.6 0.13 165)' : isTried ? '#D3D9E5' : COLORS.ink;
+            const fg = isTried ? COLORS.muted : COLORS.ink;
+            const border = okSel ? 'oklch(0.6 0.13 165)' : isTried ? '#D3D9E5' : COLORS.borderInput;
 
             return (
               <button
                 key={optText}
                 type="button"
+                className="kid-option"
+                disabled={fb === 'ok' || isTried}
+                aria-label={`${String.fromCharCode(65 + m)}: ${optText}${okSel ? ', respuesta elegida' : isTried ? ', ya intentada' : ''}`}
                 onClick={() => pickOption(m)}
                 style={{
                   minHeight: isFrac ? '104px' : '74px',
                   borderRadius: '22px',
-                  border: `4px solid ${border}`,
+                  border: `2px solid ${border}`,
                   background: bg,
                   color: fg,
-                  boxShadow: `0 6px 0 ${border}`,
-                  cursor: 'pointer',
+                  boxShadow: `0 4px 0 ${border}`,
+                  cursor: fb === 'ok' || isTried ? 'default' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: isFrac ? '10px' : '14px 18px',
+                  padding: isFrac ? '32px 12px 16px' : '36px 18px 18px',
                   fontFamily: "'Baloo 2', sans-serif",
                   fontWeight: isFrac ? 800 : 700,
                   fontSize: isFrac ? '30px' : narrow ? '17px' : '18px',
@@ -264,6 +273,7 @@ export function StudentExerciseScreen() {
                   textAlign: 'center',
                 }}
               >
+                <span className="kid-option-letter" aria-hidden="true">{okSel ? '✓' : String.fromCharCode(65 + m)}</span>
                 {isFrac ? (
                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', fontSize: '34px', lineHeight: 1 }}>
                     <span>{num}</span>
@@ -280,6 +290,7 @@ export function StudentExerciseScreen() {
 
         {fb === 'ok' && (
           <div
+            role="status"
             style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -294,7 +305,7 @@ export function StudentExerciseScreen() {
               className="font-display"
               style={{ flex: '1 1 200px', fontWeight: 700, fontSize: '22px', lineHeight: 1.2, color: 'oklch(0.35 0.1 165)' }}
             >
-              Correcto.
+              {hint > 0 ? '¡Lo lograste con apoyo!' : '¡Lo pensaste y lo lograste!'}
             </div>
             <button
               type="button"
@@ -321,6 +332,7 @@ export function StudentExerciseScreen() {
 
         {fb === 'casi' && (
           <div
+            role="status"
             className="font-display"
             style={{
               padding: '14px 16px',
@@ -332,13 +344,13 @@ export function StudentExerciseScreen() {
               color: 'oklch(0.38 0.08 75)',
             }}
           >
-            Casi. Prueba con una pista.
+            {hint >= 3 ? 'Revisa la última pista o pide ayuda a tu docente.' : 'Puedes intentarlo otra vez. Prueba con una pista.'}
           </div>
         )}
       </div>
 
       {/* Panel de pistas de Axi */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px' }}>
+      <div className="kid-helper-panel" style={{ display: 'flex', alignItems: 'flex-end', gap: '14px' }}>
         <Mascot
           size={104}
           mood={axiMood}
@@ -365,25 +377,7 @@ export function StudentExerciseScreen() {
             <div style={{ fontSize: '13px', fontWeight: 700, color: panelTone.tagColor }}>{hintTag}</div>
             <div style={{ fontSize: '19px', lineHeight: 1.35, textWrap: 'pretty' }}>{bubble}</div>
           </div>
-          <button
-            type="button"
-            onClick={askHint}
-            style={{
-              height: '52px',
-              padding: '0 20px',
-              borderRadius: '16px',
-              border: `3px solid ${COLORS.ink}`,
-              background: hint >= 3 ? '#EEF1F6' : 'oklch(0.9 0.11 90)',
-              fontFamily: "'Baloo 2', sans-serif",
-              fontWeight: 700,
-              fontSize: '18px',
-              lineHeight: 1,
-              cursor: 'pointer',
-              color: COLORS.ink,
-            }}
-          >
-            {hint >= 3 ? 'Ya viste las 3' : 'Pedir pista'}
-          </button>
+
         </div>
       </div>
 
@@ -411,11 +405,7 @@ export function StudentExerciseScreen() {
           skillName={skillName}
           fromPct={beforeSummary?.currentPct ?? 36}
           toPct={afterSummary?.currentPct ?? 58}
-          note={
-            activeQuiz.skillId === 'reading_comprehension'
-              ? 'Identificas ideas clave y detalles importantes en textos breves.'
-              : 'Ya reconoces cuántas partes forman un entero.'
-          }
+          note="Cada paso forma parte de tu aprendizaje. Puedes seguir explorando con ayuda cuando la necesites."
           onSkip={() => setSkip(true)}
           onContinue={() => {
             setOverlay(null);

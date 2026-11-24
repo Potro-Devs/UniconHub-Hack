@@ -17,7 +17,7 @@ export function LevelUpOverlay({
   note = 'Ya reconoces cuántas partes forman un entero.',
 }) {
   const reducedMotion = useReducedMotion();
-  const motion = !reducedMotion && !skip;
+  const motion = !reducedMotion && !skip && toPct > fromPct;
   const fromLvl = LEVELS[getLevelIndex(fromPct)];
   const toLvl = LEVELS[getLevelIndex(toPct)];
 
@@ -62,7 +62,8 @@ export function LevelUpOverlay({
               border: 0,
               background: COLORS.bg,
               borderRadius: '999px',
-              padding: '7px 12px',
+              padding: '10px 14px',
+              minHeight: '44px',
               fontSize: '13px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -153,7 +154,8 @@ export function LevelUpOverlay({
               width: `${toPct}%`,
               borderRadius: '999px',
               background: toLvl.solid,
-              animation: motion ? 'grow 1s ease-out .6s both' : 'none',
+              transformOrigin: 'left',
+              animation: motion ? 'progressReveal 1s ease-out .6s both' : 'none',
             }}
           />
         </div>

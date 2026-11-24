@@ -83,36 +83,13 @@ export function QuickCaptureScreen() {
           />
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-          {STUDENTS.map((st) => {
-            const done = isDone(st);
-            const active = st.i === capIdx;
-            return (
-              <button
-                key={st.i}
-                type="button"
-                title={st.name}
-                onClick={() => setCapIdx(st.i)}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  padding: 0,
-                  borderRadius: '6px',
-                  border: `2px solid ${active ? COLORS.ink : done ? COLORS.primaryAccent : COLORS.border}`,
-                  background: done ? COLORS.primaryAccent : '#fff',
-                  color: done ? '#fff' : COLORS.muted,
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {st.i + 1}
-              </button>
-            );
-          })}
-        </div>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '16px', fontWeight: 700 }}>
+          Alumno a capturar
+          <select value={capIdx} onChange={(event) => setCapIdx(Number(event.target.value))} style={{ width: '100%', minHeight: '52px', padding: '10px 14px', borderRadius: '14px', border: `1px solid ${COLORS.borderInput}`, background: '#fff', fontSize: '16px' }}>
+            {STUDENTS.map((student) => <option key={student.i} value={student.i}>{student.i + 1}. {student.name} · {isDone(student) ? 'Captura completa' : 'Pendiente'}</option>)}
+          </select>
+        </label>
       </div>
-
       {/* Tarjeta de captura alumno actual */}
       <div
         style={{

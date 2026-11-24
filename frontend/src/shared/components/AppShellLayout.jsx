@@ -1,6 +1,8 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
+import { InterfaceIcon } from './InterfaceIcon';
+import { MotionToggle } from './MotionToggle';
 import { JoinCode } from '@/features/groups/JoinCode';
 import { schoolYearToDisplay, sortGroups } from '@/features/groups/groups.logic';
 import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
@@ -165,7 +167,8 @@ export function AppShellLayout() {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', background: COLORS.bg }}>
+    <div className="teacher-shell" style={{ height: '100vh', display: 'flex', background: COLORS.bg }}>
+      <a className="skip-link" href="#teacher-content">Ir al contenido</a>
       {wide && (
         <aside
           style={{
@@ -196,6 +199,7 @@ export function AppShellLayout() {
                 <button
                   key={item.id}
                   type="button"
+                  aria-current={active ? 'page' : undefined}
                   onClick={() => navigate(item.path)}
                   style={{
                     textAlign: 'left',
@@ -209,13 +213,14 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  {item.label}
+                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} />{item.label}
                 </button>
               );
             })}
           </nav>
 
           <div style={{ marginTop: 'auto' }}>
+            <MotionToggle />
             {!isDir && <SidebarJoinCode />}
 
             <button
@@ -325,7 +330,7 @@ export function AppShellLayout() {
           </div>
         </header>
 
-        <main style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <main id="teacher-content" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           <div
             style={{
               maxWidth: '1240px',
@@ -333,6 +338,7 @@ export function AppShellLayout() {
               padding: wide ? '28px 32px 56px' : '18px 14px 32px',
             }}
           >
+            {!wide && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}><MotionToggle /></div>}
             {isSampleView && (
               <div
                 style={{
@@ -370,9 +376,15 @@ export function AppShellLayout() {
                 <button
                   key={item.id}
                   type="button"
+                  aria-current={active ? 'page' : undefined}
                   onClick={() => navigate(item.path)}
                   style={{
                     flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
                     minHeight: '48px',
                     border: 0,
                     borderRadius: '12px',
@@ -383,7 +395,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  {item.short}
+                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} />{item.short}
                 </button>
               );
             })}

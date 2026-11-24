@@ -43,7 +43,7 @@ export function StudentAchievementsScreen() {
   ).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="kid-page kid-collection" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
         <h1
           className="font-display"
@@ -80,7 +80,7 @@ export function StudentAchievementsScreen() {
                 borderRadius: '999px',
                 background: COLORS.celebrationBg,
                 color: COLORS.celebrationFg,
-                fontSize: '12px',
+                fontSize: '16px',
                 fontWeight: 700,
               }}
             >
@@ -89,7 +89,7 @@ export function StudentAchievementsScreen() {
             <h2 className="font-display" style={{ margin: '6px 0 0', fontWeight: 800, fontSize: '22px', lineHeight: 1.2 }}>
               ¡Cada paso cuenta en tu aprendizaje!
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '14px', color: COLORS.muted, lineHeight: 1.45 }}>
+            <p style={{ margin: '4px 0 0', fontSize: '16px', color: COLORS.muted, lineHeight: 1.45 }}>
               Aquí reconocemos tu constancia, tu avance propio y el uso inteligente de pistas.
             </p>
           </div>
@@ -107,7 +107,7 @@ export function StudentAchievementsScreen() {
               background: '#fff',
               color: COLORS.ink,
               fontWeight: 700,
-              fontSize: '14px',
+              fontSize: '16px',
               cursor: 'pointer',
             }}
           >
@@ -133,7 +133,7 @@ export function StudentAchievementsScreen() {
             return (
               <article
                 key={badge.id}
-                className="axi-card-hover"
+                className="axi-card-hover kid-collection-card"
                 style={{
                   background: '#fff',
                   borderRadius: '22px',
@@ -151,13 +151,13 @@ export function StudentAchievementsScreen() {
                       borderRadius: '999px',
                       background: chip.bg,
                       color: chip.fg,
-                      fontSize: '12px',
+                      fontSize: '16px',
                       fontWeight: 700,
                     }}
                   >
                     {badge.category}
                   </span>
-                  <span style={{ fontSize: '12px', color: COLORS.muted }}>{badge.earnedAt}</span>
+                  <span style={{ fontSize: '16px', color: COLORS.muted }}>{badge.earnedAt}</span>
                 </div>
 
                 <div
@@ -185,7 +185,7 @@ export function StudentAchievementsScreen() {
                   {badge.title}
                 </h3>
 
-                <p style={{ margin: 0, fontSize: '14px', color: COLORS.muted, lineHeight: 1.45 }}>
+                <p style={{ margin: 0, fontSize: '16px', color: COLORS.muted, lineHeight: 1.45 }}>
                   {badge.description}
                 </p>
 
@@ -205,7 +205,7 @@ export function StudentAchievementsScreen() {
                       background: COLORS.surfaceSubtle,
                       color: COLORS.primaryText,
                       fontWeight: 700,
-                      fontSize: '14px',
+                      fontSize: '16px',
                       cursor: 'pointer',
                     }}
                   >
@@ -238,7 +238,7 @@ export function StudentAchievementsScreen() {
                   background: '#fff',
                   border: `1px solid ${COLORS.border}`,
                   color: COLORS.muted,
-                  fontSize: '12px',
+                  fontSize: '16px',
                   fontWeight: 700,
                 }}
               >
@@ -250,7 +250,7 @@ export function StudentAchievementsScreen() {
               <h3 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '19px', lineHeight: 1.25 }}>
                 {pendingCount > 0 ? 'Completa tu cuestionario pendiente' : 'Constancia del ciclo escolar'}
               </h3>
-              <p style={{ margin: '6px 0 0', fontSize: '14px', color: COLORS.muted, lineHeight: 1.45 }}>
+              <p style={{ margin: '6px 0 0', fontSize: '16px', color: COLORS.muted, lineHeight: 1.45 }}>
                 {pendingCount > 0
                   ? `Aún tienes ${pendingCount} ${pendingCount === 1 ? 'cuestionario pendiente' : 'cuestionarios pendientes'}. Termínalo en pantalla para desbloquear otro logro.`
                   : 'Ya completaste todos tus cuestionarios programados. Sigue practicando en tus próximas actividades.'}
@@ -268,7 +268,7 @@ export function StudentAchievementsScreen() {
                 background: '#fff',
                 color: COLORS.primaryText,
                 fontWeight: 700,
-                fontSize: '14px',
+                fontSize: '16px',
                 cursor: 'pointer',
               }}
             >
@@ -299,7 +299,7 @@ export function StudentAchievementsScreen() {
               borderRadius: '999px',
               background: 'oklch(0.94 0.08 90)',
               color: 'oklch(0.4 0.09 75)',
-              fontSize: '12px',
+              fontSize: '16px',
               fontWeight: 700,
             }}
           >

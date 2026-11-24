@@ -6,6 +6,8 @@ import { errorMessageOf } from '@/shared/api/client';
 import { FormMessage } from '@/shared/components/FormMessage';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
+import { JoinSteps } from './JoinSteps';
+import { readableTextOn } from '@/features/groups/groups.logic';
 
 /**
  * Pantalla 09b: Selección visual del alumno dentro de su grupo sin contraseña.
@@ -37,7 +39,8 @@ export function StudentNameScreen() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="kid-access" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <JoinSteps current={2} />
       <div>
         <h1 className="font-display" style={{ margin: 0, fontWeight: 800, fontSize: '32px', lineHeight: 1.1 }}>
           ¿Cuál es tu nombre?
@@ -63,7 +66,7 @@ export function StudentNameScreen() {
             <button
               key={st.id}
               type="button"
-              className="axi-student-card"
+              className="axi-student-card kid-name-card"
               disabled={pendingId != null}
               aria-busy={pendingId === st.id}
               onClick={() => choose(st)}
@@ -87,15 +90,16 @@ export function StudentNameScreen() {
               <span
                 aria-hidden="true"
                 style={{
-                  width: '38px',
-                  height: '38px',
+                  width: '46px',
+                  height: '46px',
                   flex: 'none',
                   borderRadius: '50%',
                   background: st.avatarColor,
+                  color: readableTextOn(st.avatarColor, COLORS.ink, COLORS.onPrimary),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '14px',
+                  fontSize: '17px',
                 }}
               >
                 {st.initials}

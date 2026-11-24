@@ -9,9 +9,9 @@ export const COLORS = {
   muted: '#4A5573',
   mutedLight: '#8A93AB',
   subtle: '#64748B',
-  bg: '#F3F6FB',
-  surfaceSubtle: '#F8FAFC',
-  border: '#DDE3EE',
+  bg: '#F2F4FC',
+  surfaceSubtle: '#F7F8FE',
+  border: '#DDE1F1',
   borderInput: '#C9D1E0',
   primary: 'oklch(0.5 0.2 268)',
   primaryHover: 'oklch(0.44 0.2 268)',
@@ -34,6 +34,26 @@ export const COLORS = {
   successFg: 'oklch(0.36 0.1 165)',
   noticeBg: 'oklch(0.96 0.05 90)',
   noticeFg: 'oklch(0.38 0.08 75)',
+  playfulCoral: '#FAAD9D',
+  playfulTeal: '#D0F0E8',
+  playfulTealBorder: '#8DC8BB',
+  playfulTealShadow: '#B2D9CF',
+  playfulTealFg: '#226251',
+  playfulTealDeep: '#154B3C',
+  playfulYellow: '#FFE49A',
+  playfulLilac: '#E7DFFD',
+  playfulLilacGlow: '#E5E0FC',
+  playfulLilacBorder: '#D8D2FA',
+  shadowSoft: 'rgb(40 48 96 / 6%)',
+  shadowPrimary: 'rgb(65 57 168 / 18%)',
+  shadowHover: 'rgb(40 48 96 / 10%)',
+};
+
+export const KID_COLORS = {
+  primary: '#4D43AD', 'primary-dark': '#332B82', muted: COLORS.muted,
+  ink: COLORS.ink, border: '#D9D7E7', 'mission-bg': '#ECE8FF',
+  'mission-border': '#D5D0F5', sun: '#F3AD30', warm: '#FFF1CC',
+  'warm-ink': '#805615', 'reading-bg': '#D0F0E8', 'reading-ink': '#226251',
 };
 
 export const LEVELS = [

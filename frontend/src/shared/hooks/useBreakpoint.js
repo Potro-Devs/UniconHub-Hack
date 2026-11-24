@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Detecta ancho de ventana actual y si corresponde a diseño estrecho/móvil (< 760px).
+ * Detecta ancho de ventana actual y el breakpoint móvil estándar de 768 px.
  */
 export function useBreakpoint() {
   const [width, setWidth] = useState(() =>
@@ -16,7 +16,7 @@ export function useBreakpoint() {
 
   return {
     width,
-    narrow: width < 760,
-    wide: width >= 760,
+    narrow: width < 768,
+    wide: width >= 768,
   };
 }

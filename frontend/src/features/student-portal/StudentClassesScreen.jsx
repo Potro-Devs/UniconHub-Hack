@@ -16,7 +16,7 @@ export function StudentClassesScreen() {
   const quizItems = getQuizItems(completedQuizzes);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="kid-page kid-collection" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
         <h1
           className="font-display"
@@ -50,7 +50,7 @@ export function StudentClassesScreen() {
             return (
               <article
                 key={cls.id}
-                className="axi-card-hover"
+                className="axi-card-hover kid-collection-card"
                 style={{
                   background: '#fff',
                   borderRadius: '20px',
@@ -68,7 +68,7 @@ export function StudentClassesScreen() {
                       borderRadius: '999px',
                       background: COLORS.primarySoftBg,
                       color: COLORS.primarySoftFg,
-                      fontSize: '12px',
+                      fontSize: '16px',
                       fontWeight: 700,
                     }}
                   >
@@ -80,7 +80,7 @@ export function StudentClassesScreen() {
                       borderRadius: '999px',
                       background: COLORS.surfaceSubtle,
                       border: `1px solid ${COLORS.border}`,
-                      fontSize: '12px',
+                      fontSize: '16px',
                       fontWeight: 700,
                       color: COLORS.muted,
                     }}
@@ -93,13 +93,13 @@ export function StudentClassesScreen() {
                   {cls.name}
                 </h3>
 
-                <div style={{ fontSize: '14px', color: COLORS.muted, lineHeight: 1.4 }}>
+                <div style={{ fontSize: '16px', color: COLORS.muted, lineHeight: 1.4 }}>
                   {cls.teacherLine}
                 </div>
 
                 <div
                   style={{
-                    fontSize: '13px',
+                    fontSize: '15px',
                     fontWeight: 700,
                     color: pendingInClass > 0 ? COLORS.primaryText : COLORS.muted,
                   }}
@@ -123,7 +123,7 @@ export function StudentClassesScreen() {
                         background: COLORS.surfaceSubtle,
                         color: COLORS.primaryText,
                         fontWeight: 700,
-                        fontSize: '14px',
+                        fontSize: '16px',
                         cursor: 'pointer',
                       }}
                     >
