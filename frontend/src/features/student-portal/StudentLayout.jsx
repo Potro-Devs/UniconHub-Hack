@@ -1,4 +1,4 @@
-﻿import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { MotionToggle } from '@/shared/components/MotionToggle';

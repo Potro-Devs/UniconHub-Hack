@@ -1,4 +1,4 @@
-﻿import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
@@ -6,6 +6,7 @@ import { MotionToggle } from '@/shared/components/MotionToggle';
 import { Toast } from '@/shared/components/Toast';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
+import { initialsOf } from '@/shared/state/session';
 
 const destinations = [
   { path: '/alumno/inicio', name: 'Inicio', icon: 'home' },
@@ -18,6 +19,7 @@ export function StudentShellLayout() {
   const { pathname } = useLocation();
   const { session, signOut } = useSession();
   const { axiColor, toast, resetStudentSession, setJoinRoster } = useAppUi();
+  const initials = initialsOf(session?.student?.displayName);
   const leave = () => {
     signOut(); resetStudentSession(0); setJoinRoster(null); navigate('/login', { replace: true });
   };
@@ -26,7 +28,10 @@ export function StudentShellLayout() {
     <header className="student-header">
       <button className="brand-link" type="button" onClick={() => navigate('/alumno/inicio')} aria-label={`${APP_NAME}, inicio`}><Mascot size={48} color={axiColor} /><span className="font-display">{APP_NAME}</span></button>
       <nav className="student-nav" aria-label="Mi espacio">{destinations.map((item) => <button key={item.path} type="button" aria-current={pathname === item.path ? 'page' : undefined} onClick={() => navigate(item.path)}><InterfaceIcon name={item.icon} /><span>{item.name}</span></button>)}</nav>
-      <button type="button" className="quiet-button" onClick={leave}>Salir</button>
+      <div className="student-account">
+        {initials && <span className="student-account__initials" aria-label="Iniciales del alumno">{initials}</span>}
+        <button type="button" className="quiet-button" onClick={leave}>Salir</button>
+      </div>
     </header>
     <div className="student-utility"><span>{session?.group?.name || 'Mi espacio para aprender'}</span><MotionToggle /></div>
     <main id="student-content" className="student-content" tabIndex={-1}><Outlet /></main>

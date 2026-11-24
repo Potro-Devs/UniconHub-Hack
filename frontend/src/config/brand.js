@@ -36,8 +36,17 @@ export const COLORS = {
   noticeFg: 'oklch(0.38 0.08 75)',
   playfulCoral: '#FAAD9D',
   playfulTeal: '#D0F0E8',
+  playfulTealBorder: '#8DC8BB',
+  playfulTealShadow: '#B2D9CF',
+  playfulTealFg: '#226251',
+  playfulTealDeep: '#154B3C',
   playfulYellow: '#FFE49A',
   playfulLilac: '#E7DFFD',
+  playfulLilacGlow: '#E5E0FC',
+  playfulLilacBorder: '#D8D2FA',
+  shadowSoft: 'rgb(40 48 96 / 6%)',
+  shadowPrimary: 'rgb(65 57 168 / 18%)',
+  shadowHover: 'rgb(40 48 96 / 10%)',
 };
 
 export const KID_COLORS = {
