@@ -94,7 +94,7 @@ Todas las reglas matemáticas y pedagógicas deben vivir como **funciones puras 
 8. **Identificación y desambiguación de alumnos:**
    - Al crear un alumno, asignar un color aleatorio de paleta accesible + 2 letras en mayúsculas (inicial del primer nombre + inicial del primer apellido) junto al nombre completo.
 9. **Bloqueo anti-duplicidad Pantalla vs. Papel:**
-   - Si una prueba se asigna en modalidad `paper` o si ya fue capturada en papel para el alumno, debe activarse `is_screen_locked = 1` (`status = 'completed_paper'`) e impedir que se abra o conteste en el portal del alumno (`409 Conflict`).
+   - Al asignar una prueba en modalidad `paper`, cada destinatario queda `status = 'pending'` con `is_screen_locked = 1`. Al capturarse en papel pasa a `status = 'completed_paper'` (siempre con `is_screen_locked = 1`). Abrir o contestar en el portal del alumno una prueba bloqueada responde `409 Conflict` (`SCREEN_LOCKED`).
 
 ---
 

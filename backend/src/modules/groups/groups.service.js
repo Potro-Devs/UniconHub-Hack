@@ -24,10 +24,10 @@ import {
   toGroupDto,
   toStudentDto,
 } from './groups.domain.js';
+import { createGroupAccess } from './groups.access.js';
 
 const MAX_CODE_ATTEMPTS = 20;
 
-const GROUP_NOT_FOUND = () => new HttpError(404, 'GROUP_NOT_FOUND', 'No encontramos ese grupo.');
 const STUDENT_NOT_FOUND = () => new HttpError(404, 'STUDENT_NOT_FOUND', 'No encontramos a ese alumno.');
 const GROUP_ALREADY_EXISTS = () =>
   new HttpError(409, 'GROUP_ALREADY_EXISTS', 'Ese grupo ya está registrado en tu escuela.');
@@ -54,24 +54,8 @@ function uniqueCode(generate, exists) {
 export function createGroupsService({ repository, transaction, random = Math.random }) {
   const toGroup = (row) => toGroupDto(row, phaseForGrade(row.grade));
 
-  /** Grupo visible para la sesión (docente: propio; director: de su escuela). */
-  const findReadableGroup = (auth, groupId) => {
-    const id = parsePositiveId(groupId, 'id del grupo');
-    const group =
-      auth.role === ROLES.DIRECTOR
-        ? repository.findGroupOfSchool(id, auth.schoolId)
-        : repository.findGroupOfTeacher(id, Number(auth.sub), auth.schoolId);
-    if (!group) throw GROUP_NOT_FOUND();
-    return group;
-  };
-
-  /** Grupo editable: solo el docente dueño. */
-  const findOwnGroup = (auth, groupId) => {
-    const id = parsePositiveId(groupId, 'id del grupo');
-    const group = repository.findGroupOfTeacher(id, Number(auth.sub), auth.schoolId);
-    if (!group) throw GROUP_NOT_FOUND();
-    return group;
-  };
+  // Regla de acceso a grupos centralizada en `groups.access.js`.
+  const { findReadableGroup, findOwnGroup } = createGroupAccess(repository);
 
   const assertNotDuplicate = (fields, excludeId) => {
     if (repository.groupExists(fields, excludeId)) throw GROUP_ALREADY_EXISTS();
