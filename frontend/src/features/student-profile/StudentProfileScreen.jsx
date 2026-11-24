@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
 import { schoolYearToDisplay } from '@/features/groups/groups.logic';
-import { AnalyticsState, MasteryValue, RecommendedActivity, StudentIdentity, TypicalErrors, stack } from '@/features/group-map/AnalyticsComponents';
+import { AnalyticsState, AutonomyTrendBadge, MasteryValue, RecommendedActivity, StudentIdentity, TypicalErrors, stack } from '@/features/group-map/AnalyticsComponents';
 import { useAnalytics } from '@/features/group-map/useAnalytics';
 import { buttonStyle, card, mutedText, pageTitle, sectionTitle } from '@/shared/styles/ui';
 
@@ -42,6 +42,7 @@ export function StudentProfileScreen() {
         <strong style={{ flex: '1 1 180px', fontSize: '16px' }}>{skill.name}</strong>
         <MasteryValue percentage={skill.masteryPercentage} level={skill.level} label={skill.label} grade={skill.grade} currentGrade={group.grade} />
         <div style={{ ...mutedText, flexBasis: '100%' }}>{skill.supportedPercentage == null ? 'Sin sesión registrada.' : `Último corte: ${dateLabel(skill.recordedAt)} · Logrado con apoyo: ${skill.supportedPercentage}% · Autónomo en la última sesión: ${skill.autonomousPercentage}%`}</div>
+        {skill.supportedPercentage != null && <div style={{ flexBasis: '100%' }}><AutonomyTrendBadge trend={skill.autonomyTrend} /></div>}
       </div>)}
     </section>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '18px' }}><RecommendedActivity activity={recommendedActivity} /><TypicalErrors errors={typicalErrors} /></div>

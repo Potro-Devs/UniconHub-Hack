@@ -7,6 +7,7 @@ import { sortGroups, schoolYearToDisplay } from '@/features/groups/groups.logic'
 import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
 import { useSession } from '@/shared/state/SessionContext';
 import { buttonStyle, card, mutedText, pill, sectionTitle } from '@/shared/styles/ui';
+import { TomorrowPlanCard } from './TomorrowPlanCard';
 
 const GRID = {
   display: 'grid',
@@ -21,7 +22,7 @@ function todayLabel() {
 
 function NextStepBanner({ group }) {
   const navigate = useNavigate();
-  // Sin métricas ni niveles: el diagnóstico real llegará desde `/analytics`.
+  // Respaldo cuando aún no hay plan con actividad (ver TomorrowPlanCard).
   const next =
     group.studentCount === 0
       ? {
@@ -169,7 +170,7 @@ export function TeacherGroupsScreen() {
         </h1>
       </div>
 
-      {status === 'ready' && activeGroup && <NextStepBanner group={activeGroup} />}
+      {status === 'ready' && activeGroup && <TomorrowPlanCard key={activeGroup.id} group={activeGroup} fallback={<NextStepBanner group={activeGroup} />} />}
 
       {status === 'ready' && activeGroup && <nav className="teacher-workflow" aria-label="Herramientas para acompañar al grupo">
         {[
