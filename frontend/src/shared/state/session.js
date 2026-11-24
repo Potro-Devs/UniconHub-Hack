@@ -78,6 +78,8 @@ export function safeReturnPath(from, session) {
   if (typeof from !== 'string' || !from.startsWith('/')) return homePathFor(session);
   const staffArea = from.startsWith('/docente') || from.startsWith('/direccion');
   const studentArea = from.startsWith('/alumno');
+  // Dirección solo tiene su panel; el docente usa todo el área de personal.
+  if (session?.role === 'director') return from.startsWith('/direccion/panel') ? from : homePathFor(session);
   if (isStaffRole(session?.role) && staffArea) return from;
   if (session?.role === 'student' && studentArea) return from;
   return homePathFor(session);

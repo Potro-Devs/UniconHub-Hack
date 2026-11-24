@@ -17,10 +17,12 @@ describe('sesión del director', () => {
     assert.equal(homePathFor(session), '/direccion/panel');
   });
 
-  test('safeReturnPath: vuelve a rutas de dirección y del área de personal', () => {
+  test('safeReturnPath: el director solo vuelve a su panel', () => {
     const director = toSession(directorData);
-    assert.equal(safeReturnPath('/direccion/promover', director), '/direccion/promover');
-    assert.equal(safeReturnPath('/docente/mapa', director), '/docente/mapa');
+    assert.equal(safeReturnPath('/direccion/panel', director), '/direccion/panel');
+    for (const from of ['/direccion/promover', '/docente/mapa', '/docente/grupos']) {
+      assert.equal(safeReturnPath(from, director), '/direccion/panel', from);
+    }
   });
 
   test('safeReturnPath: rutas del alumno, externas o vacías van a /direccion/panel', () => {

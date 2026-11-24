@@ -27,9 +27,6 @@ const DIRECCION_NAV = [
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
 ];
 
-/** Lo que consulta el director en la vista de grupos (solo lectura, sin herramientas de aula). */
-const DIRECTOR_DOCENTE_NAV_IDS = ['grupos', 'mapa'];
-
 /** Vistas que todavía usan datos locales del prototipo. */
 const SAMPLE_DATA_PATHS = ['/docente/temario', '/docente/hoja', '/docente/pistas', '/docente/captura'];
 
@@ -51,7 +48,7 @@ const headerChip = {
 };
 
 /** Grupo activo en el encabezado: selector con 2+, texto con 1, `Sin grupo` con 0. */
-function ActiveGroupSwitcher({ canCreate }) {
+function ActiveGroupSwitcher() {
   const navigate = useNavigate();
   const { status, groups, activeGroup, setActiveGroupId } = useTeacherGroups();
 
@@ -60,7 +57,6 @@ function ActiveGroupSwitcher({ canCreate }) {
   }
   if (!groups.length) {
     if (status === 'error') return <div style={{ ...headerChip, color: COLORS.muted, fontWeight: 400 }}>Grupo no disponible</div>;
-    if (!canCreate) return <div style={{ ...headerChip, color: COLORS.muted, fontWeight: 400 }}>Sin grupos</div>;
     return (
       <button
         type="button"
@@ -156,12 +152,12 @@ export function AppShellLayout() {
   const { toast } = useAppUi();
   const { session, signOut } = useSession();
 
-  const isDir = pathname.startsWith('/direccion');
   const isDirector = session?.role === 'director';
-  // El panel con datos reales es solo de Dirección; el director ve los grupos sin herramientas de aula.
-  const navDef = isDir
-    ? DIRECCION_NAV.filter((item) => isDirector || item.id !== 'panel')
-    : DOCENTE_NAV.filter((item) => !isDirector || DIRECTOR_DOCENTE_NAV_IDS.includes(item.id));
+  const isDir = isDirector || pathname.startsWith('/direccion');
+  // Dirección solo tiene su panel con datos reales; la docente ve la vista previa (Roadmap) sin el panel.
+  const navDef = isDirector
+    ? DIRECCION_NAV.filter((item) => item.id === 'panel')
+    : isDir ? DIRECCION_NAV.filter((item) => item.id !== 'panel') : DOCENTE_NAV;
 
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -222,7 +218,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} />{item.label}
+                  <InterfaceIcon name={({ panel: 'map', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} />{item.label}
                 </button>
               );
             })}
@@ -230,11 +226,11 @@ export function AppShellLayout() {
 
           <div style={{ marginTop: 'auto' }}>
             <MotionToggle />
-            {!isDir && !isDirector && <SidebarJoinCode />}
+            {!isDir && <SidebarJoinCode />}
 
-            <button
+            {!isDirector && <button
               type="button"
-              onClick={() => navigate(isDir ? '/docente/grupos' : isDirector ? '/direccion/panel' : '/direccion/escuela')}
+              onClick={() => navigate(isDir ? '/docente/grupos' : '/direccion/escuela')}
               style={{
                 marginTop: '10px',
                 width: '100%',
@@ -249,10 +245,8 @@ export function AppShellLayout() {
                 cursor: 'pointer',
               }}
             >
-              {isDirector
-                ? (isDir ? 'Ver grupos (solo lectura) →' : '← Volver al panel de la escuela')
-                : (isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →')}
-            </button>
+              {isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →'}
+            </button>}
 
             <button
               type="button"
@@ -294,10 +288,10 @@ export function AppShellLayout() {
             {isDir ? (
               <div style={headerChip}>
                 Dirección
-                <span style={{ fontWeight: 400, color: COLORS.muted }}>· Esc. Prim. Benito Juárez</span>
+                {!isDirector && <span style={{ fontWeight: 400, color: COLORS.muted }}>· Vista previa</span>}
               </div>
             ) : (
-              <ActiveGroupSwitcher canCreate={!isDirector} />
+              <ActiveGroupSwitcher />
             )}
           </div>
 
@@ -371,7 +365,7 @@ export function AppShellLayout() {
           </div>
         </main>
 
-        {narrow && (
+        {narrow && navDef.length > 1 && (
           <nav
             style={{
               flex: 'none',
@@ -406,7 +400,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} />{item.short}
+                  <InterfaceIcon name={({ panel: 'map', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} />{item.short}
                 </button>
               );
             })}
@@ -414,7 +408,7 @@ export function AppShellLayout() {
         )}
       </div>
 
-      <Toast message={toast} hasBottomNav />
+      <Toast message={toast} hasBottomNav={narrow && navDef.length > 1} />
     </div>
   );
 }

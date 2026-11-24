@@ -53,14 +53,13 @@ export function App() {
                 </RequireRole>
               }
             >
-              <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
-              <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
-              <Route path="/docente/mapa" element={<GroupMapScreen />} />
-              <Route path="/docente/perfil" element={<StudentProfileScreen />} />
-              <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
-
               <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
-                {/* Herramientas de aula y de escritura: el director (solo lectura) vuelve a su panel. */}
+                {/* Área docente. El director solo tiene su panel: cualquier otra ruta lo regresa ahí. */}
+                <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
+                <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
+                <Route path="/docente/mapa" element={<GroupMapScreen />} />
+                <Route path="/docente/perfil" element={<StudentProfileScreen />} />
+                <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
                 <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
                 <Route path="/docente/temario" element={<CurriculumScreen />} />
                 <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
@@ -72,9 +71,12 @@ export function App() {
               <Route element={<RequireRole roles={['director']} redirectTo="/login" />}>
                 <Route path="/direccion/panel" element={<SchoolDashboardScreen />} />
               </Route>
-              <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
-              <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
-              <Route path="/direccion/traslados" element={<TransfersScreen />} />
+              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
+                {/* Vista previa de Dirección (Roadmap, datos de ejemplo) para la docente. */}
+                <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
+                <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
+                <Route path="/direccion/traslados" element={<TransfersScreen />} />
+              </Route>
             </Route>
 
             <Route path="/alumno" element={<StudentLayout />}>
