@@ -39,6 +39,14 @@ describe('games domain: construcciones manipulativas sin evaluación', () => {
     });
   }
 
+  test('pista de fracciones orienta sin asignar directamente cada número', () => {
+    for (const grade of [1, 2, 3, 4, 5, 6]) {
+      for (const round of buildGameRounds('fractions', grade)) {
+        assert.doesNotMatch(round.hints[1], /\b(abajo|arriba|numerador|denominador)\b/i);
+      }
+    }
+  });
+
   test('fracciones valida conteos enteros y límites del denominador', () => {
     const rounds = buildGameRounds('fractions', 3);
     for (const invalid of [-1, rounds[0].material.denominator + 1, 1.2, '3', null, [], {}, true]) {

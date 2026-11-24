@@ -7,7 +7,6 @@ const practice = { practiceOnly: true, contentReview: GAME_CONTENT_REVIEW };
 
 export function createGamesService({ groupsRepository, repository }) {
   const requireActiveStudent = (auth) => {
-    if (auth.role !== 'student') throw new HttpError(403, 'FORBIDDEN', 'Entra con tu tarjeta de alumno para practicar.');
     const group = groupsRepository.findGroupOfSchool(parsePositiveId(auth.groupId, 'grupo'), auth.schoolId);
     const student = group && groupsRepository.findActiveStudentInGroup(parsePositiveId(auth.sub, 'alumno'), group.id);
     if (!student || !repository.isStudentInSchool(student.id, group.school_id)) {

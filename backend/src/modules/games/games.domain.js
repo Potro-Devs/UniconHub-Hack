@@ -45,7 +45,7 @@ export function buildGameRounds(gameCode, grade) {
     material: { denominator, targetNumerator },
     hints: [
       'Observa que todas las partes de la figura tienen el mismo tamaño.',
-      'El número de abajo indica las partes iguales del entero. El de arriba indica las que quieres pintar.',
+      'Separa el reto en dos ideas: cómo está dividido el entero y qué parte te pide mostrar.',
       'En otro ejemplo, para representar 1/6 se divide una figura en seis partes iguales y se pinta una. Usa esa idea con tu fracción.',
     ],
   }));
