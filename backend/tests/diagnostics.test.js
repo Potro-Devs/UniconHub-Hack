@@ -423,6 +423,14 @@ describe('diagnostics API', () => {
       assert.equal(comp1.body.data.skills[0].masteryLevel, 'in_progress');
       assert.ok(comp1.body.data.celebrations.some((c) => c.code === 'block_completed' && c.size === 'small'));
 
+      // El listado excluye reactivos omitidos (`unanswered`) de `answeredCount`
+      const afterComp1 = await api.call('GET', `/api/v1/diagnostics/students/${fx.ids.sofia}/assignments`, {
+        token: fx.tokens.sofia,
+      });
+      const listedScreenA = afterComp1.body.data.find((a) => a.id === fx.ids.screenA);
+      assert.equal(listedScreenA.questionCount, 3);
+      assert.equal(listedScreenA.answeredCount, 2);
+
       // Bloquea re-apertura, respuesta y re-cierre tras completar
       for (const [method, path, body] of [
         ['GET', `/api/v1/diagnostics/assignments/${fx.ids.screenA}/start`],

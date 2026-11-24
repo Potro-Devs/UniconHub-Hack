@@ -12,7 +12,8 @@ export function createDiagnosticsRepository(db) {
       SELECT a.id, a.title, a.modality, a.status AS assignment_status, a.created_at,
              t.status AS target_status, t.is_screen_locked, t.started_at, t.completed_at,
              (SELECT COUNT(*) FROM assignment_questions aq WHERE aq.assignment_id = a.id) AS question_count,
-             (SELECT COUNT(*) FROM student_responses sr WHERE sr.assignment_target_id = t.id) AS answered_count
+             (SELECT COUNT(*) FROM student_responses sr
+              WHERE sr.assignment_target_id = t.id AND sr.outcome_status <> 'unanswered') AS answered_count
       FROM assignment_targets t
       JOIN assignments a ON a.id = t.assignment_id
       WHERE t.student_id = ? AND a.group_id = ?
