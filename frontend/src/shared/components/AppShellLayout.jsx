@@ -21,10 +21,14 @@ const DOCENTE_NAV = [
 ];
 
 const DIRECCION_NAV = [
+  { id: 'panel', path: '/direccion/panel', label: 'Panel de la escuela', short: 'Panel', matches: ['/direccion/panel'] },
   { id: 'escuela', path: '/direccion/escuela', label: 'Escuela', short: 'Escuela', matches: ['/direccion/escuela'] },
   { id: 'promover', path: '/direccion/promover', label: 'Promover grupos', short: 'Promover', matches: ['/direccion/promover'] },
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
 ];
+
+/** Lo que consulta el director en la vista de grupos (solo lectura, sin herramientas de aula). */
+const DIRECTOR_DOCENTE_NAV_IDS = ['grupos', 'mapa'];
 
 /** Vistas que todavía usan datos locales del prototipo. */
 const SAMPLE_DATA_PATHS = ['/docente/temario', '/docente/hoja', '/docente/pistas', '/docente/captura'];
@@ -154,8 +158,10 @@ export function AppShellLayout() {
 
   const isDir = pathname.startsWith('/direccion');
   const isDirector = session?.role === 'director';
-  // El director consulta los grupos en solo lectura: sin la captura de respuestas.
-  const navDef = isDir ? DIRECCION_NAV : DOCENTE_NAV.filter((item) => !(isDirector && item.id === 'captura'));
+  // El panel con datos reales es solo de Dirección; el director ve los grupos sin herramientas de aula.
+  const navDef = isDir
+    ? DIRECCION_NAV.filter((item) => isDirector || item.id !== 'panel')
+    : DOCENTE_NAV.filter((item) => !isDirector || DIRECTOR_DOCENTE_NAV_IDS.includes(item.id));
 
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -228,7 +234,7 @@ export function AppShellLayout() {
 
             <button
               type="button"
-              onClick={() => navigate(isDir ? '/docente/grupos' : '/direccion/escuela')}
+              onClick={() => navigate(isDir ? '/docente/grupos' : isDirector ? '/direccion/panel' : '/direccion/escuela')}
               style={{
                 marginTop: '10px',
                 width: '100%',
@@ -244,7 +250,7 @@ export function AppShellLayout() {
               }}
             >
               {isDirector
-                ? (isDir ? 'Ver grupos (solo lectura) →' : '← Volver a Dirección')
+                ? (isDir ? 'Ver grupos (solo lectura) →' : '← Volver al panel de la escuela')
                 : (isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →')}
             </button>
 

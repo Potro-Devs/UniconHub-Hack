@@ -199,13 +199,13 @@ export function GroupDetailScreen() {
         <EditGroupPanel group={group} groups={groups} onSaved={onGroupEdited} onClose={() => setPanel(null)} />
       )}
 
-      <section aria-labelledby="join-code-title" style={card}>
+      {canEdit && <section aria-labelledby="join-code-title" style={card}>
         <h2 id="join-code-title" style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
           Código para tus alumnos
         </h2>
         <JoinCode code={group.joinCode} size={36} label={`Código de ${group.name}`} />
         <div style={mutedText}>Entran sin correo: escriben el código y eligen su tarjeta.</div>
-      </section>
+      </section>}
 
       {justSaved && isNew && (
         <section

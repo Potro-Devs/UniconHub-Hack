@@ -171,11 +171,11 @@ export function TeacherGroupsScreen() {
         </h1>
       </div>
 
-      {status === 'ready' && activeGroup && <TomorrowPlanCard key={activeGroup.id} group={activeGroup} fallback={<NextStepBanner group={activeGroup} />} />}
+      {canEdit && status === 'ready' && activeGroup && <TomorrowPlanCard key={activeGroup.id} group={activeGroup} fallback={<NextStepBanner group={activeGroup} />} />}
 
       {status === 'ready' && activeGroup && <nav className="teacher-workflow" aria-label="Herramientas para acompañar al grupo">
         {[
-          { to: '/docente/temario', icon: 'book', title: 'Preparar', description: 'Temario y próximas evaluaciones' },
+          canEdit && { to: '/docente/temario', icon: 'book', title: 'Preparar', description: 'Temario y próximas evaluaciones' },
           canEdit && { to: '/docente/captura', icon: 'pencil', title: 'Registrar', description: 'Respuestas de las hojas impresas' },
           { to: '/docente/mapa', icon: 'map', title: 'Acompañar', description: 'Resultados e historial de aprendizaje' },
         ].filter(Boolean).map((item) => <button type="button" key={item.to} onClick={() => navigate(item.to)}><span><InterfaceIcon name={item.icon} /></span><span><strong>{item.title}</strong><small>{item.description}</small></span></button>)}

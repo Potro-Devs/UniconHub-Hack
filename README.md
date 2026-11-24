@@ -79,7 +79,7 @@ npm run seed:reset   # borra la base y la vuelve a crear (detén antes el backen
 El seed es reproducible (semilla fija) y carga:
 
 - **Escuela demo** y la **docente** `docente@axi.demo` / contraseña `AxiDemo2026`.
-- **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (solo lectura de los grupos de la escuela; botón *Entrar como Directivo*).
+- **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (botón *Entrar como Directivo*). Entra al **Panel de la escuela**: resultados reales por campo formativo de la SEP, por habilidad y por grupo, con prioridades para decidir. Consulta los grupos en solo lectura y no ve herramientas de aula (temario, hojas impresas, captura).
 - **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
 - **Temario 1.º–6.º** con las 5 habilidades clave y el avance del temario de 3.º A.
 - **120 reactivos** (4 por habilidad y grado), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas.

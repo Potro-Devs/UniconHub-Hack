@@ -12,6 +12,7 @@ import { HintCardsScreen } from '@/features/paper-mode/HintCardsScreen';
 import { PrintSheetScreen } from '@/features/paper-mode/PrintSheetScreen';
 import { QuickCaptureScreen } from '@/features/paper-mode/QuickCaptureScreen';
 import { PromoteGroupsScreen } from '@/features/school-admin/PromoteGroupsScreen';
+import { SchoolDashboardScreen } from '@/features/school-admin/SchoolDashboardScreen';
 import { SchoolOverviewScreen } from '@/features/school-admin/SchoolOverviewScreen';
 import { TransfersScreen } from '@/features/school-admin/TransfersScreen';
 import { StudentAchievementsScreen } from '@/features/student-portal/StudentAchievementsScreen';
@@ -53,20 +54,24 @@ export function App() {
               }
             >
               <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
-              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
-                {/* Pantallas de escritura: el director (solo lectura) vuelve a su inicio. */}
-                <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
-                </Route>
               <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
               <Route path="/docente/mapa" element={<GroupMapScreen />} />
               <Route path="/docente/perfil" element={<StudentProfileScreen />} />
               <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
-              <Route path="/docente/temario" element={<CurriculumScreen />} />
-              <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
-              <Route path="/docente/hoja" element={<PrintSheetScreen />} />
-              <Route path="/docente/pistas" element={<HintCardsScreen />} />
-              <Route path="/docente/captura" element={<QuickCaptureScreen />} />
 
+              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
+                {/* Herramientas de aula y de escritura: el director (solo lectura) vuelve a su panel. */}
+                <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
+                <Route path="/docente/temario" element={<CurriculumScreen />} />
+                <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
+                <Route path="/docente/hoja" element={<PrintSheetScreen />} />
+                <Route path="/docente/pistas" element={<HintCardsScreen />} />
+                <Route path="/docente/captura" element={<QuickCaptureScreen />} />
+              </Route>
+
+              <Route element={<RequireRole roles={['director']} redirectTo="/login" />}>
+                <Route path="/direccion/panel" element={<SchoolDashboardScreen />} />
+              </Route>
               <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
               <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
               <Route path="/direccion/traslados" element={<TransfersScreen />} />
