@@ -1,5 +1,14 @@
-/**
- * Módulo analytics — Capa 1 (Presentación): Controladores HTTP del módulo.
- * Esqueleto estructural inicial sin funcionalidad implementada.
- */
-export default {};
+import { sendData } from '../../shared/utils/http.js';
+
+export function createAnalyticsController(service) {
+  return {
+    getGroup(req, res) {
+      const { data, meta } = service.getGroup(req.auth, req.params.groupId);
+      return sendData(res, data, { meta });
+    },
+    getStudent(req, res) {
+      const { data, meta } = service.getStudent(req.auth, req.params.groupId, req.params.studentId);
+      return sendData(res, data, { meta });
+    },
+  };
+}

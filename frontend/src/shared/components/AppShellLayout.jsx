@@ -25,7 +25,7 @@ const DIRECCION_NAV = [
 ];
 
 /** Vistas que todavía usan datos locales del prototipo. */
-const SAMPLE_DATA_PATHS = ['/docente/mapa', '/docente/perfil', '/docente/temario', '/docente/hoja', '/docente/pistas', '/docente/captura'];
+const SAMPLE_DATA_PATHS = ['/docente/temario', '/docente/hoja', '/docente/pistas', '/docente/captura'];
 
 const headerChip = {
   display: 'flex',

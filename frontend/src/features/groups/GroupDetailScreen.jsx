@@ -286,7 +286,7 @@ export function GroupDetailScreen() {
         {studentsState.status === 'ready' && students.length === 0 && (
           <div style={mutedText}>Todavía no hay alumnos en este grupo.</div>
         )}
-        {studentsState.status === 'ready' && students.length > 0 && <StudentList students={students} />}
+        {studentsState.status === 'ready' && students.length > 0 && <StudentList students={students} groupId={group.id} />}
       </section>
     </div>
   );

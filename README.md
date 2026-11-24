@@ -125,13 +125,25 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** El backend crea el esquema SQLite al iniciar y expone `health` y `auth` (ver `docs/api-contract.md`). En el frontend, el **login docente, los accesos rápidos y el acceso del alumno** (código + tarjeta) usan la API. Por eso hay que levantar el backend y cargar los datos demo con `npm run seed`. El resto de las pantallas sigue usando los datos locales de `frontend/src/shared/data/seedData.js` hasta conectar sus módulos.
+> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
 >
 > La sesión se guarda en `sessionStorage`: se cierra al cerrar la pestaña, pensado para computadoras compartidas en el salón.
 
 ---
 
 ## Otros scripts disponibles
+
+### Ver el incremento de Analytics en un solo puerto
+
+```bash
+npm run seed
+npm run build:frontend
+npm --prefix backend start
+```
+
+Abre http://localhost:3000, entra como docente y selecciona **Mapa del grupo**. Desde un alumno puedes abrir su perfil con historial de grados anteriores. Express sirve el build y `/api/v1` en el mismo origen; las rutas directas del mapa y del perfil también funcionan al recargar. En Windows puedes usar `npm.cmd` si PowerShell restringe `npm.ps1`.
+
+Este despliegue es local y necesita mantener el servidor activo. Para producción define `NODE_ENV=production`, un `JWT_SECRET` propio de al menos 32 caracteres y una ruta persistente `SQLITE_DB_PATH`; los accesos rápidos se desactivan por defecto. El catálogo y la alineación de los ejemplos están **por validar con docente de primaria**.
 
 - **Compilar frontend a producción (`frontend/dist/`):**
   ```bash

@@ -6,6 +6,8 @@ import { createAuthRouter } from './modules/auth/auth.routes.js';
 import { createCurriculumRouter } from './modules/curriculum/curriculum.routes.js';
 import { createDiagnosticsRouter } from './modules/diagnostics/diagnostics.routes.js';
 import { createGroupsRouter } from './modules/groups/groups.routes.js';
+import { createAnalyticsRouter } from './modules/analytics/analytics.routes.js';
+import { installFrontend } from './shared/middleware/serveFrontend.js';
 import { createRequireAuth } from './shared/middleware/authenticate.js';
 import { createErrorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
 
@@ -38,8 +40,10 @@ export function createApp({ db, config = env, logger = console }) {
   app.use('/api/v1/curriculum', createCurriculumRouter({ db, requireAuth }));
   app.use('/api/v1/assessments', createAssessmentsRouter({ db, requireAuth }));
   app.use('/api/v1/diagnostics', createDiagnosticsRouter({ db, requireAuth }));
+  app.use('/api/v1/analytics', createAnalyticsRouter({ db, requireAuth }));
 
   app.use('/api', notFoundHandler);
+  installFrontend(app);
   app.use(createErrorHandler({ logger }));
   return app;
 }
