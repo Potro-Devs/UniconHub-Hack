@@ -3,7 +3,7 @@
  * 1.º y 2.º, temario 1.º–6.º, banco de reactivos de las 5 habilidades y actividades sugeridas.
  *
  * Uso:
- *   npm run seed         → carga los datos si la base aún no los tiene
+ *   npm run seed         → carga los datos si la base aún no los tiene (o agrega lo que falte, p. ej. el director)
  *   npm run seed:reset   → borra la base y la vuelve a crear (detén antes el backend)
  */
 import fs from 'node:fs';
@@ -57,12 +57,28 @@ export function isSeeded(db) {
  * @param {import('node:sqlite').DatabaseSync} db Base con las migraciones aplicadas.
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
-  if (isSeeded(db)) return { seeded: false, reason: 'already_seeded' };
+  if (isSeeded(db)) {
+    return { seeded: false, reason: 'already_seeded', directorAdded: ensureDemoDirector(db) };
+  }
 
   const rng = createRng(seed);
   const bank = generateQuestionBank(rng);
   const passwordHash = bcrypt.hashSync(DEMO.teacher.password, 10);
   return withTransaction(db, () => insertDemo(db, rng, bank, passwordHash));
+}
+
+/**
+ * Agrega el director demo a una base sembrada antes de que existiera, sin tocar el resto de los datos.
+ * Devuelve `true` si lo creó.
+ */
+export function ensureDemoDirector(db) {
+  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(DEMO.director.email)) return false;
+  const school = db.prepare('SELECT id FROM schools WHERE name = ?').get(DEMO.schoolName);
+  if (!school) return false;
+  db.prepare("INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'director')").run(
+    school.id, DEMO.director.email, bcrypt.hashSync(DEMO.director.password, 10), DEMO.director.fullName,
+  );
+  return true;
 }
 
 function insertDemo(db, rng, bank, passwordHash) {
@@ -350,6 +366,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     runMigrations(db);
     const result = runSeed(db);
     if (!result.seeded) {
+      if (result.directorAdded) {
+        console.log(`Se agregó el director demo: ${DEMO.director.email} / ${DEMO.director.password}`);
+      }
       console.log('La base ya tiene los datos demo. Usa `npm run seed:reset` para recrearla.');
     } else {
       const c = result.counts;

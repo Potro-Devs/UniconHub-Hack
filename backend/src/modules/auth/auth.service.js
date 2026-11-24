@@ -52,7 +52,7 @@ export function createAuthService({ repository, config }) {
   const findDemoStaff = (email, role) => {
     const user = repository.findStaffByEmail(email);
     if (!user || user.role !== role) {
-      throw new HttpError(404, 'DEMO_DATA_MISSING', 'No hay datos de demostración. Ejecuta `npm run seed:reset`.');
+      throw new HttpError(404, 'DEMO_DATA_MISSING', 'No hay datos de demostración. Ejecuta `npm run seed`.');
     }
     return user;
   };

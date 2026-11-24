@@ -11,6 +11,7 @@
     "build:frontend": "npm --prefix frontend run build",
     "migrate": "npm --prefix backend run migrate",
     "seed": "npm --prefix backend run seed",
+    "seed:reset": "npm --prefix backend run seed:reset",
     "test": "npm --prefix backend test && npm --prefix frontend test"
   }
 }

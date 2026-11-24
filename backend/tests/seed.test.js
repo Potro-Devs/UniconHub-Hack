@@ -146,7 +146,14 @@ describe('seed demo', () => {
   });
 
   test('no vuelve a cargar los datos si ya existen', () => {
-    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded' });
+    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded', directorAdded: false });
+    assert.equal(scalar(db, 'SELECT count(*) FROM students'), 45);
+  });
+
+  test('una base sembrada sin director lo recibe al volver a correr el seed', () => {
+    db.prepare('DELETE FROM users WHERE email = ?').run(DEMO.director.email);
+    assert.deepEqual(runSeed(db), { seeded: false, reason: 'already_seeded', directorAdded: true });
+    assert.equal(db.prepare('SELECT role FROM users WHERE email = ?').get(DEMO.director.email).role, 'director');
     assert.equal(scalar(db, 'SELECT count(*) FROM students'), 45);
   });
 });
