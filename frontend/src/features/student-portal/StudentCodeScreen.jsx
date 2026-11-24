@@ -9,6 +9,7 @@ import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { normalizeJoinCodeInput } from '@/shared/state/session';
 import { useSession } from '@/shared/state/SessionContext';
+import { JoinSteps } from './JoinSteps';
 
 /**
  * Pantalla 09: Acceso del alumno mediante código de grupo.
@@ -44,6 +45,7 @@ export function StudentCodeScreen() {
 
   return (
     <div
+      className="kid-access"
       style={{
         flex: 1,
         display: 'flex',
@@ -54,6 +56,7 @@ export function StudentCodeScreen() {
         padding: '20px 0',
       }}
     >
+      <JoinSteps current={1} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
         <div
           className="font-display"
@@ -68,7 +71,7 @@ export function StudentCodeScreen() {
             maxWidth: '340px',
           }}
         >
-          ¡Hola! Soy {APP_NAME}. Escribe el código de tu grupo.
+          ¡Hola! Soy {APP_NAME}. Vamos a encontrar tu grupo.
         </div>
         <Mascot size={180} color={axiColor} animate={!reducedMotion} />
       </div>
@@ -79,7 +82,9 @@ export function StudentCodeScreen() {
         aria-busy={pending}
         style={{ width: '100%', maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '12px' }}
       >
+        <label htmlFor="student-group-code" className="kid-access-label">Escribe el código de tu grupo</label>
         <input
+          id="student-group-code"
           value={joinCode}
           onChange={(e) => {
             setJoinCode(normalizeJoinCodeInput(e.target.value));
@@ -96,7 +101,7 @@ export function StudentCodeScreen() {
           style={{
             height: '72px',
             borderRadius: '20px',
-            border: `3px solid ${COLORS.ink}`,
+            border: `2px solid ${COLORS.primary}`,
             background: '#fff',
             textAlign: 'center',
             fontFamily: "'Baloo 2', sans-serif",
@@ -111,13 +116,14 @@ export function StudentCodeScreen() {
         <FormMessage id="join-error" message={error} />
 
         <button
+          className="kid-button kid-button-primary"
           type="submit"
           disabled={pending}
           style={{
             height: '64px',
             borderRadius: '20px',
             border: 0,
-            background: COLORS.ink,
+            background: COLORS.primary,
             color: '#fff',
             fontFamily: "'Baloo 2', sans-serif",
             fontWeight: 700,
@@ -127,7 +133,7 @@ export function StudentCodeScreen() {
             boxShadow: '0 5px 0 oklch(0.4 0.05 260)',
           }}
         >
-          {pending ? 'Buscando tu grupo…' : 'Entrar'}
+          {pending ? 'Buscando tu grupo…' : 'Encontrar mi grupo'}
         </button>
 
         <button

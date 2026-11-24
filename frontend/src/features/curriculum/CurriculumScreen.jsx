@@ -145,6 +145,7 @@ export function CurriculumScreen() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', alignItems: 'flex-start' }}>
         {/* Lista de contenidos */}
         <div style={{ flex: '1 1 460px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h2 className="font-display" style={{ margin: '0 0 8px', fontSize: '22px' }}>1. Elige los contenidos</h2>
           {CURRICULUM_CONTENTS.map((c) => {
             const st = statusOf(c);
             const isSel = !!selected[c.id];
@@ -169,10 +170,11 @@ export function CurriculumScreen() {
                 <button
                   type="button"
                   aria-label={`Seleccionar ${c.t}`}
+                  aria-pressed={isSel}
                   onClick={() => setSelected((prev) => ({ ...prev, [c.id]: !prev[c.id] }))}
                   style={{
-                    width: '26px',
-                    height: '26px',
+                    width: '44px',
+                    height: '44px',
                     flex: 'none',
                     marginTop: '2px',
                     borderRadius: '8px',
@@ -220,6 +222,7 @@ export function CurriculumScreen() {
                     <button
                       type="button"
                       title="Cambiar estado"
+                      aria-label={`Cambiar estado de ${c.t}: ${stMeta.l}`}
                       onClick={() =>
                         setStatuses((prev) => ({ ...prev, [c.id]: NEXT_STATUS[statuses[c.id] || c.st] }))
                       }
@@ -227,6 +230,7 @@ export function CurriculumScreen() {
                         border: 0,
                         borderRadius: '999px',
                         padding: '5px 11px',
+                        minHeight: '44px',
                         fontSize: '13px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -280,7 +284,7 @@ export function CurriculumScreen() {
           }}
         >
           <h2 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '20px', lineHeight: 1.2 }}>
-            Asignar prueba
+            Prepara la evaluación
           </h2>
 
           {selCT.length === 0 ? (
@@ -309,15 +313,17 @@ export function CurriculumScreen() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ fontSize: '13px', color: COLORS.muted }}>¿A quién?</div>
+                <h3 style={{ margin: '8px 0 2px', fontSize: '16px' }}>2. Elige a quién acompañar</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {destTabs.map(([id, label]) => (
                     <button
                       key={id}
                       type="button"
                       onClick={() => setDest(id)}
+                      aria-pressed={dest === id}
                       style={{
                         textAlign: 'left',
+                        minHeight: '48px',
                         border: `2px solid ${dest === id ? COLORS.primaryAccent : COLORS.border}`,
                         background: dest === id ? 'oklch(0.97 0.02 268)' : '#fff',
                         borderRadius: '12px',
@@ -334,7 +340,7 @@ export function CurriculumScreen() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ fontSize: '13px', color: COLORS.muted }}>Formato</div>
+                <h3 style={{ margin: '8px 0 2px', fontSize: '16px' }}>3. Elige cómo responderán</h3>
                 <div style={{ display: 'flex', gap: '2px', padding: '3px', borderRadius: '12px', background: '#E6EBF3' }}>
                   {[
                     ['papel', 'En papel'],
@@ -344,8 +350,10 @@ export function CurriculumScreen() {
                       key={id}
                       type="button"
                       onClick={() => setFormat(id)}
+                      aria-pressed={format === id}
                       style={{
                         flex: 1,
+                        minHeight: '48px',
                         border: 0,
                         borderRadius: '9px',
                         padding: '9px 10px',

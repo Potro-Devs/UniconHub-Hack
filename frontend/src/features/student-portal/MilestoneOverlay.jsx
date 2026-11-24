@@ -36,7 +36,8 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
             background: 'rgba(255,255,255,.18)',
             color: '#fff',
             borderRadius: '999px',
-            padding: '8px 14px',
+            padding: '10px 14px',
+            minHeight: '44px',
             fontSize: '13px',
             fontWeight: 700,
             cursor: 'pointer',
@@ -78,15 +79,15 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
         </div>
 
         <div style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>
-          Hito · sello nuevo
+          Tu camino de aprendizaje
         </div>
 
         <div className="font-display" style={{ fontWeight: 800, fontSize: '40px', lineHeight: 1.05 }}>
-          ¡Dominaste Resolución de problemas!
+          ¡Tu esfuerzo cuenta!
         </div>
 
         <div style={{ fontSize: '19px', lineHeight: 1.4, maxWidth: '32ch' }}>
-          Ya resuelves problemas con números hasta 1 000 sin ayuda.
+          Cada pregunta, cada pista y cada intento forman parte de lo que aprendes.
         </div>
 
         <span
@@ -99,7 +100,7 @@ export function MilestoneOverlay({ axiColor, skip, onSkip, onViewBadges }) {
             fontWeight: 700,
           }}
         >
-          Dominado · 88%
+          Sigue descubriendo
         </span>
 
         <button

@@ -13,6 +13,7 @@ export const card = {
   flexDirection: 'column',
   gap: '14px',
   minWidth: 0,
+  boxShadow: '0 6px 24px rgb(39 49 96 / 5%)',
 };
 
 const baseButton = {
@@ -28,6 +29,7 @@ const baseButton = {
   gap: '8px',
   textAlign: 'center',
   lineHeight: 1.2,
+  transition: 'background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
 };
 
 /** @param {'primary' | 'secondary' | 'ghost'} variant */

@@ -105,7 +105,7 @@ export function StudentSummaryScreen() {
                 borderRadius: '999px',
                 background: COLORS.primarySoftBg,
                 color: COLORS.primarySoftFg,
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 700,
               }}
             >
@@ -118,7 +118,7 @@ export function StudentSummaryScreen() {
                   borderRadius: '999px',
                   background: LEVELS[1].bg,
                   color: LEVELS[1].fg,
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 700,
                 }}
               >
@@ -164,7 +164,7 @@ export function StudentSummaryScreen() {
               style={{
                 padding: '4px 10px',
                 borderRadius: '999px',
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 700,
                 background: p.fromBg,
                 color: p.fromFg,
@@ -177,7 +177,7 @@ export function StudentSummaryScreen() {
               style={{
                 padding: '4px 10px',
                 borderRadius: '999px',
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 700,
                 background: p.toBg,
                 color: p.toFg,
@@ -185,7 +185,7 @@ export function StudentSummaryScreen() {
             >
               {p.to}
             </span>
-            <div style={{ flexBasis: '100%', fontSize: '14px', color: '#3A4565' }}>{p.note}</div>
+            <div style={{ flexBasis: '100%', fontSize: '16px', color: '#3A4565' }}>{p.note}</div>
           </div>
         ))}
       </div>

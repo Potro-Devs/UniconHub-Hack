@@ -1,0 +1,71 @@
+/* Shared visual language. Semantic mastery colors remain in brand.js. */
+body { background: var(--axi-bg); }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+button:disabled { cursor: wait; opacity: .58; }
+.skip-link { position: fixed; top: -100px; left: 12px; z-index: 1000; padding: 16px; background: white; border: 2px solid var(--axi-primary); border-radius: 12px; }
+.skip-link:focus { top: 12px; }
+.brand-link { display: inline-flex; align-items: center; gap: 9px; padding: 0; border: 0; background: none; color: var(--axi-ink); min-height: 48px; text-decoration: none; flex-shrink: 0; }
+button.brand-link { cursor: pointer; }
+.brand-link .font-display { font-size: 2rem; font-weight: 800; }
+.quiet-button, .motion-toggle { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--axi-border); border-radius: 14px; background: white; padding: 8px 14px; font-size: .875rem; font-weight: 700; cursor: pointer; }
+.motion-toggle { color: var(--axi-muted); background: transparent; border-color: transparent; }
+.motion-toggle:hover, .quiet-button:hover { background: var(--axi-primarySoftBg); }
+.welcome-page { min-height: 100dvh; background: radial-gradient(ellipse at 0 15%, var(--axi-playfulLilac), transparent 50%), var(--axi-bg); }
+.welcome-header { max-width: 1280px; margin: auto; padding: 22px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.welcome-grid { display: grid; grid-template-columns: 1.1fr 1fr; max-width: 1200px; padding: 16px 32px 56px; margin: auto; gap: 64px; align-items: center; }
+.welcome-world { position: relative; min-width: 0; }
+.welcome-tag { display: inline-flex; align-items: center; gap: 8px; font-size: .875rem; font-weight: 700; background: white; padding: 9px 14px; border: 1px solid var(--axi-border); border-radius: 100px; color: var(--axi-primaryText); }
+.welcome-world h1 { font-size: clamp(2.75rem, 4.5vw, 4rem); letter-spacing: -.035em; line-height: 1.05; margin: 24px 0 16px; }
+.welcome-world > p { font-size: 1.125rem; line-height: 1.6; color: var(--axi-muted); margin: 0; }
+.welcome-mascot { position: relative; display: flex; align-items: center; justify-content: center; width: 290px; height: 235px; margin: 12px auto; isolation: isolate; }
+.welcome-mascot::before { content: ''; position: absolute; inset: 30px 10px 4px; background: var(--axi-playfulYellow); border-radius: 52% 48% 43% 57%; transform: rotate(-8deg); z-index: -1; }
+.world-orbit { position: absolute; color: var(--axi-primary); font-size: 2.5rem; pointer-events: none; }
+.orbit-one { top: 24px; left: 10px; }.orbit-two { right: 4px; top: 70px; color: var(--axi-successFg); }.orbit-three { bottom: 30px; left: 22px; font-size: 1.1rem; color: var(--axi-primaryText); }
+.welcome-note { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1rem; }
+.welcome-access { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.student-entry { padding: 22px; background: var(--axi-playfulTeal); border: 1px solid #8DC8BB; border-radius: 26px; display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; box-shadow: 0 5px 0 #B2D9CF; }
+.entry-icon { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; background: white; color: #226251; border-radius: 18px; flex: none; }
+.student-entry h2, .teacher-login h2 { margin: 0; font-size: 1.6rem; line-height: 1.2; }
+.student-entry p, .login-heading p { margin: 5px 0 0; font-size: .9375rem; line-height: 1.45; color: var(--axi-muted); }
+.entry-button { grid-column: 1 / -1; background: #226251; color: white; border: 0; border-radius: 16px; min-height: 54px; font-weight: 800; font-size: 1.125rem; cursor: pointer; box-shadow: 0 4px 0 #154B3C; transition: transform 160ms, box-shadow 160ms; }
+.entry-button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #154B3C; }.entry-button:active { transform: translateY(3px); box-shadow: 0 1px 0 #154B3C; }
+.teacher-login { background: white; border: 1px solid var(--axi-border); border-radius: 26px; padding: 28px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 12px 35px rgb(40 48 96 / 6%); }
+.login-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }.teacher-icon { background: var(--axi-primarySoftBg); color: var(--axi-primaryText); }
+.teacher-login label { display: flex; flex-direction: column; gap: 8px; font-weight: 700; font-size: .9375rem; }
+.teacher-login input { width: 100%; min-height: 52px; background: var(--axi-surfaceSubtle); border: 1px solid var(--axi-borderInput); border-radius: 13px; padding: 12px 14px; font-size: 1rem; }
+.login-submit { min-height: 52px; border: 0; border-radius: 14px; background: var(--axi-primary); color: white; font-size: 1rem; font-weight: 800; cursor: pointer; }
+.login-submit:hover { background: var(--axi-primaryHover); }
+.demo-access { border-top: 1px solid var(--axi-border); padding-top: 16px; display: flex; flex-direction: column; gap: 12px; font-size: .875rem; color: var(--axi-muted); text-align: center; }
+.demo-access > div { display: flex; gap: 10px; flex-wrap: wrap; }.demo-access button { flex: 1 1 150px; min-height: 48px; border: 1px solid var(--axi-borderInput); background: white; font-weight: 700; border-radius: 12px; cursor: pointer; font-size: .875rem; }
+.welcome-privacy { text-align: center; color: var(--axi-muted); font-size: .875rem; line-height: 1.5; margin: 0; }
+.student-shell, .student-stage { min-height: 100dvh; background: radial-gradient(ellipse at 95% 0%, #E5E0FC 0%, transparent 45%), var(--axi-bg); }
+.student-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px max(24px, calc((100vw - 1200px) / 2)); background: white; border-bottom: 1px solid var(--axi-border); }
+.student-nav { display: flex; gap: 10px; }.student-nav button { display: flex; align-items: center; gap: 10px; border: 1px solid transparent; background: transparent; color: var(--axi-muted); border-radius: 16px; padding: 12px 18px; min-height: 52px; font-size: 1rem; font-weight: 700; cursor: pointer; }
+.student-nav button[aria-current='page'] { background: var(--axi-primarySoftBg); color: var(--axi-primaryText); border-color: #D8D2FA; box-shadow: 0 3px 0 #D8D2FA; }
+.student-nav button:hover { background: var(--axi-primarySoftBg); }
+.student-utility { max-width: 1160px; margin: auto; display: flex; justify-content: space-between; align-items: center; padding: 12px 24px 0; gap: 12px; font-size: .875rem; color: var(--axi-muted); }
+.student-content { max-width: 1160px; margin: auto; padding: 24px; min-width: 0; }
+.student-footer { padding: 10px 24px 28px; text-align: center; color: var(--axi-muted); font-size: .9375rem; }
+.activity-header { max-width: 1100px; margin: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 16px 24px; }.activity-header .brand-link { margin-right: auto; }
+.activity-content { width: min(100%, 820px); margin: auto; padding: 20px 24px 48px; min-width: 0; }
+.teacher-shell { height: 100dvh !important; }.teacher-shell > aside { width: 244px !important; padding: 24px 18px !important; gap: 28px !important; }
+.teacher-shell > aside nav button { min-height: 50px; display: flex; align-items: center; gap: 12px; transition: background 160ms; }
+.teacher-shell > aside nav button[aria-current='page'] { background: var(--axi-primary) !important; color: white !important; box-shadow: 0 5px 12px rgb(65 57 168 / 18%); }
+.teacher-shell > div > header { height: auto !important; min-height: 72px; padding-top: 8px !important; padding-bottom: 8px !important; }
+.teacher-shell main h1 { letter-spacing: -.025em; }.teacher-shell main h2 { text-wrap: balance; }
+.teacher-group-card { border-top: 5px solid var(--axi-primary) !important; transition: box-shadow 180ms, transform 180ms; }.teacher-group-card:hover { box-shadow: 0 10px 30px rgb(40 48 96 / 10%) !important; }
+.teacher-workflow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }.teacher-workflow button { display: flex; align-items: center; text-align: left; gap: 12px; border: 1px solid var(--axi-border); border-radius: 18px; padding: 18px; background: white; min-height: 90px; cursor: pointer; }
+.teacher-workflow button > span:first-child { width: 44px; height: 44px; border-radius: 14px; background: var(--axi-primarySoftBg); color: var(--axi-primaryText); display: flex; align-items: center; justify-content: center; flex: none; }.teacher-workflow strong { font-size: 1rem; display: block; }.teacher-workflow small { display: block; font-size: .875rem; color: var(--axi-muted); margin-top: 4px; line-height: 1.4; }
+.axi-skeleton { animation-iteration-count: 2; }
+.kid-name-card { flex-direction: column; justify-content: center; text-align: center !important; overflow-wrap: anywhere; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .student-header { flex-wrap: wrap; }.student-header > .quiet-button { margin-left: auto; }.student-nav { order: 3; width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }.student-nav button { justify-content: center; }
+}
+@keyframes progressReveal { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+html.axi-motion-off *, html.axi-motion-off *::before, html.axi-motion-off *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition: none !important; scroll-behavior: auto !important; }
+@media (max-width: 767px) {
+  .welcome-header { padding: 16px 20px; }.welcome-grid { grid-template-columns: 1fr; padding: 8px 20px 36px; gap: 28px; }.welcome-world h1 { font-size: 2.75rem; margin: 18px 0 12px; }.welcome-world > p { font-size: 1rem; }.welcome-mascot { width: 210px; height: 160px; position: absolute; right: 0; top: 90px; opacity: .16; z-index: 0; pointer-events: none; }.welcome-world > :not(.welcome-mascot) { position: relative; z-index: 1; }.welcome-note { font-size: .875rem; margin-top: 20px; }.teacher-login { padding: 22px; }.welcome-tag { font-size: .8125rem; }.student-header { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }.student-header > .quiet-button { margin-left: auto; }.student-nav { width: 100%; order: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }.student-nav button { flex-direction: column; gap: 5px; font-size: .875rem; padding: 10px 4px; min-height: 68px; }.student-utility { padding: 10px 16px 0; }.student-utility > span { display: none; }.student-utility .motion-toggle { margin-left: auto; }.student-content { padding: 18px 16px; }.activity-header { padding: 12px 16px; gap: 8px; }.activity-content { padding: 12px 16px 32px; }.activity-header .motion-toggle { font-size: .8125rem; padding: 8px; }.teacher-shell > div > header { min-height: 64px; }.teacher-workflow { grid-template-columns: 1fr; }.teacher-workflow button { min-height: 76px; padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+@media print { .motion-toggle, .student-header, .student-utility, .student-footer, .activity-header, .teacher-workflow { display: none !important; }.teacher-shell, .student-shell, .student-stage { background: white !important; height: auto !important; } }

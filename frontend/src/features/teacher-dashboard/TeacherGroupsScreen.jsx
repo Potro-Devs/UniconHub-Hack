@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
+import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { JoinCode } from '@/features/groups/JoinCode';
 import { sortGroups, schoolYearToDisplay } from '@/features/groups/groups.logic';
 import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
@@ -73,7 +74,7 @@ function NextStepBanner({ group }) {
 function GroupCard({ group, isActive, onUse }) {
   const navigate = useNavigate();
   return (
-    <article style={card} aria-labelledby={`group-${group.id}-name`}>
+    <article className="teacher-group-card" style={card} aria-labelledby={`group-${group.id}-name`}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <h3 id={`group-${group.id}-name`} className="font-display" style={{ margin: 0, fontWeight: 800, fontSize: '34px', lineHeight: 1 }}>
@@ -169,6 +170,14 @@ export function TeacherGroupsScreen() {
       </div>
 
       {status === 'ready' && activeGroup && <NextStepBanner group={activeGroup} />}
+
+      {status === 'ready' && activeGroup && <nav className="teacher-workflow" aria-label="Herramientas para acompañar al grupo">
+        {[
+          { to: '/docente/temario', icon: 'book', title: 'Preparar', description: 'Temario y próximas evaluaciones' },
+          { to: '/docente/captura', icon: 'pencil', title: 'Registrar', description: 'Respuestas de las hojas impresas' },
+          { to: '/docente/mapa', icon: 'map', title: 'Acompañar', description: 'Resultados e historial de aprendizaje' },
+        ].map((item) => <button type="button" key={item.to} onClick={() => navigate(item.to)}><span><InterfaceIcon name={item.icon} /></span><span><strong>{item.title}</strong><small>{item.description}</small></span></button>)}
+      </nav>}
 
       <section aria-labelledby="groups-title" aria-busy={loading} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <h2 id="groups-title" className="font-display" style={sectionTitle}>
