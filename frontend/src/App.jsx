@@ -3,6 +3,8 @@ import { LoginScreen } from '@/features/auth/LoginScreen';
 import { ContentDetailScreen } from '@/features/curriculum/ContentDetailScreen';
 import { CurriculumScreen } from '@/features/curriculum/CurriculumScreen';
 import { GroupMapScreen } from '@/features/group-map/GroupMapScreen';
+import { GamesCatalogScreen } from '@/features/learning-games/GamesCatalogScreen';
+import { LearningGameScreen } from '@/features/learning-games/LearningGameScreen';
 import { CreateGroupScreen } from '@/features/groups/CreateGroupScreen';
 import { GroupDetailScreen } from '@/features/groups/GroupDetailScreen';
 import { TeacherGroupsProvider } from '@/features/groups/TeacherGroupsContext';
@@ -87,6 +89,8 @@ export function App() {
               <Route path="/alumno/inicio" element={<StudentHomeScreen />} />
               <Route path="/alumno/clases" element={<StudentClassesScreen />} />
               <Route path="/alumno/logros" element={<StudentAchievementsScreen />} />
+              <Route path="/alumno/juegos" element={<GamesCatalogScreen />} />
+              <Route path="/alumno/juegos/:gameCode" element={<LearningGameScreen />} />
             </Route>
 
             <Route path="/alumno/sellos" element={<Navigate to="/alumno/logros" replace />} />

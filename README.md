@@ -152,6 +152,12 @@ Abre http://localhost:3000, entra como docente y selecciona **Mapa del grupo**. 
 
 Este despliegue es local y necesita mantener el servidor activo. Para producción define `NODE_ENV=production`, un `JWT_SECRET` propio de al menos 32 caracteres y una ruta persistente `SQLITE_DB_PATH`; los accesos rápidos se desactivan por defecto. El catálogo y la alineación de los ejemplos están **por validar con docente de primaria**.
 
+### Juegos de práctica del alumno
+
+Después de entrar como alumno, abre **Juegos** o **Explorar juegos** en el inicio. La sección incluye tres juegos manipulables: pintar fracciones, formar grupos iguales y construir números por valor posicional. Cada partida contiene tres retos, materiales adaptados al grado del grupo y pistas graduadas. Se puede ajustar una construcción y volver a comprobarla sin penalización.
+
+Los juegos son práctica libre: **no modifican evaluaciones, dominio ni historial**, y su avance solo permanece mientras la pantalla está abierta. No tienen cronómetros, vidas ni rankings. Funcionan por toque o teclado, sin exigir arrastrar. Las animaciones respetan el control de movimiento y la preferencia del sistema. El material de ejemplo está **por validar con docente de primaria**.
+
 - **Compilar frontend a producción (`frontend/dist/`):**
   ```bash
   npm run build:frontend

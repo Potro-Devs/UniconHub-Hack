@@ -9,6 +9,7 @@ export function InterfaceIcon({ name, size = 24 }) {
     pencil: 'm4 16 12-12 4 4L8 20H4zM13 7l4 4',
     star: 'm12 3 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z',
     spark: 'm12 3 2 7 7 2-7 2-2 7-2-7-7-2 7-2z',
+    games: 'M8 7h8a5 5 0 0 1 5 4l1 6a3 3 0 0 1-5 2l-3-3h-4l-3 3a3 3 0 0 1-5-2l1-6a5 5 0 0 1 5-4M7 10v5M4.5 12.5h5M16 11h.01M18 14h.01',
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><path d={paths[name] || paths.spark} /></svg>;
 }

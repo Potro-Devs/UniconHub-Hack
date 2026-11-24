@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Mascot } from '@/features/mascot';
+import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
 import { getEarnedAchievements, getQuizItems, pickFirstName } from './studentPortalStats';
@@ -24,6 +25,11 @@ export function StudentHomeScreen() {
       <div className="kid-mascot-island" aria-hidden="true"><span className="kid-island-spark kid-island-spark-one">✦</span><Mascot size={200} color={axiColor} mood="feliz" animated={false}/><span className="kid-island-spark kid-island-spark-two">✧</span><div className="kid-island-ground" /></div>
     </section>
     <div className="kid-journey"><div className="kid-journey-symbol" aria-hidden="true">✿</div><div><h2>Tu camino de descubrimientos</h2><p>{completed.length} actividades en pantalla completadas · {earnedCount} sellos de esfuerzo</p></div><button className="kid-button kid-button-small" type="button" onClick={() => navigate('/alumno/logros')}>Mis logros</button></div>
+    <section className="kid-play-invitation" aria-labelledby="play-invitation-title">
+      <span className="kid-play-symbol" aria-hidden="true"><InterfaceIcon name="games" size={38} /></span>
+      <div><span className="kid-eyebrow">APRENDER CON LAS MANOS</span><h2 id="play-invitation-title">¿Y si lo descubrimos jugando?</h2><p>Pinta partes, forma grupos y construye números. Es práctica libre.</p></div>
+      <button type="button" className="kid-button" onClick={() => navigate('/alumno/juegos')}>Explorar juegos</button>
+    </section>
     <section className="kid-section" aria-labelledby="kid-backpack"><div className="kid-section-heading"><h2 id="kid-backpack">En tu mochila</h2><span>{quizzes.length - (next ? 1 : 0)} actividades</span></div><div className="kid-activity-grid">
       {quizzes.filter((quiz) => quiz.id !== next?.id).map((quiz) => {
         const ready = quiz.resolvedStatus === 'pending_screen';

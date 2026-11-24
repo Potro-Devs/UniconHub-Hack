@@ -40,6 +40,7 @@ export const COLORS = {
   playfulTealShadow: '#B2D9CF',
   playfulTealFg: '#226251',
   playfulTealDeep: '#154B3C',
+  playfulTealAccent: '#A4D6C9',
   playfulYellow: '#FFE49A',
   playfulLilac: '#E7DFFD',
   playfulLilacGlow: '#E5E0FC',
@@ -47,6 +48,10 @@ export const COLORS = {
   shadowSoft: 'rgb(40 48 96 / 6%)',
   shadowPrimary: 'rgb(65 57 168 / 18%)',
   shadowHover: 'rgb(40 48 96 / 10%)',
+  gameMascotOverlay: 'rgb(255 255 255 / 60%)',
+  gamePreviewShadow: 'rgb(80 40 40 / 12%)',
+  gamePreviewGridLine: 'rgb(255 255 255 / 53.3%)',
+  gameBlockGridLine: 'rgb(255 255 255 / 60%)',
 };
 
 export const KID_COLORS = {

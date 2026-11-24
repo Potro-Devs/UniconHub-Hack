@@ -162,6 +162,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
 - **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
+- **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
 
 ## Analytics de solo lectura (`/api/v1/analytics`)
 
@@ -271,3 +272,54 @@ y metodología. Incluye paginación y encabezados repetidos. Ambos formatos
 identifican grupo, ciclo, selección, fecha de generación en Ciudad de México,
 uso escolar privado y aviso de contenido pedagógico por validar con docente.
 No contienen folios internos ni datos de otros grupos o escuelas.
+
+## Juegos de práctica (`/api/v1/games`)
+
+Todas las rutas requieren sesión de alumno. Sin sesión: 401; docente o director:
+403 `FORBIDDEN`. Cada petición vuelve a consultar el grupo de la escuela de la
+sesión y la matrícula activa del alumno. Una matrícula retirada, terminada o un
+grupo de otra escuela responde 403 `STUDENT_ACCESS_REVOKED`; no basta un token
+todavía vigente. El grado se obtiene siempre del grupo, nunca del cliente.
+
+| Método y ruta | `data` |
+| --- | --- |
+| `GET /games` | `{ games: Game[], grade, practiceOnly: true, contentReview }` |
+| `GET /games/:gameCode` | `{ game: Game, grade, rounds: Round[3], practiceOnly: true, contentReview }` |
+| `POST /games/:gameCode/check` | `{ correct: boolean, feedback: string, explanation: string }` |
+
+Las rutas anteriores se expresan bajo `/api/v1`. `contentReview` vale
+`"por validar con docente"`. `Game` es `{ code, title, skillCode, description }`.
+Los códigos disponibles son `fractions`, `multiplication`, `place_value`.
+Código inexistente: 404 `GAME_NOT_FOUND`. Los tres retos de cada juego son
+deterministas para cada grado de 1.º a 6.º; constituyen ejemplos de práctica y
+no una declaración de alineación curricular SEP validada.
+
+`Round` es `{ id, prompt, instruction, hints: [string, string, string], material }`.
+Los ids son `GAMECODE-1`, `GAMECODE-2`, `GAMECODE-3`. Las pistas progresan desde
+observación hasta un ejemplo con otros datos; no entregan la solución del reto.
+
+- `fractions`: `material: { denominator, targetNumerator }`. El alumno construye
+  una representación de la fracción pintando partes iguales. `answer` es un
+  número entero entre 0 y `denominator`, que representa las partes pintadas.
+- `multiplication`: `material: { groups, perGroup, totalCounters }`.
+  `totalCounters = groups * perGroup`. El alumno reparte contadores entre
+  recipientes. `answer` es un arreglo de longitud `groups`, con enteros entre
+  0 y `totalCounters`; cada entrada representa un recipiente. Es correcto si
+  todos contienen `perGroup` contadores.
+- `place_value`: `material: { targetNumber, places }`. Para grados 1.º y 2.º,
+  `places = ["tens", "units"]`; para 3.º a 6.º,
+  `places = ["hundreds", "tens", "units"]`. `answer` es un objeto con
+  exactamente esas claves y valores enteros entre 0 y 9. Se verifica el valor
+  `hundreds * 100 + tens * 10 + units`, con centenas ausentes equivalentes a 0.
+
+El cuerpo de `check` debe tener **exactamente** `{ roundId, answer }`.
+Un cuerpo no objeto, propiedades extra (incluidos `grade` o datos de otra
+persona), reto desconocido o de otro juego, tipos incorrectos, claves faltantes
+y valores fuera de límites responden 400 `VALIDATION_ERROR`. No se convierten
+cadenas numéricas a números. Una construcción válida que no corresponde al
+objetivo responde 200 con `correct: false`, retroalimentación neutra y una
+orientación sin entregar la respuesta.
+
+Estos juegos son exclusivamente práctica: no escriben respuestas, dominio,
+historial, logros ni asignaciones. No tienen temporizadores, vidas, castigos,
+clasificaciones entre alumnos ni guardado del progreso de juego.
