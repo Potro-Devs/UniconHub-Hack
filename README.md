@@ -158,6 +158,14 @@ Después de entrar como alumno, abre **Juegos** o **Explorar juegos** en el inic
 
 Los juegos son práctica libre: **no modifican evaluaciones, dominio ni historial**, y su avance solo permanece mientras la pantalla está abierta. No tienen cronómetros, vidas ni rankings. Funcionan por toque o teclado, sin exigir arrastrar. Las animaciones respetan el control de movimiento y la preferencia del sistema. El material de ejemplo está **por validar con docente de primaria**.
 
+### Acompañamiento docente: qué hago mañana y antes/después
+
+- **Inicio del docente:** la tarjeta **Qué hago mañana** muestra la habilidad prioritaria del grupo, el error típico con más alumnos y la actividad del catálogo para atenderlo (duración, organización y materiales).
+- **La apliqué con el grupo:** registra la actividad (nota opcional, sin nombres). En el mapa, **¿Funcionó la actividad?** compara a los mismos alumnos antes y después cuando se aplica una nueva prueba de esa habilidad (mínimo 3 reactivos).
+- **Avance hacia la autonomía:** en el mapa y en cada perfil, compara la sesión más reciente con la anterior y muestra quién pasó de necesitar pistas a resolver por su cuenta (umbral de 10 puntos en acierto autónomo).
+
+En los datos demo, Fracciones aún no tiene errores registrados hasta capturar la prueba en papel pendiente; después la tarjeta muestra el error más frecuente.
+
 - **Compilar frontend a producción (`frontend/dist/`):**
   ```bash
   npm run build:frontend
