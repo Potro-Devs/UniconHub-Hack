@@ -51,6 +51,22 @@ describe('importación: filas → lista de alumnos', () => {
     assert.throws(() => rowsToStudentList(many), /máximo es 60/);
   });
 
+  test('una sola columna con encabezado ("Nombre completo" o "Alumno") se separa en apellidos y nombre', () => {
+    for (const header of ['Nombre completo', 'Alumno', 'Nombre del alumno']) {
+      const result = rowsToStudentList([[header], ['Ramírez López Sofía'], ['Cruz Pérez Ana Paula']]);
+      assert.equal(result.text, 'Ramírez López, Sofía\nCruz Pérez, Ana Paula', header);
+    }
+  });
+
+  test('"Alumno" junto a columnas de apellidos se usa como nombre, sin chocar con el materno', () => {
+    const result = rowsToStudentList([['Alumno', 'Apellido paterno', 'Apellido materno'], ['Sofía', 'Ramírez', 'López']]);
+    assert.equal(result.text, 'Ramírez López, Sofía');
+  });
+
+  test('un archivo solo con encabezados responde con un mensaje claro', () => {
+    assert.throws(() => rowsToStudentList([['Apellido paterno', 'Apellido materno', 'Nombre']]), /solo trae encabezados/);
+  });
+
   test('CSV con ; o , comillas y acentos en Latin-1 (Excel en Windows)', () => {
     const latin1 = Buffer.from('Apellido paterno;Apellido materno;Nombre\nRamírez;López;Sofía\n"Núñez";"Peña";"José María"\n', 'latin1');
     const result = rowsToStudentList(parseCsv(decodeCsvBuffer(latin1)));
@@ -90,6 +106,23 @@ describe('POST /api/v1/groups/:groupId/students/import-preview', () => {
     const saved = await api.call('POST', `/api/v1/groups/${ids.group}/students/bulk`, { token: as(ids.teacher), body: { text: res.body.data.text } });
     assert.equal(saved.status, 201);
     assert.deepEqual(saved.body.data.created.map((s) => s.lastNames), ['Ramírez López', 'Díaz']);
+  });
+
+  test('en .xlsx con filas vacías reporta el número de fila real de Excel', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Lista');
+    sheet.getCell('A1').value = 'Apellido paterno'; sheet.getCell('B1').value = 'Apellido materno'; sheet.getCell('C1').value = 'Nombre';
+    sheet.getCell('A3').value = 'Ramírez'; sheet.getCell('B3').value = 'López'; sheet.getCell('C3').value = 'Sofía';
+    sheet.getCell('A6').value = '123'; sheet.getCell('C6').value = '###';
+    const contentBase64 = Buffer.from(await workbook.xlsx.writeBuffer()).toString('base64');
+    const res = await api.call('POST', url(), { token: as(ids.teacher), body: { fileName: 'lista.xlsx', contentBase64 } });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body.data.invalidRows.map((r) => r.row), [6]);
+  });
+
+  test('el nombre del archivo debe terminar en .xlsx o .csv', async () => {
+    const res = await api.call('POST', url(), { token: as(ids.teacher), body: { fileName: 'csv', contentBase64: Buffer.from('A,B,C').toString('base64') } });
+    assert.equal(res.status, 400);
   });
 
   test('lee un .csv', async () => {
