@@ -37,7 +37,33 @@ export function createAnalyticsRepository(db) {
   const activities = db.prepare(`SELECT ra.*, sk.code AS skill_code
     FROM recommended_activities ra JOIN skills sk ON sk.id = ra.skill_id
     WHERE ra.grade_min <= ? AND ra.grade_max >= ? ORDER BY ra.id`);
+  // Para el panel: alumnos distintos por habilidad y etiqueta (no por explicación, que varía por reactivo).
+  const groupErrorTags = db.prepare(`
+    SELECT sk.code AS skill_code, r.error_tag, MIN(o.error_explanation) AS explanation,
+      COUNT(*) AS count, COUNT(DISTINCT t.student_id) AS student_count
+    FROM student_responses r JOIN assignment_targets t ON t.id = r.assignment_target_id
+    JOIN assignments a ON a.id = t.assignment_id JOIN questions q ON q.id = r.question_id
+    JOIN skills sk ON sk.id = q.skill_id JOIN question_options o ON o.id = r.selected_option_id
+    JOIN students s ON s.id = t.student_id
+    WHERE a.group_id = ? AND s.school_id = ?
+      AND t.status IN ('completed_screen', 'completed_paper') AND r.outcome_status = 'incorrect'
+      AND EXISTS (SELECT 1 FROM group_enrollments e
+        WHERE e.group_id = a.group_id AND e.student_id = t.student_id AND e.status = 'active')
+    GROUP BY sk.code, r.error_tag
+    ORDER BY student_count DESC, sk.code, r.error_tag`);
+  const school = db.prepare('SELECT id, name FROM schools WHERE id = ?');
+  const schoolGroups = db.prepare(`
+    SELECT g.id, g.school_id, g.teacher_id, g.grade, g.section, g.school_year, u.full_name AS teacher_name
+    FROM groups g LEFT JOIN users u ON u.id = g.teacher_id
+    WHERE g.school_id = ? ORDER BY g.grade, g.section, g.id`);
+  const skillFields = db.prepare(`
+    SELECT DISTINCT sk.code AS skill_code, c.formative_field
+    FROM curriculum_contents c JOIN skills sk ON sk.id = c.skill_id ORDER BY sk.id`);
   return {
+    findSchool: (schoolId) => school.get(schoolId) ?? null,
+    listGroupErrorTags: (groupId, schoolId) => groupErrorTags.all(groupId, schoolId),
+    listSchoolGroups: (schoolId) => schoolGroups.all(schoolId),
+    listSkillFields: () => skillFields.all(),
     listSkills: () => skills.all(),
     listGroupHistory: (groupId, schoolId) => history.all(schoolId, schoolId, groupId),
     listStudentHistory: (groupId, schoolId, studentId) =>

@@ -32,5 +32,5 @@ export async function startServer(app) {
     const res = await fetch(base + path, { method, headers, body: raw ?? (body === undefined ? undefined : JSON.stringify(body)) });
     return { status: res.status, body: await res.json() };
   };
-  return { call, close: () => new Promise((resolve) => server.close(resolve)) };
+  return { base, call, close: () => new Promise((resolve) => server.close(resolve)) };
 }

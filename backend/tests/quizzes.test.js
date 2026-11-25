@@ -420,7 +420,7 @@ describe('quizzes and builder API', () => {
 
     // Una segunda llamada ya no inserta nada
     const noop = runSeed(seedDb);
-    assert.deepEqual(noop, { seeded: false, reason: 'already_seeded' });
+    assert.deepEqual(noop, { seeded: false, reason: 'already_seeded', directorAdded: false, schoolGroupsAdded: 0 });
     seedDb.close();
   });
 });

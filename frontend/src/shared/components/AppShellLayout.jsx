@@ -29,6 +29,8 @@ const DOCENTE_NAV = [
 ];
 
 const DIRECCION_NAV = [
+  { id: 'panel', path: '/direccion/panel', label: 'Panel de la escuela', short: 'Panel', matches: ['/direccion/panel'] },
+  { id: 'docentes', path: '/direccion/docentes', label: 'Docentes', short: 'Docentes', matches: ['/direccion/docentes'] },
   { id: 'escuela', path: '/direccion/escuela', label: 'Escuela', short: 'Escuela', matches: ['/direccion/escuela'] },
   { id: 'promover', path: '/direccion/promover', label: 'Promover grupos', short: 'Promover', matches: ['/direccion/promover'] },
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
@@ -159,8 +161,13 @@ export function AppShellLayout() {
   const { toast } = useAppUi();
   const { session, signOut } = useSession();
 
-  const isDir = pathname.startsWith('/direccion');
-  const navDef = isDir ? DIRECCION_NAV : DOCENTE_NAV;
+  const isDirector = session?.role === 'director';
+  const isDir = isDirector || pathname.startsWith('/direccion');
+  // Director: panel y docentes (datos reales) + promover y traslados (Roadmap).
+  // Docente: vista previa de Dirección con datos de ejemplo.
+  const navDef = isDirector
+    ? DIRECCION_NAV.filter((item) => item.id !== 'escuela')
+    : isDir ? DIRECCION_NAV.filter((item) => !['panel', 'docentes'].includes(item.id)) : DOCENTE_NAV;
 
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -221,7 +228,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
                 </button>
               );
             })}
@@ -231,7 +238,7 @@ export function AppShellLayout() {
             <MotionToggle />
             {!isDir && <SidebarJoinCode />}
 
-            <button
+            {!isDirector && <button
               type="button"
               onClick={() => navigate(isDir ? '/docente/grupos' : '/direccion/escuela')}
               style={{
@@ -249,7 +256,7 @@ export function AppShellLayout() {
               }}
             >
               {isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →'}
-            </button>
+            </button>}
 
             <button
               type="button"
@@ -291,7 +298,7 @@ export function AppShellLayout() {
             {isDir ? (
               <div style={headerChip}>
                 Dirección
-                <span style={{ fontWeight: 400, color: COLORS.muted }}>· Esc. Prim. Benito Juárez</span>
+                {!isDirector && <span style={{ fontWeight: 400, color: COLORS.muted }}>· Vista previa</span>}
               </div>
             ) : (
               <ActiveGroupSwitcher />
@@ -370,7 +377,7 @@ export function AppShellLayout() {
           </div>
         </main>
 
-        {narrow && (
+        {narrow && navDef.length > 1 && (
           <nav
             style={{
               flex: 'none',
@@ -407,7 +414,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
                 </button>
               );
             })}
@@ -415,7 +422,7 @@ export function AppShellLayout() {
         )}
       </div>
 
-      <Toast message={toast} hasBottomNav />
+      <Toast message={toast} hasBottomNav={narrow && navDef.length > 1} />
     </div>
   );
 }

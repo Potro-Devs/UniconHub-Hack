@@ -49,13 +49,14 @@ export function createAuthService({ repository, config }) {
     }
   };
 
-  const findDemoTeacher = () => {
-    const teacher = repository.findStaffByEmail(auth.quickLoginTeacherEmail);
-    if (!teacher) {
+  const findDemoStaff = (email, role) => {
+    const user = repository.findStaffByEmail(email);
+    if (!user || user.role !== role) {
       throw new HttpError(404, 'DEMO_DATA_MISSING', 'No hay datos de demostración. Ejecuta `npm run seed`.');
     }
-    return teacher;
+    return user;
   };
+  const findDemoTeacher = () => findDemoStaff(auth.quickLoginTeacherEmail, ROLES.TEACHER);
 
   return {
     /** Login de docente/director con correo y contraseña. */
@@ -75,6 +76,12 @@ export function createAuthService({ repository, config }) {
     quickLoginTeacher() {
       assertQuickLoginEnabled();
       return issueStaffSession(findDemoTeacher());
+    },
+
+    /** "Entrar como Directivo": sesión del director demo (solo lectura de su escuela). */
+    quickLoginDirector() {
+      assertQuickLoginEnabled();
+      return issueStaffSession(findDemoStaff(auth.quickLoginDirectorEmail, ROLES.DIRECTOR));
     },
 
     /** "Entrar como Alumno": primer alumno activo del grupo más reciente de la docente demo. */

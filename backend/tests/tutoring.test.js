@@ -145,4 +145,17 @@ describe('tutoring API', () => {
       assert.equal(missing.status, 404);
     } finally { await new Promise((resolve) => listener.close(resolve)); }
   });
+
+  test('solo propone habilidades del programa del grado (sin fracciones ni multiplicación en 1.º)', async () => {
+    ctx.db.prepare('UPDATE groups SET grade = 1 WHERE id = ?').run(ctx.groupId);
+    const token = as(ctx.teacher, 'teacher');
+    for (const code of ['fractions', 'multiplication']) {
+      const res = await server.call('GET', `${base()}/proposal?skillCode=${code}`, { token });
+      assert.equal(res.status, 404, code);
+    }
+    const any = await server.call('GET', `${base()}/proposal`, { token });
+    if (any.status === 200) {
+      assert.ok(!any.body.data.skills.some((s) => ['fractions', 'multiplication'].includes(s.code)));
+    }
+  });
 });

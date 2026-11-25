@@ -44,7 +44,8 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
   5. `reading_comprehension` — Comprensión lectora
 - **Acceso y autenticación:**
   - Login docente con correo electrónico + contraseña.
-  - **Dos botones de acceso rápido debajo del login** para pruebas/demo: *Entrar como Docente* y *Entrar como Alumno*.
+  - **Botones de acceso rápido debajo del login** para pruebas/demo: *Entrar como Docente*, *Entrar como Directivo* y *Entrar como Alumno*.
+  - *Entrar como Directivo* es una excepción para la demo: el director ve el **Panel de la escuela** y **Docentes** con agregados reales del ciclo actual (sin datos de alumnos). Alta de docentes, promoción y traslados siguen en el Roadmap con datos de ejemplo.
   - Acceso estándar del alumno mediante código de grupo (6 caracteres) y selección de tarjeta/avatar.
 - **Gestión escolar básica:** Alta/edición de grupos, alta individual o masiva (lista pegada) de alumnos, generación automática de `internal_folio` y avatar por defecto.
 - **Temario y asignación:** Marcado de avance (`pending`, `in_progress`, `seen`) y asignación de pruebas (todo el grupo o alumnos específicos) en modalidad `screen` o `paper`.
@@ -156,7 +157,7 @@ Cada módulo en `backend/src/modules/<modulo>/` respeta dependencias unidireccio
 
 - **Tablas SQLite principales:** `schools`, `users`, `groups`, `students`, `group_enrollments`, `skills`, `curriculum_contents`, `group_curriculum_progress`, `questions`, `question_options`, `assignments`, `assignment_questions`, `assignment_targets`, `student_responses`, `skill_mastery_history`, `student_achievements`, `recommended_activities`.
 - **Prefijos REST bajo `/api/v1`:**
-  - `/auth` (login, quick-login docente/alumno, student-join)
+  - `/auth` (login, quick-login docente/directivo/alumno, student-join)
   - `/groups` (CRUD grupos, alumnos individual/bulk, avatar)
   - `/curriculum` (temario por grupo, estado/notas, cobertura)
   - `/assessments` (banco de reactivos, asignaciones validando `>= 3` por habilidad)

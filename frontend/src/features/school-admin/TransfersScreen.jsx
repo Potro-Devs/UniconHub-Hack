@@ -196,7 +196,7 @@ export function TransfersScreen() {
               onClick={() => {
                 setTrFound(false);
                 setTrCode('');
-                say(`Alumno vinculado a ${trDest}. Su historial ya está disponible para su docente.`);
+                say('Disponible en una siguiente versión. Esta vista es de ejemplo y no guarda cambios.');
               }}
               style={{
                 marginLeft: 'auto',
@@ -237,7 +237,7 @@ export function TransfersScreen() {
         </div>
         <button
           type="button"
-          onClick={() => say('Elegir alumno y grupo destino: siguiente iteración.')}
+          onClick={() => say('Disponible en una siguiente versión. Esta vista es de ejemplo y no guarda cambios.')}
           style={{
             height: '46px',
             padding: '0 16px',

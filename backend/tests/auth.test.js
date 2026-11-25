@@ -25,6 +25,10 @@ function createFixtures() {
     "INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, 'docente@axi.demo', ?, 'Mtra. Prueba', 'teacher')",
     school, bcrypt.hashSync(PASSWORD, 4),
   );
+  const director = id(
+    "INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, 'direccion@axi.demo', ?, 'Mtro. Director', 'director')",
+    school, bcrypt.hashSync(PASSWORD, 4),
+  );
   const oldGroup = id("INSERT INTO groups (school_id, teacher_id, grade, section, school_year, join_code) VALUES (?, ?, 2, 'A', '2025-2026', 'SEGA2A')", school, teacher);
   const group = id("INSERT INTO groups (school_id, teacher_id, grade, section, school_year, join_code) VALUES (?, ?, 3, 'A', '2026-2027', 'MAPA3A')", school, teacher);
 
@@ -41,7 +45,7 @@ function createFixtures() {
   enroll(group, diego, 'withdrawn');
   enroll(oldGroup, sofia, 'completed');
 
-  return { db, ids: { school, teacher, group, oldGroup, sofia, mateo, diego } };
+  return { db, ids: { school, teacher, director, group, oldGroup, sofia, mateo, diego } };
 }
 
 async function startServer(app) {
@@ -225,6 +229,15 @@ describe('auth API', () => {
       assert.equal(body.data.user.email, 'docente@axi.demo');
     });
 
+    test('Entrar como Directivo', async () => {
+      const { status, body } = await api.call('POST', '/api/v1/auth/quick-login/director');
+      assert.equal(status, 200);
+      assert.equal(body.data.user.email, 'direccion@axi.demo');
+      assert.equal(body.data.user.role, 'director');
+      const me = await api.call('GET', '/api/v1/auth/me', { token: body.data.token });
+      assert.equal(me.body.data.role, 'director');
+    });
+
     test('Entrar como Alumno usa al primer alumno activo del grupo actual', async () => {
       const { status, body } = await api.call('POST', '/api/v1/auth/quick-login/student');
       assert.equal(status, 200);
@@ -246,7 +259,7 @@ describe('auth API · configuración', () => {
     const api = await startServer(createApp({ db: fx.db, config: configWith({ ENABLE_QUICK_LOGIN: 'false' }), logger: silentLogger }));
     try {
       assert.deepEqual((await api.call('GET', '/api/v1/auth/quick-login')).body, { data: { enabled: false } });
-      for (const path of ['/api/v1/auth/quick-login/teacher', '/api/v1/auth/quick-login/student']) {
+      for (const path of ['/api/v1/auth/quick-login/teacher', '/api/v1/auth/quick-login/director', '/api/v1/auth/quick-login/student']) {
         const res = await api.call('POST', path);
         assert.equal(res.status, 403);
         assert.equal(res.body.error.code, 'QUICK_LOGIN_DISABLED');
@@ -264,6 +277,21 @@ describe('auth API · configuración', () => {
     }));
     try {
       const res = await api.call('POST', '/api/v1/auth/quick-login/teacher');
+      assert.equal(res.status, 404);
+      assert.equal(res.body.error.code, 'DEMO_DATA_MISSING');
+    } finally {
+      await api.close();
+      fx.db.close();
+    }
+  });
+
+  test('Directivo: correo demo que no es director → 404 DEMO_DATA_MISSING', async () => {
+    const fx = createFixtures();
+    const api = await startServer(createApp({
+      db: fx.db, config: configWith({ QUICK_LOGIN_DIRECTOR_EMAIL: 'docente@axi.demo' }), logger: silentLogger,
+    }));
+    try {
+      const res = await api.call('POST', '/api/v1/auth/quick-login/director');
       assert.equal(res.status, 404);
       assert.equal(res.body.error.code, 'DEMO_DATA_MISSING');
     } finally {
