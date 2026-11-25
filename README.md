@@ -80,6 +80,7 @@ El seed es reproducible (semilla fija) y carga:
 
 - **Escuela demo** y la **docente** `docente@axi.demo` / contraseña `AxiDemo2026`.
 - **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (botón *Entrar como Directivo*). Su menú tiene **Panel de la escuela** (pestañas Resumen, Campos formativos, Habilidades, Grupos y Errores típicos; prioridades del mes y fecha del próximo Consejo Técnico según el calendario SEP; **Exportar PDF** tamaño Carta en blanco y negro; solo promedios) y **Docentes** (avance del diagnóstico por docente), ambos con datos reales; **Promover grupos** y **Traslados** siguen siendo vistas de ejemplo (Roadmap). Cada grupo se evalúa solo en las habilidades de su grado (fracciones desde 3.º, multiplicación desde 2.º).
+- **Importar alumnos desde Excel o CSV:** en el detalle del grupo, *Importar desde Excel o CSV* lee un `.xlsx` o `.csv` (apellido paterno, apellido materno, nombre(s); con o sin encabezados), llena la lista automáticamente y la docente la revisa y guarda.
 - **6 grupos más del ciclo actual** (1.º A, 2.º A, 3.º B, 4.º A, 5.º A y 6.º A) con otros docentes ficticios (`docente.1a@axi.demo`… misma contraseña) y diagnósticos variados, para que el panel tenga promedios que comparar. En una base ya sembrada, `npm run seed` los agrega sin borrar nada.
 - **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
 - **Temario 1.º–6.º** con las 5 habilidades clave y el avance del temario de 3.º A.
@@ -127,7 +128,7 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. **Importar alumnos:** en el detalle del grupo, *Importar desde Excel o CSV* lee un `.xlsx` o `.csv` (apellido paterno, apellido materno, nombre(s); con o sin encabezados), llena la lista automáticamente y la docente la revisa y guarda. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
+> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
 >
 > La sesión se guarda en `sessionStorage`: se cierra al cerrar la pestaña, pensado para computadoras compartidas en el salón.
 
