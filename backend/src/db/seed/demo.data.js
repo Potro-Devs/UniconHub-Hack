@@ -59,8 +59,8 @@ export const HISTORY = Object.freeze({ secondGradeCount: 40, firstGradeCount: 30
  */
 export const FEATURED_STUDENT = Object.freeze({
   current: { place_value: 71, problem_solving: 63, multiplication: 58, fractions: 36, reading_comprehension: 63 },
-  secondGrade: { place_value: 55, problem_solving: 44, multiplication: 50, fractions: 30, reading_comprehension: 60 },
-  firstGrade: { place_value: 48, problem_solving: 35, multiplication: 40, fractions: 25, reading_comprehension: 52 },
+  secondGrade: { place_value: 55, problem_solving: 44, multiplication: 50, reading_comprehension: 60 },
+  firstGrade: { place_value: 48, problem_solving: 35, reading_comprehension: 52 },
 });
 
 const SABERES = 'saberes_pensamiento_cientifico';
@@ -91,7 +91,7 @@ export const CURRICULUM_BY_SKILL = Object.freeze({
   fractions: [
     null,
     null,
-    ['Estudio de los números: fracciones', 'Identifica la unidad de referencia en medios, cuartos y octavos con material concreto y tiras.'],
+    ['Estudio de los números: fracciones', 'Identifica la unidad de referencia en cuartos y octavos con material concreto y tiras (los medios se trabajan con material concreto).'],
     ['Fracciones equivalentes', 'Identifica y construye fracciones equivalentes con tercios, quintos y sextos.'],
     ['Suma de fracciones con distinto denominador (múltiplos)', 'Suma fracciones cuando un denominador es múltiplo del otro usando equivalencias.'],
     ['Suma de fracciones con distinto denominador', 'Suma fracciones con denominadores distintos buscando un denominador común.'],
@@ -105,8 +105,8 @@ export const CURRICULUM_BY_SKILL = Object.freeze({
     ['Problemas de varios pasos con dinero', 'Resuelve problemas de varios pasos con dinero y comprueba si el resultado es razonable.'],
   ],
   reading_comprehension: [
-    ['Lectura compartida en voz alta', 'Escucha la lectura en voz alta de un cuento breve e identifica a los personajes y lo que hacen.'],
-    ['Lectura compartida en voz alta', 'Comenta lo que sucede en un texto narrativo leído en voz alta y responde preguntas sobre él.'],
+    ['Lectura compartida en voz alta', 'La docente lee en voz alta un cuento breve; el alumno identifica a los personajes y lo que hacen.'],
+    ['Lectura compartida en voz alta', 'La docente lee en voz alta un texto narrativo; el alumno comenta lo que sucede y responde preguntas sobre él.'],
     ['Comprensión y producción de textos expositivos', 'Lee textos breves, identifica la idea más relevante y responde preguntas sobre lo que leyó.'],
     ['Comprensión y producción de resúmenes', 'Identifica la idea principal y las ideas de apoyo de un texto expositivo.'],
     ['Comprensión y producción de textos informativos', 'Distingue la información principal y la de apoyo en textos informativos.'],
