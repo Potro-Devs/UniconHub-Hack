@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { LEVELS } from '@/config/brand';
+import { APP_NAME, LEVELS } from '@/config/brand';
 import { errorMessageOf } from '@/shared/api/client';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { buttonStyle } from '@/shared/styles/ui';
@@ -68,7 +68,7 @@ function FieldCard({ field }) {
     return (
       <article className="sd-card sd-field sd-field-empty">
         <h3>{field.name}</h3>
-        <p className="sd-muted">Aún sin reactivos en Axi. No se reporta porcentaje: la falta de datos no significa falta de aprendizaje.</p>
+        <p className="sd-muted">Aún sin reactivos en {APP_NAME}. No se reporta porcentaje: la falta de datos no significa falta de aprendizaje.</p>
       </article>
     );
   }
@@ -79,7 +79,8 @@ function FieldCard({ field }) {
         <h3>{field.name}</h3>
         <Level average={null} level={field.level} label={field.label} />
       </div>
-      <div className="sd-field-big" style={{ color: colors?.fg }}>{field.average}%</div>
+      {/* Con habilidades en el temario pero sin alumnos evaluados aún: sin porcentaje (el nivel ya dice "Sin evaluar"). */}
+      <div className="sd-field-big" style={{ color: colors?.fg }}>{field.average == null ? '—' : `${field.average}%`}</div>
       <p className="sd-muted">{field.skills.map((s) => s.name).join(' · ')} · {plural(field.evaluatedCount, 'alumno', 'alumnos')} con dato</p>
       <Distribution distribution={field.distribution} />
     </article>
@@ -256,7 +257,7 @@ export function SchoolDashboardScreen() {
                   <aside className="sd-card sd-cte" aria-label="Próximo Consejo Técnico Escolar">
                     <span className="sd-eyebrow">Próximo Consejo Técnico</span>
                     <strong className="sd-cte-date">{cte.label}</strong>
-                    <span className="sd-cte-days">{cte.daysUntil === 0 ? 'Es hoy' : `Faltan ${plural(cte.daysUntil, 'día', 'días')}`}</span>
+                    <span className="sd-cte-days">{cte.daysUntil === 0 ? 'Es hoy' : `${cte.daysUntil === 1 ? 'Falta' : 'Faltan'} ${plural(cte.daysUntil, 'día', 'días')}`}</span>
                     <p className="sd-muted">
                       {cte.source === 'calendar'
                         ? 'Calendario escolar SEP del ciclo (último viernes del mes), tomado de notas de prensa. Confírmalo en el calendario oficial publicado en el DOF.'
