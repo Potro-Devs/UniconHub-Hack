@@ -247,7 +247,9 @@ function fractions(grade, rng) {
     const num = rng.int(1, den - 1);
     const obj = rng.pick(STRIP_OBJECTS);
     const exDen = den === 4 ? 8 : 4;
-    const exNum = rng.int(1, exDen - 1);
+    // El ejemplo nunca vale lo mismo que la respuesta (3/4 revelaría 6/8).
+    let exNum;
+    do exNum = rng.int(1, exDen - 1); while (exNum * den === num * exDen);
     return {
       stem: `Una ${obj} se divide en ${den} partes iguales y se ${num === 1 ? 'pinta' : 'pintan'} ${num}. ¿Qué fracción de la ${obj} está pintada?`,
       correct: `${num}/${den}`,
@@ -295,7 +297,12 @@ function fractions(grade, rng) {
     const n1 = rng.int(1, den - 1);
     const n2 = rng.int(1, 2 * den - 1);
     const big = 2 * den;
-    const exDen = den === 3 ? 4 : 3;
+    // Ejemplo con otro denominador: ninguna fracción de la pista (1/e, 1/2e, 2/2e, 3/2e) puede valer
+    // lo mismo que la respuesta (2·n1 + n2)/big; si no, la revelaría.
+    const answerNum = 2 * n1 + n2;
+    const sameValue = (num, den2) => num * big === answerNum * den2;
+    const exDen = [3, 4, 5, 7, 9].find((e) => e !== den
+      && !sameValue(1, e) && !sameValue(1, 2 * e) && !sameValue(3, 2 * e));
     return {
       stem: `Calcula ${n1}/${den} + ${n2}/${big}.`,
       correct: `${2 * n1 + n2}/${big}`,
