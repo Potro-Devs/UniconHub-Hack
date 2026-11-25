@@ -92,6 +92,67 @@ export function createAssessmentsRepository(db) {
     insertTarget: db.prepare(
       'INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, ?, ?)',
     ),
+
+    // ───────── Cuestionarios y constructor ─────────
+    listVisibleQuizzes: db.prepare(`
+      SELECT
+        qz.id, qz.school_id, qz.created_by, qz.origin_type, qz.title, qz.description,
+        qz.grade, qz.created_at, qz.updated_at,
+        s.code AS skill_code, s.name AS skill_name,
+        u.full_name AS author_name,
+        COUNT(qq.id) AS question_count,
+        SUM(CASE WHEN qq.question_type = 'multiple_choice' THEN 1 ELSE 0 END) AS mc_count,
+        SUM(CASE WHEN qq.question_type = 'true_false' THEN 1 ELSE 0 END) AS tf_count,
+        SUM(CASE WHEN qq.question_type = 'fill_blank' THEN 1 ELSE 0 END) AS fb_count
+      FROM quizzes qz
+      JOIN skills s ON s.id = qz.skill_id
+      LEFT JOIN users u ON u.id = qz.created_by
+      LEFT JOIN quiz_questions qq ON qq.quiz_id = qz.id
+      WHERE qz.origin_type = 'system' OR qz.school_id = ?
+      GROUP BY qz.id
+      ORDER BY qz.updated_at DESC, qz.id DESC`),
+    findQuizById: db.prepare(`
+      SELECT
+        qz.id, qz.school_id, qz.created_by, qz.origin_type, qz.title, qz.description,
+        qz.grade, qz.created_at, qz.updated_at,
+        s.code AS skill_code, s.name AS skill_name,
+        u.full_name AS author_name
+      FROM quizzes qz
+      JOIN skills s ON s.id = qz.skill_id
+      LEFT JOIN users u ON u.id = qz.created_by
+      WHERE qz.id = ?`),
+    listQuizQuestions: db.prepare(`
+      SELECT id, quiz_id, position, question_type, prompt, options_json, correct_answer, hint
+      FROM quiz_questions
+      WHERE quiz_id = ?
+      ORDER BY position ASC`),
+    findSkillIdByCode: db.prepare('SELECT id, code, name FROM skills WHERE code = ?'),
+    listAllSkills: db.prepare('SELECT id, code, name FROM skills ORDER BY id'),
+    listGroupLatestMastery: db.prepare(`
+      SELECT s.code AS skill_code, h.mastery_percentage
+      FROM group_enrollments e
+      JOIN skill_mastery_history h ON h.student_id = e.student_id
+      JOIN skills s ON s.id = h.skill_id
+      JOIN groups g ON g.id = e.group_id
+      WHERE e.group_id = ?
+        AND e.status = 'active'
+        AND g.school_id = ?
+        AND h.session_index = (
+          SELECT MAX(h2.session_index)
+          FROM skill_mastery_history h2
+          WHERE h2.student_id = h.student_id AND h2.skill_id = h.skill_id
+        )`),
+    insertQuiz: db.prepare(`
+      INSERT INTO quizzes (school_id, created_by, origin_type, title, description, skill_id, grade)
+      VALUES (?, ?, 'teacher', ?, ?, ?, ?)`),
+    updateQuiz: db.prepare(`
+      UPDATE quizzes
+      SET title = ?, description = ?, skill_id = ?, grade = ?, updated_at = datetime('now')
+      WHERE id = ?`),
+    deleteQuizQuestions: db.prepare('DELETE FROM quiz_questions WHERE quiz_id = ?'),
+    insertQuizQuestion: db.prepare(`
+      INSERT INTO quiz_questions (quiz_id, position, question_type, prompt, options_json, correct_answer, hint)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`),
   };
 
   const json = (values) => JSON.stringify(values);
@@ -121,5 +182,31 @@ export function createAssessmentsRepository(db) {
       questionIds.forEach((qid, idx) => statements.insertAssignmentQuestion.run(assignmentId, qid, idx + 1)),
     insertTargets: (assignmentId, studentIds, { status, is_screen_locked: locked }) =>
       studentIds.forEach((sid) => statements.insertTarget.run(assignmentId, sid, status, locked)),
+
+    listVisibleQuizzes: (schoolId) => statements.listVisibleQuizzes.all(schoolId),
+    findQuizById: (quizId) => statements.findQuizById.get(quizId) ?? null,
+    listQuizQuestions: (quizId) => statements.listQuizQuestions.all(quizId),
+    findSkillIdByCode: (code) => statements.findSkillIdByCode.get(code)?.id ?? null,
+    listAllSkills: () => statements.listAllSkills.all(),
+    listGroupLatestMastery: (groupId, schoolId) => statements.listGroupLatestMastery.all(groupId, schoolId),
+    insertQuiz: ({ schoolId, createdBy, title, description, skillId, grade }) =>
+      Number(statements.insertQuiz.run(schoolId, createdBy, title, description, skillId, grade).lastInsertRowid),
+    updateQuiz: ({ id, title, description, skillId, grade }) => {
+      statements.updateQuiz.run(title, description, skillId, grade, id);
+    },
+    replaceQuizQuestions: (quizId, questions) => {
+      statements.deleteQuizQuestions.run(quizId);
+      questions.forEach((q, idx) => {
+        statements.insertQuizQuestion.run(
+          quizId,
+          idx + 1,
+          q.questionType,
+          q.prompt,
+          JSON.stringify(q.options ?? []),
+          q.correctAnswer,
+          q.hint ?? '',
+        );
+      });
+    },
   };
 }

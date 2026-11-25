@@ -16,7 +16,13 @@ const DOCENTE_NAV = [
   { id: 'grupos', path: '/docente/grupos', label: 'Grupos', short: 'Grupos', matches: ['/docente/grupos'] },
   { id: 'mapa', path: '/docente/mapa', label: 'Mapa del grupo', short: 'Mapa', matches: ['/docente/mapa', '/docente/perfil'] },
   { id: 'temario', path: '/docente/temario', label: 'Temario', short: 'Temario', matches: ['/docente/temario'] },
-  { id: 'hoja', path: '/docente/hoja', label: 'Hojas impresas', short: 'Hojas', matches: ['/docente/hoja', '/docente/pistas'] },
+  {
+    id: 'hoja',
+    path: '/docente/cuestionarios',
+    label: 'Cuestionarios y constructor',
+    short: 'Cuestionarios',
+    matches: ['/docente/cuestionarios', '/docente/hoja', '/docente/pistas'],
+  },
   { id: 'captura', path: '/docente/captura', label: 'Captura', short: 'Captura', matches: ['/docente/captura'] },
 ];
 
@@ -27,7 +33,7 @@ const DIRECCION_NAV = [
 ];
 
 /** Vistas que todavía usan datos locales del prototipo. */
-const SAMPLE_DATA_PATHS = ['/docente/temario', '/docente/hoja', '/docente/pistas', '/docente/captura'];
+const SAMPLE_DATA_PATHS = ['/docente/temario', '/docente/pistas', '/docente/captura'];
 
 const headerChip = {
   display: 'flex',

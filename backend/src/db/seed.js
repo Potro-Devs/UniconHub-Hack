@@ -31,6 +31,7 @@ import {
   formativeFieldFor,
 } from './seed/demo.data.js';
 import { generateQuestionBank } from './seed/questions.generator.js';
+import { seedDemoQuizzes } from './seed/quizzes.seed.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
 export { DEMO };
@@ -306,6 +307,9 @@ function insertDemo(db, rng, bank, passwordHash) {
     run("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', 1)", paperId, s.id);
   }
 
+  // Cuestionarios de muestra (propios, de colegas de la escuela y precargados por Axi)
+  const quizSeed = seedDemoQuizzes(db, { schoolId, teacherId, passwordHash });
+
   return {
     seeded: true,
     teacherEmail: DEMO.teacher.email,
@@ -315,6 +319,7 @@ function insertDemo(db, rng, bank, passwordHash) {
       questions: bank.length,
       contents: Object.keys(contentIds).length,
       activities: ACTIVITIES.length,
+      quizzes: quizSeed.count,
       responses: responseCount,
       masteryCuts: [...cutsBy.values()].reduce((n, sessions) => n + sessions.length, 0),
       achievements: achievementCount,
