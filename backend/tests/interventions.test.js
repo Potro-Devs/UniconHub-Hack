@@ -146,6 +146,57 @@ describe('interventions API', () => {
     assert.equal((await server.call('GET', path, { token: as(ctx.otherTeacher, 'teacher') })).status, 404);
     assert.equal((await server.call('GET', path, { token: tokenFor({ sub: String(ctx.ana), role: 'student', schoolId: ctx.school, groupId: ctx.groupId }) })).status, 403);
   });
+
+  describe('antes y después por prueba completa', () => {
+    const register = () => server.call('POST', `/api/v1/interventions/groups/${ctx.groupId}`,
+      { token: as(ctx.teacher, 'teacher'), body: { activityId: ctx.activity } });
+    const outcome = async () => (await server.call('GET', `/api/v1/interventions/groups/${ctx.groupId}`,
+      { token: as(ctx.teacher, 'teacher') })).body.data.interventions[0].outcome;
+
+    test('si en la última reevaluación ya no muestra el error, cuenta como superado', async () => {
+      await register();
+      ctx.answer(ctx.beto, false, "datetime('now', '+1 minute')"); // primera reevaluación: aún con el error
+      ctx.answer(ctx.beto, true, "datetime('now', '+2 minutes')"); // segunda: ya no
+      assert.deepEqual(await outcome(), { status: 'measured', baselineCount: 3, reevaluatedCount: 1,
+        overcameCount: 1, stillWithErrorCount: 0, awaitingCount: 2 });
+    });
+
+    test('una prueba en curso al registrar la actividad no se parte en antes y después', async () => {
+      const q2 = Number(ctx.db.prepare(`INSERT INTO questions (skill_id,grade,stem,hint_1,hint_2,hint_3)
+        VALUES ((SELECT id FROM skills WHERE code='fractions'),3,'Segundo reactivo','Uno','Dos','Tres')`).run().lastInsertRowid);
+      const q2ok = Number(ctx.db.prepare("INSERT INTO question_options (question_id,label,text,is_correct) VALUES (?,'A','Correcta',1)")
+        .run(q2).lastInsertRowid);
+      // El segundo reactivo también permite mostrar el error objetivo (caso real de una prueba de la habilidad).
+      ctx.db.prepare("INSERT INTO question_options (question_id,label,text,is_correct,error_tag,error_explanation) VALUES (?,'B','Distractor',0,'add_across','Suma numeradores y denominadores')")
+        .run(q2);
+      const q1 = ctx.db.prepare("SELECT id FROM questions WHERE stem = 'Ejemplo'").get().id;
+      const q1wrong = ctx.db.prepare("SELECT id FROM question_options WHERE question_id = ? AND is_correct = 0").get(q1).id;
+      const assignment = Number(ctx.db.prepare("INSERT INTO assignments (group_id,created_by,title,modality) VALUES (?,?,'En curso','screen')")
+        .run(ctx.groupId, ctx.teacher).lastInsertRowid);
+      const target = Number(ctx.db.prepare("INSERT INTO assignment_targets (assignment_id,student_id,status) VALUES (?,?,'in_progress')")
+        .run(assignment, ctx.dani).lastInsertRowid);
+      const respond = (questionId, optionId, status, tag) => ctx.db.prepare(`INSERT INTO student_responses
+        (assignment_target_id,question_id,selected_option_id,outcome_status,error_tag,source) VALUES (?,?,?,?,?,'screen')`)
+        .run(target, questionId, optionId, status, tag);
+      respond(q1, q1wrong, 'incorrect', 'add_across'); // Dani contesta la 1 (con el error) antes del registro
+      await register();
+      respond(q2, q2ok, 'correct_autonomous', null); // termina la misma prueba después del registro
+      ctx.db.prepare("UPDATE assignment_targets SET status = 'completed_screen' WHERE id = ?").run(target);
+      // Toda la prueba cuenta como "antes": Dani entra a la línea base y no hay reevaluación falsa.
+      assert.deepEqual(await outcome(), { status: 'awaiting_retest', baselineCount: 4, reevaluatedCount: 0,
+        overcameCount: 0, stillWithErrorCount: 0, awaitingCount: 4 });
+    });
+
+    test('una prueba posterior sin el distractor objetivo no saca a nadie de la línea base', async () => {
+      const q = Number(ctx.db.prepare(`INSERT INTO questions (skill_id,grade,stem,hint_1,hint_2,hint_3)
+        VALUES ((SELECT id FROM skills WHERE code='fractions'),3,'Sin distractor objetivo','Uno','Dos','Tres')`).run().lastInsertRowid);
+      const ok = Number(ctx.db.prepare("INSERT INTO question_options (question_id,label,text,is_correct) VALUES (?,'A','Correcta',1)")
+        .run(q).lastInsertRowid);
+      ctx.answerQuestion(ctx.ana, q, ok, 'correct_autonomous', null, "'2026-09-26 09:00:00'");
+      const res = await register();
+      assert.equal(res.body.data.outcome.baselineCount, 3);
+    });
+  });
 });
 
 describe('analytics: avance hacia la autonomía y plan de mañana', () => {
