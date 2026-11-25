@@ -1,4 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { LanguageProvider } from '@/shared/i18n/LanguageContext';
+import { TutoringScreen } from '@/features/tutoring/TutoringScreen';
 import { LoginScreen } from '@/features/auth/LoginScreen';
 import { ContentDetailScreen } from '@/features/curriculum/ContentDetailScreen';
 import { CurriculumScreen } from '@/features/curriculum/CurriculumScreen';
@@ -50,6 +52,7 @@ function StaffShell() {
  */
 export function App() {
   return (
+    <LanguageProvider>
     <SessionProvider>
       <AppUiProvider>
         <BrowserRouter>
@@ -67,6 +70,7 @@ export function App() {
                 {/* Área docente. El director solo tiene su panel: cualquier otra ruta lo regresa ahí. */}
                 <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
                 <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
+                <Route path="/docente/tutores" element={<TutoringScreen />} />
                 <Route path="/docente/mapa" element={<GroupMapScreen />} />
                 <Route path="/docente/perfil" element={<StudentProfileScreen />} />
                 <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
@@ -125,6 +129,7 @@ export function App() {
         </BrowserRouter>
       </AppUiProvider>
     </SessionProvider>
+    </LanguageProvider>
   );
 }
 
