@@ -32,6 +32,7 @@ import {
 } from './seed/demo.data.js';
 import { generateQuestionBank } from './seed/questions.generator.js';
 import { seedDemoQuizzes } from './seed/quizzes.seed.js';
+import { insertOpenPractice } from './seed/practice.seed.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
 export { DEMO };
@@ -59,11 +60,13 @@ export function isSeeded(db) {
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
   if (isSeeded(db)) {
+    // Práctica abierta en pantalla para recorrer el ciclo con datos reales (solo si falta).
+    const practice = withTransaction(db, () => insertOpenPractice(db)) ? { practiceAdded: true } : {};
     const quizSeed = withTransaction(db, () => seedDemoQuizzes(db));
     if (quizSeed.seeded) {
-      return { seeded: true, reason: 'added_missing_quizzes', counts: { quizzes: quizSeed.count } };
+      return { seeded: true, reason: 'added_missing_quizzes', counts: { quizzes: quizSeed.count }, ...practice };
     }
-    return { seeded: false, reason: 'already_seeded' };
+    return { seeded: false, reason: 'already_seeded', ...practice };
   }
 
   const rng = createRng(seed);
@@ -313,6 +316,9 @@ function insertDemo(db, rng, bank, passwordHash) {
     run("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', 1)", paperId, s.id);
   }
 
+  // Práctica abierta en pantalla (Multiplicación, 3.º A): el alumno demo la puede contestar.
+  insertOpenPractice(db);
+
   // Cuestionarios de muestra (propios, de colegas de la escuela y precargados por Axi)
   const quizSeed = seedDemoQuizzes(db, { schoolId, teacherId, passwordHash });
 
@@ -355,6 +361,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const db = getDatabase();
     runMigrations(db);
     const result = runSeed(db);
+    if (result.practiceAdded) console.log('Se agregó la práctica abierta en pantalla para 3.º A (Multiplicación).');
     if (!result.seeded) {
       console.log('La base ya tiene los datos demo. Usa `npm run seed:reset` para recrearla.');
     } else if (result.reason === 'added_missing_quizzes') {
