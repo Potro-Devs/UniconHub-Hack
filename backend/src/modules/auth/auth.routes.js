@@ -21,6 +21,7 @@ export function createAuthRouter({ db, config, requireAuth }) {
 
   router.get('/quick-login', controller.quickLoginStatus);
   router.post('/quick-login/teacher', controller.quickLoginTeacher);
+  router.post('/quick-login/director', controller.quickLoginDirector);
   router.post('/quick-login/student', controller.quickLoginStudent);
 
   router.post('/student-join', joinLimit, controller.joinGroup);

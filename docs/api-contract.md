@@ -30,6 +30,7 @@ Los endpoints protegidos esperan `Authorization: Bearer <token>`. El token (JWT 
 | `POST /login` | `{ email, password }` | `{ token, expiresAt, user: { id, fullName, email, role, schoolId } }` | 400, 401 `INVALID_CREDENTIALS`, 429 |
 | `GET /quick-login` | — | `{ enabled }`: el frontend decide si mostrar los botones de demo | — |
 | `POST /quick-login/teacher` | — | Igual que `/login` (docente demo) | 403 `QUICK_LOGIN_DISABLED`, 404 `DEMO_DATA_MISSING` |
+| `POST /quick-login/director` | — | Igual que `/login` (director demo, solo lectura de su escuela) | 403 `QUICK_LOGIN_DISABLED`, 404 `DEMO_DATA_MISSING` |
 | `POST /quick-login/student` | — | `{ token, expiresAt, student, group }` (primer alumno activo del grupo demo) | 403, 404 |
 | `POST /student-join` | `{ joinCode }` | `{ group, students: [StudentCard] }` | 400, 404 `GROUP_NOT_FOUND`, 429 |
 | `POST /student-join/select` | `{ joinCode, studentId }` | `{ token, expiresAt, student, group }` | 400, 404 `GROUP_NOT_FOUND` / `STUDENT_NOT_IN_GROUP`, 429 |
@@ -161,7 +162,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
-- **Analytics (`/api/v1/analytics`):** `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
+- **Analytics (`/api/v1/analytics`):** `GET /school` y `GET /school/export.pdf` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
 - **Interventions (`/api/v1/interventions`):** ciclo actividad aplicada → nueva prueba (ver contrato al final).
 
@@ -173,6 +174,34 @@ inexistente o ajeno: 404 `GROUP_NOT_FOUND`. Id inválido: 400 `VALIDATION_ERROR`
 El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno responde
 404 `STUDENT_NOT_FOUND`. Nunca se devuelve `internal_folio`.
 
+- `GET /school` (**solo director**; docente o alumno: 403): panel de la escuela de la sesión con los
+  grupos del ciclo escolar más reciente. Solo agregados: **nunca** nombres, folios ni ids de alumnos.
+  `{ data: { school, summary, fields, skills, groups, priorities, typicalErrors }, meta }`.
+  - `school`: `{ id, name, schoolYear }`.
+  - `summary`: `{ groupCount, teacherCount, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, coveragePercentage, latestRecordedAt }`.
+  - `fields`: los 4 campos formativos del Plan de Estudio 2022 de la SEP, en orden oficial:
+    `{ code, name, assessed, skills: [{ code, name }], average, level, label, evaluatedCount, needsSupportCount, distribution }`.
+    Un campo sin habilidades evaluadas en Axi trae `assessed: false` y `average: null` (nunca 0 %).
+    El dominio por campo de cada alumno es el promedio de sus habilidades evaluadas en ese campo.
+  - Cada grupo solo usa las habilidades del programa de su grado y los cortes de ese grado
+    (`SKILL_GRADE_RANGE` en `curriculum.domain.js`: fracciones de 3.º a 6.º, multiplicación de 2.º a 6.º).
+  - `skills`: `{ code, name, average, level, label, evaluatedCount, needsSupportCount, grades }` de toda la escuela (`grades`: "3.º a 6.º").
+  - `teachers`: `{ name, groups: ["3.º A"], studentCount, evaluatedStudentCount, needsSupportCount, evidencePercentage }` (sin correos).
+  - `groups`: `{ id, name, grade, section, schoolYear, teacherName, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, fields, skills, prioritySkill, coveragePercentage }`.
+  - `priorities`: prioridades del mes, máximo 3 y resumidas: `{ type, title, detail, action, groupIds, skillCode? }`.
+    Orden por `type`: `evidence` (< 50 % con diagnóstico), `skill` (habilidad con menor dominio de la escuela),
+    `group_support` (grupos con ≥ 50 % de alumnos que necesitan apoyo, en un solo elemento), `coverage` (< 25 % del temario visto).
+  - `cte`: próxima sesión ordinaria del Consejo Técnico Escolar `{ date, label, month, daysUntil, source }`.
+    `source: 'calendar'` usa fechas cargadas a mano (`CTE_SESSIONS`; 2026-2027 tomadas de notas de prensa sobre el calendario SEP,
+    por verificar en el DOF: último viernes del mes, sin diciembre ni abril);
+    `source: 'rule'` estima el último viernes del mes (sin diciembre, julio ni agosto) cuando el ciclo no está cargado. `null` si no hay ciclo.
+  - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`;
+    `studentCount` son alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.
+  - Nota: la interfaz del director solo usa este endpoint, pero la API conserva su lectura de
+    `/groups`, `/analytics/groups/*`, `/curriculum`, `/assessments` e `/interventions` de su escuela (pendiente de restringir).
+- `GET /school/export.pdf` (**solo director**): el panel en PDF Carta, blanco y negro (`application/pdf`,
+  `panel-escuela-<ciclo>.pdf`): indicadores, próximo CTE, prioridades del mes, campos formativos, habilidades,
+  resumen por grupo, errores típicos y metodología. Solo agregados; sin datos de alumnos.
 - `GET /groups/:groupId`: `{ data: { group, skills, students, summary }, meta }`.
 - `GET /groups/:groupId/students/:studentId`: `{ data: { group, student, skills, history, recommendedActivity, typicalErrors }, meta }`.
 - `group`: `{ id, grade, section, schoolYear }`.

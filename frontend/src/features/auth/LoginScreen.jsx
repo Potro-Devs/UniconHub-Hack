@@ -16,7 +16,7 @@ import { useSession } from '@/shared/state/SessionContext';
 import { authApi } from './auth.api';
 
 /**
- * Pantalla 00: Acceso docente, botones de acceso rápido demo y entrada a portal alumno.
+ * Pantalla 00: Acceso docente, botones de acceso rápido demo (Docente, Directivo, Alumno) y entrada a portal alumno.
  */
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -94,7 +94,7 @@ export function LoginScreen() {
           <label>Contraseña<input type="password" name="password" autoComplete="current-password" placeholder="Escribe tu contraseña" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'login-error' : undefined} /></label>
           <FormMessage id="login-error" message={error} />
           <button type="submit" className="login-submit" disabled={busy}>{pending === 'login' ? 'Entrando…' : 'Entrar a mi grupo'}</button>
-          {quickLoginEnabled && <div className="demo-access"><span>Explora la demostración</span><div><button type="button" disabled={busy} onClick={() => run('teacher', authApi.quickLoginTeacher)}>{pending === 'teacher' ? 'Entrando…' : 'Entrar como Docente'}</button><button type="button" disabled={busy} onClick={() => run('student', authApi.quickLoginStudent)}>{pending === 'student' ? 'Entrando…' : 'Entrar como Alumno'}</button></div></div>}
+          {quickLoginEnabled && <div className="demo-access"><span>Explora la demostración</span><div><button type="button" disabled={busy} onClick={() => run('teacher', authApi.quickLoginTeacher)}>{pending === 'teacher' ? 'Entrando…' : 'Entrar como Docente'}</button><button type="button" disabled={busy} onClick={() => run('director', authApi.quickLoginDirector)}>{pending === 'director' ? 'Entrando…' : 'Entrar como Directivo'}</button><button type="button" disabled={busy} onClick={() => run('student', authApi.quickLoginStudent)}>{pending === 'student' ? 'Entrando…' : 'Entrar como Alumno'}</button></div></div>}
         </form>
         <p className="welcome-privacy">Un espacio seguro para aprender, sin prisas ni comparaciones.</p>
       </div>

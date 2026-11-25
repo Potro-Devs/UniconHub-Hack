@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { errorMessageOf } from '@/shared/api/client';
 import { buttonStyle, card, inputStyle, mutedText, sectionTitle } from '@/shared/styles/ui';
+import { useSession } from '@/shared/state/SessionContext';
 import { interventionsApi } from './interventions.api';
 
 const NOTE_LIMIT = 300;
@@ -64,6 +65,8 @@ function OutcomeBar({ outcome }) {
 
 function InterventionItem({ item }) {
   const navigate = useNavigate();
+  const { session } = useSession();
+  const canAssign = session?.role === 'teacher';
   const { outcome } = item;
   const errorText = item.errorExplanation || (item.targetErrorTag ? 'el error típico que atiende la actividad' : `respuestas incorrectas en ${item.skillName}`);
   return <li style={{ border: `1px solid ${COLORS.border}`, borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -77,7 +80,7 @@ function InterventionItem({ item }) {
       <p style={{ ...mutedText, margin: '0 0 6px' }}>Falta una prueba corta de {item.skillName} (mínimo 3 reactivos) para ver el después.</p>
       <p style={{ ...mutedText, margin: 0 }}>El temario enlazado aún es una vista de ejemplo; este botón no asigna una prueba real.</p>
     </div>
-    <button type="button" style={buttonStyle('secondary')} onClick={() => navigate('/docente/temario')}>Asignar prueba corta</button>
+    {canAssign && <button type="button" style={buttonStyle('secondary')} onClick={() => navigate('/docente/temario')}>Asignar prueba corta</button>}
     </div> : <>
       <p style={{ margin: 0, lineHeight: 1.5 }}>Después: de <strong>{outcome.reevaluatedCount}</strong> alumnos reevaluados, <strong>{outcome.overcameCount}</strong> ya no muestran ese error.</p>
       <OutcomeBar outcome={outcome} />

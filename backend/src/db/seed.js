@@ -3,7 +3,7 @@
  * 1.º y 2.º, temario 1.º–6.º, banco de reactivos de las 5 habilidades y actividades sugeridas.
  *
  * Uso:
- *   npm run seed         → carga los datos si la base aún no los tiene
+ *   npm run seed         → carga los datos si la base aún no los tiene (o agrega lo que falte, p. ej. el director)
  *   npm run seed:reset   → borra la base y la vuelve a crear (detén antes el backend)
  */
 import fs from 'node:fs';
@@ -31,6 +31,7 @@ import {
   formativeFieldFor,
 } from './seed/demo.data.js';
 import { generateQuestionBank } from './seed/questions.generator.js';
+import { insertSchoolGroups } from './seed/schoolGroups.js';
 import { seedDemoQuizzes } from './seed/quizzes.seed.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
@@ -59,17 +60,35 @@ export function isSeeded(db) {
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
   if (isSeeded(db)) {
+    // Base ya sembrada: agrega lo que falte (director, grupos del ciclo y cuestionarios) sin borrar nada.
+    const directorAdded = ensureDemoDirector(db);
+    const schoolGroupsAdded = withTransaction(db, () => insertSchoolGroups(db));
     const quizSeed = withTransaction(db, () => seedDemoQuizzes(db));
     if (quizSeed.seeded) {
-      return { seeded: true, reason: 'added_missing_quizzes', counts: { quizzes: quizSeed.count } };
+      return { seeded: true, reason: 'added_missing_quizzes', directorAdded, schoolGroupsAdded,
+        counts: { quizzes: quizSeed.count } };
     }
-    return { seeded: false, reason: 'already_seeded' };
+    return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded };
   }
 
   const rng = createRng(seed);
   const bank = generateQuestionBank(rng);
   const passwordHash = bcrypt.hashSync(DEMO.teacher.password, 10);
   return withTransaction(db, () => insertDemo(db, rng, bank, passwordHash));
+}
+
+/**
+ * Agrega el director demo a una base sembrada antes de que existiera, sin tocar el resto de los datos.
+ * Devuelve `true` si lo creó.
+ */
+export function ensureDemoDirector(db) {
+  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(DEMO.director.email)) return false;
+  const school = db.prepare('SELECT id FROM schools WHERE name = ?').get(DEMO.schoolName);
+  if (!school) return false;
+  db.prepare("INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'director')").run(
+    school.id, DEMO.director.email, bcrypt.hashSync(DEMO.director.password, 10), DEMO.director.fullName,
+  );
+  return true;
 }
 
 function insertDemo(db, rng, bank, passwordHash) {
@@ -84,6 +103,10 @@ function insertDemo(db, rng, bank, passwordHash) {
   const teacherId = run(
     "INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'teacher')",
     schoolId, DEMO.teacher.email, passwordHash, DEMO.teacher.fullName,
+  );
+  run(
+    "INSERT INTO users (school_id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'director')",
+    schoolId, DEMO.director.email, passwordHash, DEMO.director.fullName,
   );
 
   // Habilidades
@@ -313,12 +336,16 @@ function insertDemo(db, rng, bank, passwordHash) {
     run("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', 1)", paperId, s.id);
   }
 
+  // Otros grupos del ciclo actual (otros docentes) para el panel de Dirección
+  const schoolGroupsAdded = insertSchoolGroups(db);
   // Cuestionarios de muestra (propios, de colegas de la escuela y precargados por Axi)
   const quizSeed = seedDemoQuizzes(db, { schoolId, teacherId, passwordHash });
 
   return {
     seeded: true,
+    schoolGroupsAdded,
     teacherEmail: DEMO.teacher.email,
+    directorEmail: DEMO.director.email,
     joinCode: DEMO.currentGroup.joinCode,
     counts: {
       students: students.length,
@@ -355,10 +382,15 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const db = getDatabase();
     runMigrations(db);
     const result = runSeed(db);
-    if (!result.seeded) {
+    if (!result.seeded || result.reason === 'added_missing_quizzes') {
+      if (result.counts?.quizzes) console.log(`Cuestionarios demo agregados a la base existente: ${result.counts.quizzes}`);
+      if (result.schoolGroupsAdded) {
+        console.log(`Se agregaron ${result.schoolGroupsAdded} grupos demo del ciclo actual (otros docentes).`);
+      }
+      if (result.directorAdded) {
+        console.log(`Se agregó el director demo: ${DEMO.director.email} / ${DEMO.director.password}`);
+      }
       console.log('La base ya tiene los datos demo. Usa `npm run seed:reset` para recrearla.');
-    } else if (result.reason === 'added_missing_quizzes') {
-      console.log(`Cuestionarios demo agregados a la base existente: ${result.counts.quizzes}`);
     } else {
       const c = result.counts;
       console.log(
@@ -368,6 +400,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
           `  · ${c.questions} reactivos · ${c.contents} contenidos · ${c.activities} actividades`,
           `  · ${c.responses} respuestas · ${c.masteryCuts} cortes de dominio · ${c.achievements} logros`,
           `  · Docente: ${result.teacherEmail} / ${DEMO.teacher.password}`,
+          `  · Dirección: ${result.directorEmail} / ${DEMO.director.password}`,
+          `  · ${result.schoolGroupsAdded} grupos más del ciclo actual con otros docentes (misma contraseña)`,
         ].join('\n'),
       );
     }

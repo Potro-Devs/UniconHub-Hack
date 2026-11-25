@@ -3,6 +3,7 @@ import { HttpError } from '../../shared/errors/HttpError.js';
 import { createGroupAccess } from '../groups/groups.access.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import { buildStudentSkills } from '../analytics/analytics.domain.js';
+import { isSkillInGrade } from '../curriculum/curriculum.domain.js';
 import { buildPairingProposal, canTeach, classifyDemonstration, chooseCardQuestions, buildCardScript,
   latestDemonstrations, isReadyToTeach, parseDemonstrationInput, parseSessionInput, summarizeNetwork,
   MAX_TUTEES_PER_TUTOR, QUESTION_FRAMES, TUTOR_RULES, DEMONSTRATION_ITEMS, needsTutoring,
@@ -20,7 +21,8 @@ export function createTutoringService({ repository, groupsRepository, analyticsR
 
   /** Fotografía del grupo: alumnos con dominio por habilidad y demostraciones 3/3 por habilidad. */
   function loadGroupState(group) {
-    const skills = analyticsRepository.listSkills();
+    // Solo habilidades del programa del grado del grupo (sin fracciones en 1.º y 2.º ni multiplicación en 1.º).
+    const skills = analyticsRepository.listSkills().filter((skill) => isSkillInGrade(skill.code, group.grade));
     const history = analyticsRepository.listGroupHistory(group.id, group.school_id);
     const students = groupsRepository.listActiveStudents(group.id).map((student) => ({
       ...studentDto(student), skills: buildStudentSkills(skills, history.filter((cut) => cut.student_id === student.id)),

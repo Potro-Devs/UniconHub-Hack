@@ -11,6 +11,7 @@ export function createAuthController(service) {
     login: asyncHandler(async (req, res) => sendData(res, await service.login(req.body))),
     quickLoginStatus: (_req, res) => sendData(res, service.quickLoginStatus()),
     quickLoginTeacher: (_req, res) => sendData(res, service.quickLoginTeacher()),
+    quickLoginDirector: (_req, res) => sendData(res, service.quickLoginDirector()),
     quickLoginStudent: (_req, res) => sendData(res, service.quickLoginStudent()),
     joinGroup: (req, res) => sendData(res, service.joinGroup(req.body)),
     selectStudent: (req, res) => sendData(res, service.selectStudent(req.body)),

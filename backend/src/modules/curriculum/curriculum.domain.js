@@ -72,6 +72,33 @@ export const FORMATIVE_FIELD_NAMES = Object.freeze({
   de_lo_humano_comunitario: 'De lo Humano y lo Comunitario',
 });
 
+/**
+ * Grados en los que cada habilidad clave forma parte del programa (Plan de Estudio 2022).
+ * - Fracciones: el primer acercamiento formal es en 3.º (Fase 4, contenido "Estudio de los
+ *   números": medios, cuartos, octavos). En 1.º y 2.º no se evalúan.
+ * - Multiplicación: se trabaja desde 2.º (Fase 3, multiplicación como suma de grupos iguales).
+ * Por validar con docentes, igual que el resto del temario demo.
+ */
+export const SKILL_GRADE_RANGE = Object.freeze({
+  place_value: Object.freeze({ from: 1, to: 6 }),
+  problem_solving: Object.freeze({ from: 1, to: 6 }),
+  reading_comprehension: Object.freeze({ from: 1, to: 6 }),
+  multiplication: Object.freeze({ from: 2, to: 6 }),
+  fractions: Object.freeze({ from: 3, to: 6 }),
+});
+
+/** ¿La habilidad corresponde al grado? Habilidad desconocida → `false`. */
+export function isSkillInGrade(skillCode, grade) {
+  const range = SKILL_GRADE_RANGE[skillCode];
+  return Boolean(range) && grade >= range.from && grade <= range.to;
+}
+
+/** Texto del rango de grados: "1.º a 6.º", "3.º a 6.º". */
+export function skillGradesLabel(skillCode) {
+  const range = SKILL_GRADE_RANGE[skillCode];
+  return range ? `${range.from}.º a ${range.to}.º` : null;
+}
+
 const invalid = (message) => new DomainError('VALIDATION_ERROR', message);
 
 /**

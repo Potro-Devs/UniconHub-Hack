@@ -14,6 +14,8 @@ import { HintCardsScreen } from '@/features/paper-mode/HintCardsScreen';
 import { QuickCaptureScreen } from '@/features/paper-mode/QuickCaptureScreen';
 import { QuizzesBuilderScreen } from '@/features/assessments/QuizzesBuilderScreen';
 import { PromoteGroupsScreen } from '@/features/school-admin/PromoteGroupsScreen';
+import { SchoolDashboardScreen } from '@/features/school-admin/SchoolDashboardScreen';
+import { SchoolTeachersScreen } from '@/features/school-admin/SchoolTeachersScreen';
 import { SchoolOverviewScreen } from '@/features/school-admin/SchoolOverviewScreen';
 import { TransfersScreen } from '@/features/school-admin/TransfersScreen';
 import { StudentAchievementsScreen } from '@/features/student-portal/StudentAchievementsScreen';
@@ -31,7 +33,18 @@ import { AppShellLayout } from '@/shared/components/AppShellLayout';
 import { RequireRole } from '@/shared/components/RequireRole';
 import { AppUiProvider } from '@/shared/state/AppUiContext';
 import { STAFF_ROLES } from '@/shared/state/session';
-import { SessionProvider } from '@/shared/state/SessionContext';
+import { SessionProvider, useSession } from '@/shared/state/SessionContext';
+
+/** Shell del personal: solo la docente carga sus grupos; el director solo usa su panel. */
+function StaffShell() {
+  const { session } = useSession();
+  if (session?.role !== 'teacher') return <AppShellLayout />;
+  return (
+    <TeacherGroupsProvider>
+      <AppShellLayout />
+    </TeacherGroupsProvider>
+  );
+}
 
 /**
  * Enrutador modular de Axi que separa cada ventana en su feature correspondiente.
@@ -49,31 +62,37 @@ export function App() {
             <Route
               element={
                 <RequireRole roles={STAFF_ROLES} redirectTo="/login">
-                  <TeacherGroupsProvider>
-                    <AppShellLayout />
-                  </TeacherGroupsProvider>
+                  <StaffShell />
                 </RequireRole>
               }
             >
-              <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
-              <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
-              <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
-              <Route path="/docente/tutores" element={
-                <RequireRole roles={['teacher']} redirectTo="/login">
-                  <TutoringScreen />
-                </RequireRole>
-              } />
-              <Route path="/docente/mapa" element={<GroupMapScreen />} />
-              <Route path="/docente/perfil" element={<StudentProfileScreen />} />
-              <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
-              <Route path="/docente/temario" element={<CurriculumScreen />} />
-              <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
-              <Route path="/docente/cuestionarios" element={<QuizzesBuilderScreen />} />
-              <Route path="/docente/hoja" element={<Navigate to="/docente/cuestionarios" replace />} />
-              <Route path="/docente/pistas" element={<HintCardsScreen />} />
-              <Route path="/docente/captura" element={<QuickCaptureScreen />} />
+              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
+                {/* Área docente. El director solo tiene su panel: cualquier otra ruta lo regresa ahí. */}
+                <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
+                <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
+                <Route path="/docente/tutores" element={<TutoringScreen />} />
+                <Route path="/docente/mapa" element={<GroupMapScreen />} />
+                <Route path="/docente/perfil" element={<StudentProfileScreen />} />
+                <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
+                <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
+                <Route path="/docente/temario" element={<CurriculumScreen />} />
+                <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
+                <Route path="/docente/cuestionarios" element={<QuizzesBuilderScreen />} />
+                <Route path="/docente/hoja" element={<Navigate to="/docente/cuestionarios" replace />} />
+                <Route path="/docente/pistas" element={<HintCardsScreen />} />
+                <Route path="/docente/captura" element={<QuickCaptureScreen />} />
+              </Route>
 
-              <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
+              <Route element={<RequireRole roles={['director']} redirectTo="/login" />}>
+                {/* Dirección con datos reales y agregados de la escuela. */}
+                <Route path="/direccion/panel" element={<SchoolDashboardScreen />} />
+                <Route path="/direccion/docentes" element={<SchoolTeachersScreen />} />
+              </Route>
+              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
+                {/* Vista previa de Dirección (Roadmap, datos de ejemplo) para la docente. */}
+                <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
+              </Route>
+              {/* Promoción y traslados: Roadmap con datos de ejemplo (director y vista previa docente). */}
               <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
               <Route path="/direccion/traslados" element={<TransfersScreen />} />
             </Route>

@@ -211,3 +211,142 @@ export function renderAnalyticsPdf(data) {
     } catch (error) { doc.destroy(); reject(error); }
   });
 }
+
+const SCHOOL_NOTICE = 'Reporte de uso escolar interno con promedios por escuela y grupo. Incluye el nombre del docente de cada grupo; no incluye nombres, folios ni datos individuales de alumnos.';
+const SCHOOL_METHODOLOGY = [
+  'Prioridades orientativas: cada habilidad se mide con un diagnóstico corto y el temario de cada grado está por validar con docentes. Son para conversar en el Consejo Técnico, no una calificación.',
+  'Cada grupo se evalúa solo en las habilidades del programa de su grado (fracciones desde 3.º, multiplicación desde 2.º) y con cortes de ese grado.',
+  'Escala: Necesita apoyo 0-24.99%; En proceso 25-49.99%; Logrado 50-74.99%; Dominado 75-100%. Sin evaluar no equivale a 0%.',
+  'Un campo formativo sin reactivos en la plataforma se reporta como "Sin evaluación", nunca como 0%.',
+  'Errores típicos: alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.',
+  'No es una evaluación del desempeño docente: los resultados dependen del punto de partida de cada grupo.',
+  'Campos formativos: Plan de Estudio 2022 (SEP). Fechas del CTE: tomadas de notas de prensa sobre el calendario escolar SEP del ciclo; confirmar en el acuerdo publicado en el DOF.',
+];
+const levelText = (average, label) => (average == null ? label : `${average.toFixed(2)}% · ${label}`);
+
+/**
+ * Panel de la escuela en PDF Carta, blanco y negro. Recibe el DTO autorizado de `getSchool`.
+ */
+export function renderSchoolPdf(data) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'LETTER', margin: 42, bufferPages: true,
+      info: { Title: 'Panel de la escuela', Author: 'Plataforma educativa' } });
+    const chunks = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    const width = 528;
+    const bottom = 720;
+    const subtitle = `${data.school.name} · Ciclo ${data.school.schoolYear ?? '—'}`;
+    const heading = (title) => {
+      doc.font('Helvetica-Bold').fontSize(17).fillColor('black').text(title, 42, 42, { width });
+      doc.moveDown(0.3).font('Helvetica').fontSize(10).text(subtitle, { width });
+      doc.moveDown(0.6);
+    };
+    const continuation = () => { doc.addPage(); heading('Panel de la escuela - continuación'); };
+    const ensure = (height) => { if (doc.y + height > bottom) continuation(); };
+    const section = (title) => {
+      ensure(70);
+      doc.moveDown(0.4).font('Helvetica-Bold').fontSize(13).fillColor('black').text(title, 42, doc.y, { width });
+      doc.moveDown(0.3);
+    };
+    const paragraph = (text, size = 10, bold = false) => {
+      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size);
+      ensure(doc.heightOfString(text, { width }));
+      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).text(text, 42, doc.y, { width });
+      doc.moveDown(0.35);
+    };
+    const rowHeight = (values, widths, bold) => {
+      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9);
+      return Math.max(19, ...values.map((v, i) => doc.heightOfString(String(v), { width: widths[i] - 10 }) + 8));
+    };
+    const tableHeight = (header, rows, widths) =>
+      rowHeight(header, widths, true) + rows.reduce((sum, row) => sum + rowHeight(row, widths, false), 0);
+    /** Título + tabla: si la tabla es corta y no cabe completa, ambos pasan juntos a la página siguiente. */
+    const tableSection = (title, header, rows, widths) => {
+      const total = tableHeight(header, rows, widths) + 30;
+      if (doc.y + total > bottom && total <= bottom - 120) continuation();
+      section(title);
+      table(header, rows, widths);
+    };
+    const table = (header, rows, widths) => {
+      const drawRow = (values, bold) => {
+        const height = rowHeight(values, widths, bold);
+        if (doc.y + height > bottom) {
+          continuation();
+          if (!bold) drawRow(header, true);
+        }
+        let x = 42;
+        const y = doc.y;
+        values.forEach((value, i) => {
+          doc.lineWidth(0.5).strokeColor('black').rect(x, y, widths[i], height).stroke();
+          doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9).fillColor('black')
+            .text(String(value), x + 5, y + 4, { width: widths[i] - 10 });
+          x += widths[i];
+        });
+        doc.y = y + height;
+        doc.x = 42;
+      };
+      drawRow(header, true);
+      rows.forEach((row) => drawRow(row, false));
+      doc.moveDown(0.5);
+    };
+    try {
+      const { summary } = data;
+      heading('Panel de la escuela');
+      paragraph(`${SCHOOL_NOTICE} Generado: ${generatedAt()} (Ciudad de México).`, 9);
+      if (data.cte) {
+        paragraph(`Próximo Consejo Técnico Escolar: ${data.cte.label}`
+          + (data.cte.source === 'rule'
+            ? ' (estimado: último viernes del mes; confirmar con el calendario oficial).'
+            : ' (calendario SEP del ciclo; confirmar en el DOF).'), 11, true);
+      }
+
+      tableSection('Indicadores generales', ['Indicador', 'Valor'], [
+        ['Grupos del ciclo', summary.groupCount],
+        ['Docentes con grupo', summary.teacherCount],
+        ['Alumnos inscritos', summary.studentCount],
+        ['Con diagnóstico', `${summary.evaluatedStudentCount} (${summary.evidencePercentage}%)`],
+        ['Necesitan apoyo en al menos una habilidad', `${summary.needsSupportCount} (${summary.needsSupportPercentage}%)`],
+        ['Temario visto (promedio de grupos)', `${summary.coveragePercentage}%`],
+      ], [360, 168]);
+
+      section(`Prioridades del mes${data.cte ? ` · CTE de ${data.cte.month}` : ''}`);
+      if (!data.priorities.length) paragraph('Sin alertas este mes.');
+      data.priorities.forEach((p, i) => {
+        paragraph(`${i + 1}. ${p.title}`, 10, true);
+        paragraph(`${p.detail} ${p.action}`, 9);
+      });
+
+      tableSection('Campos formativos (Plan de Estudio 2022)', ['Campo formativo', 'Promedio y nivel', 'Alumnos con dato', 'Necesitan apoyo'],
+        data.fields.map((f) => [f.name, f.assessed ? levelText(f.average, f.label) : 'Sin evaluación',
+          f.assessed ? f.evaluatedCount : '—', f.assessed ? f.needsSupportCount : '—']),
+        [190, 140, 100, 98]);
+
+      tableSection('Habilidades clave', ['Habilidad', 'Grados', 'Promedio y nivel', 'Con dato', 'Necesitan apoyo'],
+        data.skills.map((s) => [s.name, s.grades ?? '—', levelText(s.average, s.label), s.evaluatedCount, s.needsSupportCount]),
+        [150, 80, 130, 78, 90]);
+
+      tableSection('Resumen por grupo', ['Grupo', 'Docente', 'Alumnos', 'Con diagnóstico', 'Necesitan apoyo', 'Prioridad'],
+        data.groups.map((g) => [g.name, g.teacherName ?? '—', g.studentCount, `${g.evidencePercentage}%`,
+          `${g.needsSupportPercentage}%`, g.prioritySkill?.name ?? 'Sin diagnóstico']),
+        [52, 130, 56, 84, 84, 122]);
+
+      if (data.typicalErrors.length) {
+        tableSection('Errores típicos más frecuentes', ['Habilidad', 'Error típico', 'Alumnos', 'Grupos'],
+          data.typicalErrors.map((e) => [e.skillName, e.explanation, e.studentCount, e.groupCount]), [110, 298, 60, 60]);
+      }
+
+      section('Metodología y alcance');
+      SCHOOL_METHODOLOGY.forEach((text) => paragraph(text, 9));
+
+      const pages = doc.bufferedPageRange();
+      for (let index = pages.start; index < pages.start + pages.count; index += 1) {
+        doc.switchToPage(index);
+        doc.font('Helvetica').fontSize(8).text(`Uso escolar interno · Página ${index + 1} de ${pages.count}`, 42, 734,
+          { width, lineBreak: false, align: 'right' });
+      }
+      doc.end();
+    } catch (error) { doc.destroy(); reject(error); }
+  });
+}
