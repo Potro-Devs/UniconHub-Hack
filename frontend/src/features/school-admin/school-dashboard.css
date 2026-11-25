@@ -27,7 +27,7 @@
 .sd-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .sd-tab { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 1px solid var(--axi-border); border-radius: 999px; background: var(--axi-surface); color: var(--axi-muted); font-size: .9375rem; font-weight: 700; cursor: pointer; }
 .sd-tab[aria-selected='true'] { background: var(--axi-primary); border-color: var(--axi-primary); color: var(--axi-onPrimary); }
-.sd-tab:focus-visible, .sd-export:focus-visible { outline: 3px solid var(--axi-focusRing); outline-offset: 2px; }
+.sd-tab:focus-visible, .sd-export:focus-visible, [role='tabpanel']:focus-visible { outline: 3px solid var(--axi-focusRing); outline-offset: 2px; }
 
 /* Próximo CTE */
 .sd-cte { display: flex; flex-direction: column; gap: 8px; background: var(--axi-noticeBg); border-color: transparent; }

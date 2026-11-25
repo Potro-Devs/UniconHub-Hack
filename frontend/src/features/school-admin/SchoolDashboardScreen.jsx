@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { LEVELS } from '@/config/brand';
 import { errorMessageOf } from '@/shared/api/client';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
@@ -137,6 +137,7 @@ function GroupRow({ group }) {
 export function SchoolDashboardScreen() {
   const request = useSchoolAnalytics();
   const [tab, setTab] = useState('resumen');
+  const tabRefs = useRef({});
   const [download, setDownload] = useState({ pending: false, message: '', error: false });
 
   if (request.status === 'loading') return <p role="status" aria-live="polite">Cargando el panel de la escuela…</p>;
@@ -153,6 +154,18 @@ export function SchoolDashboardScreen() {
   const updated = formatDate(summary.latestRecordedAt);
   const maxErrorCount = Math.max(1, ...typicalErrors.map((e) => e.studentCount));
   const tabs = SECTIONS.filter((s) => s.id !== 'errores' || typicalErrors.length > 0);
+  // Si la pestaña activa desaparece (p. ej. ya no hay errores típicos), vuelve al resumen.
+  const activeTab = tabs.some((s) => s.id === tab) ? tab : 'resumen';
+  const onTabKeyDown = (event) => {
+    const index = tabs.findIndex((s) => s.id === activeTab);
+    const next = { ArrowRight: index + 1, ArrowDown: index + 1, ArrowLeft: index - 1, ArrowUp: index - 1,
+      Home: 0, End: tabs.length - 1 }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    const target = tabs[(next + tabs.length) % tabs.length];
+    setTab(target.id);
+    tabRefs.current[target.id]?.focus();
+  };
 
   const exportPdf = async () => {
     setDownload({ pending: true, message: '', error: false });
@@ -199,15 +212,16 @@ export function SchoolDashboardScreen() {
         <>
           <div className="sd-tabs" role="tablist" aria-label="Secciones del panel">
             {tabs.map((s) => (
-              <button key={s.id} type="button" role="tab" id={`sd-tab-${s.id}`} aria-selected={tab === s.id}
-                aria-controls={`sd-panel-${s.id}`} className="sd-tab" onClick={() => setTab(s.id)}>
+              <button key={s.id} type="button" role="tab" id={`sd-tab-${s.id}`} aria-selected={activeTab === s.id}
+                aria-controls={`sd-panel-${s.id}`} tabIndex={activeTab === s.id ? 0 : -1} className="sd-tab"
+                ref={(el) => { tabRefs.current[s.id] = el; }} onClick={() => setTab(s.id)} onKeyDown={onTabKeyDown}>
                 <InterfaceIcon name={s.icon} size={18} />{s.label}
               </button>
             ))}
           </div>
 
-          {tab === 'resumen' && (
-            <section role="tabpanel" id="sd-panel-resumen" aria-labelledby="sd-tab-resumen" className="sd-section">
+          {activeTab === 'resumen' && (
+            <section role="tabpanel" tabIndex={0} id="sd-panel-resumen" aria-labelledby="sd-tab-resumen" className="sd-section">
               <div className="sd-kpis">
                 <Kpi icon="groups" label="Alumnos inscritos" value={summary.studentCount} note={`En ${plural(summary.groupCount, 'grupo', 'grupos')}`} />
                 <Kpi icon="pencil" label="Con diagnóstico" value={`${summary.evidencePercentage}%`} meter={summary.evidencePercentage}
@@ -245,7 +259,7 @@ export function SchoolDashboardScreen() {
                     <span className="sd-cte-days">{cte.daysUntil === 0 ? 'Es hoy' : `Faltan ${plural(cte.daysUntil, 'día', 'días')}`}</span>
                     <p className="sd-muted">
                       {cte.source === 'calendar'
-                        ? 'Según el calendario escolar SEP del ciclo (sesiones ordinarias el último viernes del mes).'
+                        ? 'Calendario escolar SEP del ciclo (último viernes del mes), tomado de notas de prensa. Confírmalo en el calendario oficial publicado en el DOF.'
                         : 'Estimado: último viernes del mes. Confirma la fecha con el calendario oficial.'}
                     </p>
                   </aside>
@@ -254,8 +268,8 @@ export function SchoolDashboardScreen() {
             </section>
           )}
 
-          {tab === 'campos' && (
-            <section role="tabpanel" id="sd-panel-campos" aria-labelledby="sd-tab-campos" className="sd-section">
+          {activeTab === 'campos' && (
+            <section role="tabpanel" tabIndex={0} id="sd-panel-campos" aria-labelledby="sd-tab-campos" className="sd-section">
               <div className="sd-section-head">
                 <h2>Campos formativos</h2>
                 <span className="sd-muted">Plan de Estudio 2022 · SEP</span>
@@ -264,8 +278,8 @@ export function SchoolDashboardScreen() {
             </section>
           )}
 
-          {tab === 'habilidades' && (
-            <section role="tabpanel" id="sd-panel-habilidades" aria-labelledby="sd-tab-habilidades" className="sd-card sd-section">
+          {activeTab === 'habilidades' && (
+            <section role="tabpanel" tabIndex={0} id="sd-panel-habilidades" aria-labelledby="sd-tab-habilidades" className="sd-card sd-section">
               <div className="sd-section-head">
                 <h2>Habilidades clave</h2>
                 <span className="sd-muted">La línea marca 50% (Logrado)</span>
@@ -274,8 +288,8 @@ export function SchoolDashboardScreen() {
             </section>
           )}
 
-          {tab === 'grupos' && (
-            <section role="tabpanel" id="sd-panel-grupos" aria-labelledby="sd-tab-grupos" className="sd-section">
+          {activeTab === 'grupos' && (
+            <section role="tabpanel" tabIndex={0} id="sd-panel-grupos" aria-labelledby="sd-tab-grupos" className="sd-section">
               <div className="sd-section-head">
                 <h2>Resumen por grupo</h2>
                 <span className="sd-muted">Promedios del grupo; sin datos de alumnos</span>
@@ -287,8 +301,8 @@ export function SchoolDashboardScreen() {
             </section>
           )}
 
-          {tab === 'errores' && (
-            <section role="tabpanel" id="sd-panel-errores" aria-labelledby="sd-tab-errores" className="sd-card sd-section">
+          {activeTab === 'errores' && (
+            <section role="tabpanel" tabIndex={0} id="sd-panel-errores" aria-labelledby="sd-tab-errores" className="sd-card sd-section">
               <div className="sd-section-head">
                 <h2>Errores típicos frecuentes</h2>
                 <span className="sd-muted">Temas para el Consejo Técnico</span>
