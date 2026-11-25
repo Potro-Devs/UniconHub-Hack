@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { BiText } from '@/shared/i18n/LanguageContext';
 import { Mascot } from '@/features/mascot';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { useAppUi } from '@/shared/state/AppUiContext';
@@ -19,7 +20,7 @@ export function StudentHomeScreen() {
   const earnedCount = getEarnedAchievements(completedQuizzes).length;
   const launch = (id) => { if (startStudentQuiz(id)) navigate('/alumno/ejercicio'); };
   return <div className="kid-page">
-    <header className="kid-greeting"><div><p className="kid-eyebrow">TU ESPACIO PARA DESCUBRIR</p><h1>¡Hola, {pickFirstName(session?.student?.displayName, 'amiga o amigo')}!</h1><p>Hoy puedes aprender algo nuevo. A tu ritmo.</p></div><span className="kid-sun" aria-hidden="true">✦</span></header>
+    <header className="kid-greeting"><div><p className="kid-eyebrow">TU ESPACIO PARA DESCUBRIR</p><h1><BiText k="common.hello">Hola</BiText>, {pickFirstName(session?.student?.displayName, 'amiga o amigo')}!</h1><p>Hoy puedes aprender algo nuevo. A tu ritmo.</p></div><span className="kid-sun" aria-hidden="true">✦</span></header>
     <section className="kid-mission" aria-labelledby="kid-mission-title">
       <div className="kid-mission-copy"><span className="kid-tag">{next ? 'TU SIGUIENTE AVENTURA' : '¡LO HICISTE!'}</span><h2 id="kid-mission-title">{next ? next.heroTitle || next.title : 'Un paso más en tu camino'}</h2><p>{next ? `${next.questionCount} preguntas para explorar. Si necesitas ayuda, pide una pista.` : 'Terminaste tus actividades en pantalla. Puedes explorar tus logros.'}</p><button className="kid-button kid-button-primary" type="button" onClick={() => next ? launch(next.id) : navigate('/alumno/logros')}>{next ? '¡Vamos a comenzar!' : 'Ver mis logros'}<span aria-hidden="true">✦</span></button><span className="kid-reassurance">Sin prisa. Pedir ayuda también es aprender.</span></div>
       <div className="kid-mascot-island" aria-hidden="true"><span className="kid-island-spark kid-island-spark-one">✦</span><Mascot size={200} color={axiColor} mood="feliz" animated={false}/><span className="kid-island-spark kid-island-spark-two">✧</span><div className="kid-island-ground" /></div>

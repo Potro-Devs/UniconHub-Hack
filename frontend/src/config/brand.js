@@ -3,6 +3,8 @@
  * Permite reemplazar el nombre provisional sin refactorizar componentes.
  */
 export const APP_NAME = 'Axi';
+export const TEAM_LEARNING_NAME = 'Aprendemos en equipo';
+export const TEAM_LEARNING_SHORT_NAME = 'En equipo';
 
 export const COLORS = {
   ink: '#18203A',

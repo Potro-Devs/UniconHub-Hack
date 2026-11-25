@@ -374,3 +374,63 @@ reevaluatedCount, overcameCount, stillWithErrorCount, awaitingCount }`:
   cuenta como avance ni como pendiente de mejora.
 - `status`: `awaiting_retest` si nadie del grupo base ha sido reevaluado;
   `measured` en otro caso.
+
+## Aprendemos en equipo (`/api/v1/tutoring`)
+
+La interfaz usa «compañero guía» y «equipos». Los nombres de rutas y campos (`tutor`, `tutee`) se conservan para mantener la compatibilidad de la API.
+
+Requiere sesión. El docente consulta y modifica únicamente sus grupos; dirección
+consulta los de su escuela. Sin sesión: 401; alumno: 403; dirección al escribir:
+403; grupo ajeno o inexistente: 404 `GROUP_NOT_FOUND`. Solo se incluyen alumnos
+con matrícula activa. Las respuestas no exponen folios internos.
+
+| Método y ruta | `data` |
+| --- | --- |
+| `GET /groups/:groupId/proposal?skillCode=multiplication` | `{ group, skill, skills, maxPerTutor, pairs, teacherTable, availableTutors, tutors }` |
+| `GET /groups/:groupId/sessions` | `{ group, sessions, network }` |
+| `POST /groups/:groupId/sessions` | Sesión guardada, con sus parejas (201) |
+| `PATCH /groups/:groupId/pairs/:pairId/demonstration` | `{ id, demonstration, demonstratedAt }` |
+| `GET /groups/:groupId/sessions/:sessionId/cards.pdf` | Tarjetas para repartir, `application/pdf` |
+| `GET /groups/:groupId/sessions/:sessionId/key.pdf` | Clave y mesa docente, `application/pdf` |
+
+La propuesta usa la habilidad solicitada o prioriza una con tutores disponibles
+y más alumnos por acompañar. Puede enseñar quien tiene dominio autónomo
+`mastered` o una última demostración de 3/3 en esa habilidad. Reciben tutoría
+quienes están en `needs_support` o `in_progress` y aún no demostraron 3/3.
+Se prefiere un tutor que haya mostrado antes el mismo error típico; cada tutor
+acompaña como máximo a dos alumnos y el resto queda en la mesa docente. Esta
+propuesta es privada para el personal escolar y no constituye un ranking.
+
+`POST` acepta exactamente `{ skillCode, note?, pairs: [{ tutorId, tuteeId }] }`.
+`tutorId` es un entero positivo o `null` (mesa docente); `tuteeId`, entero positivo.
+Admite entre 1 y 80 parejas y una nota de hasta 300 caracteres. Rechaza
+autoparejas, tutorados repetidos, un alumno como tutor y tutorado en la misma
+sesión o más de dos compañeros por tutor. Cuerpo inválido: 400
+`VALIDATION_ERROR`; alumno inactivo o ajeno al grupo: 404 `STUDENT_NOT_FOUND`;
+tutor sin evidencia suficiente: 422 `TUTOR_NOT_READY`. La creación es atómica.
+
+`PATCH` acepta exactamente `{ correct: 0 | 1 | 2 | 3 }`, los aciertos sin ayuda
+en tres reactivos. `demonstration` contiene `{ code, label, correct, total: 3 }`:
+3/3 es `ready_to_teach` ("Ya puede enseñarlo"), 2/3 es `progressing` ("Va
+avanzando") y 0–1/3 es `keep_practicing` ("Seguimos practicando juntos").
+Se puede corregir una captura; la última demostración registrada determina si
+puede enseñar. Una pareja ajena al grupo o con tutorado retirado responde 404
+`PAIR_NOT_FOUND`. Estas capturas nunca modifican `skill_mastery_history`,
+respuestas de evaluaciones ni logros oficiales.
+Para imprimir cualquiera de los PDF o registrar una demostración se necesitan
+al menos tres reactivos distintos de la habilidad en el grado del grupo; si no
+hay suficientes, responde 422 `INSUFFICIENT_DEMONSTRATION_QUESTIONS` y no guarda
+aciertos ni habilita nuevos tutores.
+
+`network` incluye cantidades por habilidad, errores trabajados y alumnos que
+pueden enseñar, sin comparar posiciones. Las consultas agregan
+`meta.contentReview`: guiones y frases por validar con docente de primaria.
+El idioma de la interfaz es una preferencia local del dispositivo y no requiere
+el módulo de apoyos ni almacena la lengua del alumno en este servicio.
+
+Los PDF son Carta, blanco y negro, con `Content-Disposition: attachment` y
+`Cache-Control: no-store`. Las tarjetas contienen práctica, tres pistas y
+demostración; no imprimen la clave de respuestas. La clave es un documento
+separado para uso docente. Los nombres de las parejas se incluyen solo en estos
+documentos privados autenticados; no se incluyen folios internos. Una sesión
+inexistente o de otro grupo responde 404 `SESSION_NOT_FOUND`.

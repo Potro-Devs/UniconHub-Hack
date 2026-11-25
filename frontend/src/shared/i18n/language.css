@@ -1,0 +1,24 @@
+/* Selector de idioma y texto bilingüe (español debajo, más pequeño). */
+.lang-switch-wrap { display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.lang-switch { display:inline-flex; border:1px solid var(--axi-borderInput); border-radius:12px; overflow:hidden; background:var(--axi-surface); }
+.lang-switch button { min-height:44px; min-width:44px; padding:0 10px; border:0; background:var(--axi-surface); font-weight:700; cursor:pointer; color:var(--axi-ink); font-size:.85rem; }
+.lang-switch button + button { border-left:1px solid var(--axi-borderInput); }
+.lang-switch button[aria-pressed="true"] { background:var(--axi-primary); color:var(--axi-onPrimary); }
+.lang-switch button:focus-visible { outline:3px solid var(--axi-focusRing); outline-offset:-3px; }
+.lang-note { font-size:.75rem; color:var(--axi-muted); }
+.bi-text { display:inline-flex; flex-direction:column; line-height:1.15; text-align:inherit; }
+.bi-text small { font-size:.75em; font-weight:400; opacity:.85; }
+.bi-text, .bi-text-compact { min-width:0; overflow-wrap:anywhere; }
+
+/* Filas propias para evitar comprimir encabezados en celular. */
+.language-toolbar { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:12px; padding:8px 18px; background:var(--axi-surface); }
+.language-toolbar--public { max-width:1280px; margin:auto; padding:0 32px 12px; background:transparent; }
+.language-toolbar--activity { max-width:1100px; margin:auto; padding:0 24px 8px; background:transparent; }
+.language-tools { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:12px; min-width:0; }
+.student-utility { flex-wrap:wrap; }
+.student-utility .language-tools { margin-left:auto; }
+@media (max-width:639px) {
+  .language-toolbar--public, .language-toolbar--activity { padding-right:16px; padding-left:16px; }
+  .student-utility .language-tools .lang-switch-wrap { display:inline-flex; }
+}
+@media print { .language-toolbar, .lang-switch-wrap { display:none !important; } }
