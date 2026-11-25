@@ -178,6 +178,10 @@ export function SchoolDashboardScreen() {
 
             <section aria-labelledby="sd-priorities" className="sd-section">
               <div className="sd-section-head"><h2 id="sd-priorities">Prioridades para decidir</h2></div>
+              <p className="sd-muted">
+                Orientativas: cada habilidad se mide con un diagnóstico corto (4 reactivos) y el temario de cada grado
+                está por validar con docentes. Úsalas para conversar en el Consejo Técnico, no como calificación.
+              </p>
               {priorities.length === 0 ? (
                 <div className="sd-card"><p className="sd-muted">No hay alertas: los grupos tienen diagnóstico y avance del temario.</p></div>
               ) : (
