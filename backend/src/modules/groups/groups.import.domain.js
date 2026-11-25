@@ -22,8 +22,9 @@ export function parseImportInput(body) {
     || typeof body.fileName !== 'string' || typeof body.contentBase64 !== 'string' || !body.contentBase64) {
     throw invalid('Elige un archivo de Excel (.xlsx) o CSV con la lista de alumnos.');
   }
-  const extension = body.fileName.toLowerCase().split('.').pop();
-  if (!IMPORT_EXTENSIONS.includes(extension)) {
+  const match = /\.([a-z0-9]+)$/i.exec(body.fileName.trim());
+  const extension = match?.[1].toLowerCase();
+  if (!extension || !IMPORT_EXTENSIONS.includes(extension)) {
     throw invalid('Guarda la lista como Excel (.xlsx) o CSV (.csv) e inténtalo de nuevo.');
   }
   const buffer = Buffer.from(body.contentBase64, 'base64');
@@ -62,19 +63,25 @@ export function parseCsv(text) {
   return rows;
 }
 
+/**
+ * Columnas según los encabezados. `single` = una sola columna con el nombre completo
+ * ("Nombre completo", "Alumno"), que se separa como "Paterno Materno Nombre(s)".
+ */
 function headerColumns(cells) {
   const folded = cells.map(fold);
-  if (!folded.some((c) => c.includes('apellido') || c.includes('nombre') || c.includes('alumno'))) return null;
-  const find = (test) => folded.findIndex(test);
+  const isName = (c) => (c.includes('nombre') || c.includes('alumno')) && !c.includes('apellido');
+  if (!folded.some((c) => c.includes('apellido') || isName(c))) return null;
   const surnames = folded.map((c, i) => (c.includes('apellido') ? i : -1)).filter((i) => i >= 0);
-  const paterno = find((c) => c.includes('paterno'));
-  const materno = find((c) => c.includes('materno'));
-  const nombre = find((c) => c.includes('nombre') && !c.includes('apellido'));
-  return {
-    paterno: paterno >= 0 ? paterno : surnames[0] ?? 0,
-    materno: materno >= 0 ? materno : surnames[1] ?? -1,
-    nombre: nombre >= 0 ? nombre : 2,
-  };
+  const nameIndex = folded.findIndex(isName);
+  if (surnames.length === 0) return { single: nameIndex >= 0 ? nameIndex : 0 };
+  const paternoIdx = folded.findIndex((c) => c.includes('paterno'));
+  const maternoIdx = folded.findIndex((c) => c.includes('materno'));
+  const paterno = paternoIdx >= 0 ? paternoIdx : surnames[0];
+  const materno = maternoIdx >= 0 ? maternoIdx : surnames.find((i) => i !== paterno) ?? -1;
+  // Nombre: su encabezado o, si falta, la primera columna con texto que no sea de apellidos.
+  const nombre = nameIndex >= 0 ? nameIndex
+    : folded.findIndex((c, i) => c && i !== paterno && i !== materno);
+  return { paterno, materno, nombre };
 }
 
 /** "Paterno Materno Nombre(s)" en una sola celda → apellidos y nombres. */
@@ -99,6 +106,7 @@ export function rowsToStudentList(rows) {
 
   const columns = headerColumns(entries[0].cells);
   const dataRows = columns ? entries.slice(1) : entries;
+  if (dataRows.length === 0) throw invalid('El archivo solo trae encabezados. Agrega la lista de alumnos debajo.');
   if (dataRows.length > MAX_BULK_LINES) {
     throw invalid(`El archivo tiene ${dataRows.length} alumnos; el máximo es ${MAX_BULK_LINES} por carga.`,
       { maxLines: MAX_BULK_LINES, lineCount: dataRows.length });
@@ -106,7 +114,9 @@ export function rowsToStudentList(rows) {
 
   const lines = dataRows.map(({ cells }) => {
     const filled = cells.filter(Boolean);
+    if (columns?.single !== undefined) return splitSingleCell(cells[columns.single] || filled.join(' '));
     if (columns) {
+      if (columns.nombre < 0) return filled.join(' ');
       const lastNames = [cells[columns.paterno], columns.materno >= 0 ? cells[columns.materno] : ''].filter(Boolean).join(' ');
       const firstNames = cells[columns.nombre] ?? '';
       return lastNames && firstNames ? `${lastNames}, ${firstNames}` : filled.join(' ');

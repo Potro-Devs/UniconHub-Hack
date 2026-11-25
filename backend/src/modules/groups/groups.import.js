@@ -29,10 +29,11 @@ export async function readSpreadsheetRows(kind, buffer) {
   }
   const sheet = workbook.worksheets[0];
   if (!sheet) return [];
+  // El índice + 1 es el número de fila en Excel: las filas vacías quedan como [] para no recorrer la numeración.
   const rows = [];
   sheet.eachRow({ includeEmpty: false }, (row) => {
     const values = Array.isArray(row.values) ? row.values.slice(1) : [];
-    rows.push(values.map(cellText));
+    rows[row.number - 1] = values.map(cellText);
   });
-  return rows;
+  return Array.from(rows, (cells) => cells ?? []);
 }
