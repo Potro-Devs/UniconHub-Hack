@@ -258,7 +258,16 @@ export function renderSchoolPdf(data) {
     };
     const rowHeight = (values, widths, bold) => {
       doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9);
-      return Math.max(22, ...values.map((v, i) => doc.heightOfString(String(v), { width: widths[i] - 10 }) + 10));
+      return Math.max(19, ...values.map((v, i) => doc.heightOfString(String(v), { width: widths[i] - 10 }) + 8));
+    };
+    const tableHeight = (header, rows, widths) =>
+      rowHeight(header, widths, true) + rows.reduce((sum, row) => sum + rowHeight(row, widths, false), 0);
+    /** Título + tabla: si la tabla es corta y no cabe completa, ambos pasan juntos a la página siguiente. */
+    const tableSection = (title, header, rows, widths) => {
+      const total = tableHeight(header, rows, widths) + 30;
+      if (doc.y + total > bottom && total <= bottom - 120) continuation();
+      section(title);
+      table(header, rows, widths);
     };
     const table = (header, rows, widths) => {
       const drawRow = (values, bold) => {
@@ -272,7 +281,7 @@ export function renderSchoolPdf(data) {
         values.forEach((value, i) => {
           doc.lineWidth(0.5).strokeColor('black').rect(x, y, widths[i], height).stroke();
           doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9).fillColor('black')
-            .text(String(value), x + 5, y + 5, { width: widths[i] - 10 });
+            .text(String(value), x + 5, y + 4, { width: widths[i] - 10 });
           x += widths[i];
         });
         doc.y = y + height;
@@ -293,8 +302,7 @@ export function renderSchoolPdf(data) {
             : ' (calendario SEP del ciclo; confirmar en el DOF).'), 11, true);
       }
 
-      section('Indicadores generales');
-      table(['Indicador', 'Valor'], [
+      tableSection('Indicadores generales', ['Indicador', 'Valor'], [
         ['Grupos del ciclo', summary.groupCount],
         ['Docentes con grupo', summary.teacherCount],
         ['Alumnos inscritos', summary.studentCount],
@@ -310,26 +318,22 @@ export function renderSchoolPdf(data) {
         paragraph(`${p.detail} ${p.action}`, 9);
       });
 
-      section('Campos formativos (Plan de Estudio 2022)');
-      table(['Campo formativo', 'Promedio y nivel', 'Alumnos con dato', 'Necesitan apoyo'],
+      tableSection('Campos formativos (Plan de Estudio 2022)', ['Campo formativo', 'Promedio y nivel', 'Alumnos con dato', 'Necesitan apoyo'],
         data.fields.map((f) => [f.name, f.assessed ? levelText(f.average, f.label) : 'Sin evaluación',
           f.assessed ? f.evaluatedCount : '—', f.assessed ? f.needsSupportCount : '—']),
         [190, 140, 100, 98]);
 
-      section('Habilidades clave');
-      table(['Habilidad', 'Grados', 'Promedio y nivel', 'Con dato', 'Necesitan apoyo'],
+      tableSection('Habilidades clave', ['Habilidad', 'Grados', 'Promedio y nivel', 'Con dato', 'Necesitan apoyo'],
         data.skills.map((s) => [s.name, s.grades ?? '—', levelText(s.average, s.label), s.evaluatedCount, s.needsSupportCount]),
         [150, 80, 130, 78, 90]);
 
-      section('Resumen por grupo');
-      table(['Grupo', 'Docente', 'Alumnos', 'Con diagnóstico', 'Necesitan apoyo', 'Prioridad'],
+      tableSection('Resumen por grupo', ['Grupo', 'Docente', 'Alumnos', 'Con diagnóstico', 'Necesitan apoyo', 'Prioridad'],
         data.groups.map((g) => [g.name, g.teacherName ?? '—', g.studentCount, `${g.evidencePercentage}%`,
           `${g.needsSupportPercentage}%`, g.prioritySkill?.name ?? 'Sin diagnóstico']),
         [52, 130, 56, 84, 84, 122]);
 
       if (data.typicalErrors.length) {
-        section('Errores típicos más frecuentes');
-        table(['Habilidad', 'Error típico', 'Alumnos', 'Grupos'],
+        tableSection('Errores típicos más frecuentes', ['Habilidad', 'Error típico', 'Alumnos', 'Grupos'],
           data.typicalErrors.map((e) => [e.skillName, e.explanation, e.studentCount, e.groupCount]), [110, 298, 60, 60]);
       }
 

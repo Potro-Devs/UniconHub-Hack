@@ -19,7 +19,7 @@ import { createErrorHandler, notFoundHandler } from './shared/middleware/errorHa
  *
  * @param {{ db: import('node:sqlite').DatabaseSync, config?: object, logger?: Console }} deps
  */
-export function createApp({ db, config = env, logger = console }) {
+export function createApp({ db, config = env, logger = console, now }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(cors({ origin: config.corsOrigin }));
@@ -42,7 +42,8 @@ export function createApp({ db, config = env, logger = console }) {
   app.use('/api/v1/curriculum', createCurriculumRouter({ db, requireAuth }));
   app.use('/api/v1/assessments', createAssessmentsRouter({ db, requireAuth }));
   app.use('/api/v1/diagnostics', createDiagnosticsRouter({ db, requireAuth }));
-  app.use('/api/v1/analytics', createAnalyticsRouter({ db, requireAuth }));
+  // `now` permite fijar la fecha en pruebas (próxima sesión del CTE); por defecto, la fecha real.
+  app.use('/api/v1/analytics', createAnalyticsRouter({ db, requireAuth, now }));
   app.use('/api/v1/games', createGamesRouter({ db, requireAuth }));
   app.use('/api/v1/interventions', createInterventionsRouter({ db, requireAuth }));
 
