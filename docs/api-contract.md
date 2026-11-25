@@ -55,6 +55,7 @@ Todos los endpoints exigen sesión.
 | `GET /:groupId/students` | teacher, director | — | `[Student]` (solo inscritos activos) · `meta: { count }` | 400, 401, 403, 404 |
 | `POST /:groupId/students` | teacher | `{ firstNames, lastNames }` | `Student` (201) | 400, 401, 403, 404 |
 | `POST /:groupId/students/bulk` | teacher | `{ text }` (un alumno por línea) | `{ created: [Student] }` (201) · `meta: { createdCount }` | 400 (`details.invalidLines` si hay líneas inválidas), 401, 403, 404 |
+| `POST /:groupId/students/import-preview` | teacher | `{ fileName, contentBase64 }` (`.xlsx` o `.csv`, máx. 60 KB) | `{ text, studentCount, invalidRows: [{ row, text }], headerDetected }`: lista "Apellidos, Nombres" lista para `POST /bulk`. **No guarda alumnos.** Columnas: apellido paterno, apellido materno, nombre(s); con encabezados se ubican por nombre; CSV con `,` `;` o tabulador, UTF-8 o Latin-1. | 400 (formato, archivo dañado o vacío, más de 60 alumnos), 401, 403, 404 |
 | `PATCH /students/:studentId/avatar` | teacher, student | `{ avatarId?, avatarColor? }` (al menos uno) | `Student` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
 
 - `Group`: `{ id, name: "3.º A", grade, section, schoolYear, phase, joinCode, teacherId, studentCount }`. `phase` se calcula del grado (3: 1.º–2.º, 4: 3.º–4.º, 5: 5.º–6.º); `studentCount` cuenta inscripciones activas.

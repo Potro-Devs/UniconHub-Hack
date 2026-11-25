@@ -13,4 +13,7 @@ export const groupsApi = {
     apiClient.post(`/groups/${encodeURIComponent(groupId)}/students`, { firstNames, lastNames }),
   addStudentsBulk: (groupId, text) =>
     apiClient.post(`/groups/${encodeURIComponent(groupId)}/students/bulk`, { text }),
+  /** Lee un .xlsx o .csv y devuelve la lista "Apellidos, Nombres" (no guarda). */
+  previewStudentImport: (groupId, fileName, contentBase64) =>
+    apiClient.post(`/groups/${encodeURIComponent(groupId)}/students/import-preview`, { fileName, contentBase64 }),
 };

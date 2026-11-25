@@ -33,5 +33,6 @@ export function createGroupsRouter({ db, requireAuth, random }) {
   router.get('/:groupId/students', staff, controller.listStudents);
   router.post('/:groupId/students', teacher, controller.addStudent);
   router.post('/:groupId/students/bulk', teacher, controller.addStudentsBulk);
+  router.post('/:groupId/students/import-preview', teacher, controller.previewStudentImport);
   return router;
 }
