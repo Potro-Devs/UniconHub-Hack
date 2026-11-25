@@ -7,6 +7,8 @@
  */
 import bcrypt from 'bcryptjs';
 import { computeWeightedMastery, getMasteryLevel } from '../../modules/analytics/analytics.domain.js';
+import { MIN_QUESTIONS_PER_SKILL } from '../../modules/assessments/assessments.domain.js';
+import { isSkillInGrade } from '../../modules/curriculum/curriculum.domain.js';
 import { AVATAR_PALETTE, buildInitials, generateInternalFolio } from '../../modules/groups/groups.domain.js';
 import { DEMO, FIRST_NAMES, LAST_NAMES, SKILL_BASE } from './demo.data.js';
 import { clamp, createRng, round2 } from './random.js';
@@ -99,10 +101,11 @@ export function insertSchoolGroups(db, { seed = SCHOOL_GROUPS_SEED } = {}) {
     });
 
     // Diagnóstico inicial en pantalla, una prueba por habilidad
-    for (const skill of skills) {
+    // Solo las habilidades del programa del grado (sin fracciones en 1.º y 2.º).
+    for (const skill of skills.filter((s) => isSkillInGrade(s.code, g.grade))) {
       const questions = questionsOf.all(g.grade, skill.id).slice(0, 4)
         .map((q) => ({ id: q.id, options: optionsOf.all(q.id) }));
-      if (questions.length < 3) continue;
+      if (questions.length < MIN_QUESTIONS_PER_SKILL) continue;
       const assignmentId = run(
         "INSERT INTO assignments (group_id, created_by, title, modality, status, created_at) VALUES (?, ?, ?, 'screen', 'closed', ?)",
         groupId, teacherId, `Diagnóstico inicial · ${skill.name}`, `${DIAGNOSTIC_DAY} 08:30:00`,

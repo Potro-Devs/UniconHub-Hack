@@ -2,13 +2,13 @@
 import { HttpError } from '../../shared/errors/HttpError.js';
 import { createGroupAccess } from '../groups/groups.access.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
-import { computeCoverage, CURRICULUM_REVIEW_NOTICE } from '../curriculum/curriculum.domain.js';
+import { computeCoverage, CURRICULUM_REVIEW_NOTICE, isSkillInGrade, skillGradesLabel } from '../curriculum/curriculum.domain.js';
 import { buildStudentSkills, summarizeGroupSkills, countStudentsNeedingSupport,
   findWeakestSkill, selectRecommendedActivity, toHistoryDto, parseAnalyticsSelection,
   selectAnalyticsStudents, summarizeGroupEvidence, summarizeAutonomyProgress, buildNextStep } from './analytics.domain.js';
 import { renderAnalyticsPdf, renderAnalyticsXlsx } from './analytics.export.js';
 import { buildSchoolPriorities, currentSchoolYear, mapSkillsToFields, mergeTypicalErrors, summarizeFields,
-  summarizeSchool, summarizeSchoolGroup, summarizeSkills } from './analytics.school.domain.js';
+  summarizeSchool, summarizeSchoolGroup, summarizeSkills, summarizeTeachers } from './analytics.school.domain.js';
 
 const groupDto = (group) => ({ id: group.id, grade: group.grade, section: group.section, schoolYear: group.school_year });
 const studentDto = (student) => ({ id: student.id, name: `${student.first_names} ${student.last_names}`,
@@ -76,27 +76,33 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
       const fieldSkills = mapSkillsToFields(repository.listSkillFields());
       const allStudents = [];
       const errorsPerGroup = [];
-      const groups = allGroups.filter((g) => g.school_year === schoolYear).map((group) => {
-        const history = repository.listGroupHistory(group.id, school.id);
+      const currentGroups = allGroups.filter((g) => g.school_year === schoolYear);
+      const groups = currentGroups.map((group) => {
+        // Solo las habilidades del programa de su grado (p. ej. fracciones desde 3.º) y cortes de ese grado.
+        const gradeSkills = skillRows.filter((s) => isSkillInGrade(s.code, group.grade));
+        const history = repository.listGroupHistory(group.id, school.id).filter((cut) => cut.grade === group.grade);
         const students = groupsRepository.listActiveStudents(group.id).map((student) => ({
-          skills: buildStudentSkills(skillRows, history.filter((cut) => cut.student_id === student.id)),
+          skills: buildStudentSkills(gradeSkills, history.filter((cut) => cut.student_id === student.id)),
         }));
         allStudents.push(...students);
-        errorsPerGroup.push(errorDtos(repository.listTypicalErrors(group.id, school.id)));
+        errorsPerGroup.push(errorDtos(repository.listGroupErrorTags(group.id, school.id))
+          .filter((e) => isSkillInGrade(e.skillCode, group.grade)));
         const contents = curriculumRepository.listContentsWithProgress(group.id, group.grade);
         const coverage = computeCoverage(contents.length, contents.map((c) => ({ status: c.status ?? 'pending' })));
         return summarizeSchoolGroup({ id: group.id, grade: group.grade, section: group.section,
-          schoolYear: group.school_year, teacherName: group.teacher_name }, students, skillRows, fieldSkills, coverage);
+          schoolYear: group.school_year, teacherName: group.teacher_name }, students, gradeSkills, fieldSkills, coverage);
       });
-      const skills = summarizeSkills(allStudents, skillRows);
-      const dates = allStudents.flatMap((st) => st.skills.map((s) => s.recordedAt).filter(Boolean));
+      const skills = summarizeSkills(allStudents, skillRows)
+        .map((s) => ({ ...s, grades: skillGradesLabel(s.code) }));
+      const teacherIds = currentGroups.map((g) => g.teacher_id);
       return { data: {
         school: { id: school.id, name: school.name, schoolYear },
-        summary: { ...summarizeSchool(groups),
-          latestRecordedAt: dates.reduce((latest, d) => (latest === null || d > latest ? d : latest), null) },
+        summary: { ...summarizeSchool(groups, teacherIds),
+          latestRecordedAt: summarizeGroupEvidence(allStudents).latestRecordedAt },
         fields: summarizeFields(allStudents, fieldSkills, skillRows),
         skills,
         groups,
+        teachers: summarizeTeachers(currentGroups.map((g, i) => ({ teacherId: g.teacher_id, group: groups[i] }))),
         priorities: buildSchoolPriorities(groups, skills),
         typicalErrors: mergeTypicalErrors(errorsPerGroup, skillRows),
       }, meta: { ...meta, source: 'SEP, Plan de Estudio 2022 (campos formativos)' } };

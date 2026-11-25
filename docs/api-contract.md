@@ -183,12 +183,18 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
     `{ code, name, assessed, skills: [{ code, name }], average, level, label, evaluatedCount, needsSupportCount, distribution }`.
     Un campo sin habilidades evaluadas en Axi trae `assessed: false` y `average: null` (nunca 0 %).
     El dominio por campo de cada alumno es el promedio de sus habilidades evaluadas en ese campo.
-  - `skills`: `{ code, name, average, level, label, evaluatedCount, needsSupportCount }` de toda la escuela.
+  - Cada grupo solo usa las habilidades del programa de su grado y los cortes de ese grado
+    (`SKILL_GRADE_RANGE` en `curriculum.domain.js`: fracciones de 3.º a 6.º, multiplicación de 2.º a 6.º).
+  - `skills`: `{ code, name, average, level, label, evaluatedCount, needsSupportCount, grades }` de toda la escuela (`grades`: "3.º a 6.º").
+  - `teachers`: `{ name, groups: ["3.º A"], studentCount, evaluatedStudentCount, needsSupportCount, evidencePercentage }` (sin correos).
   - `groups`: `{ id, name, grade, section, schoolYear, teacherName, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, fields, skills, prioritySkill, coveragePercentage }`.
   - `priorities`: `{ type, title, detail, action, groupIds, skillCode? }` con `type` ∈ `evidence` (< 50 % con diagnóstico),
     `skill` (habilidad con menor dominio de la escuela), `group_support` (hasta 3 grupos con más alumnos que necesitan apoyo),
     `coverage` (< 25 % del temario visto).
-  - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`.
+  - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`;
+    `studentCount` son alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.
+  - Nota: la interfaz del director solo usa este endpoint, pero la API conserva su lectura de
+    `/groups`, `/analytics/groups/*`, `/curriculum`, `/assessments` e `/interventions` de su escuela (pendiente de restringir).
 - `GET /groups/:groupId`: `{ data: { group, skills, students, summary }, meta }`.
 - `GET /groups/:groupId/students/:studentId`: `{ data: { group, student, skills, history, recommendedActivity, typicalErrors }, meta }`.
 - `group`: `{ id, grade, section, schoolYear }`.

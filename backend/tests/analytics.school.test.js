@@ -71,7 +71,7 @@ describe('analytics.school.domain', () => {
     assert.equal(a.prioritySkill.code, 'fractions');
     assert.equal(b.evidencePercentage, 33.33);
 
-    const school = summarizeSchool([a, b]);
+    const school = summarizeSchool([a, b], [10, null]);
     assert.equal(school.studentCount, 5);
     assert.equal(school.teacherCount, 1);
     assert.equal(school.coveragePercentage, 30);
@@ -131,6 +131,21 @@ describe('GET /api/v1/analytics/school', () => {
     assert.equal(summary.studentCount, groups.reduce((n, g) => n + g.studentCount, 0));
     assert.equal(summary.teacherCount, 7);
     assert.ok(priorities.some((p) => p.type === 'evidence'), '6.º A tiene poco diagnóstico');
+
+    // Solo habilidades del programa de cada grado: sin fracciones en 1.º y 2.º, sin multiplicación en 1.º.
+    const byName = Object.fromEntries(groups.map((g) => [g.name, g]));
+    assert.deepEqual(byName['1.º A'].skills.map((s) => s.code).sort(), ['place_value', 'problem_solving', 'reading_comprehension']);
+    assert.ok(!byName['2.º A'].skills.some((s) => s.code === 'fractions'));
+    assert.ok(byName['3.º B'].skills.some((s) => s.code === 'fractions'));
+    for (const g of groups) {
+      if (g.prioritySkill) assert.ok(g.skills.some((s) => s.code === g.prioritySkill.code), g.name);
+    }
+    // 3.º A aún no tiene la prueba de fracciones (papel pendiente): no usa cortes de 1.º y 2.º.
+    assert.equal(byName['3.º A'].skills.find((s) => s.code === 'fractions').average, null);
+    const skillPriority = priorities.find((p) => p.type === 'skill');
+    if (skillPriority?.skillCode === 'fractions') assert.match(skillPriority.title, /3\.º a 6\.º/);
+    assert.ok(body.data.skills.every((s) => typeof s.grades === 'string'));
+    assert.ok(Array.isArray(body.data.teachers) && body.data.teachers.length === 7);
     assert.equal(fields.length, 4);
     assert.equal(fields.find((f) => f.code === 'lenguajes').assessed, true);
     assert.equal(fields.find((f) => f.code === 'de_lo_humano_comunitario').assessed, false);

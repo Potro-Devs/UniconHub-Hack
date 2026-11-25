@@ -15,9 +15,16 @@ export const SEP_FORMATIVE_FIELDS = Object.freeze(
 
 /** Por debajo de este % de alumnos con diagnóstico, el dato del grupo aún no es representativo. */
 export const MIN_EVIDENCE_PERCENTAGE = 50;
+/** Umbral de "Logrado" en la escala de 25 % (AGENTS.md §4.3). */
+export const ACHIEVED_MIN = MASTERY_LEVELS.find((l) => l.code === 'achieved').min;
+/** Un grupo se sugiere para acompañamiento si al menos este % de alumnos necesita apoyo. */
+export const GROUP_SUPPORT_PERCENTAGE = 50;
+/** Conteos menores no se reportan en agregados de escuela, para no permitir reidentificar alumnos. */
+export const MIN_REPORTABLE_COUNT = 3;
 /** Avance del temario (contenidos vistos) a partir del cual no se marca como prioridad. */
 export const MIN_COVERAGE_PERCENTAGE = 25;
 
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const average = (values) => (values.length ? roundPercentage(values.reduce((sum, v) => sum + v, 0) / values.length) : null);
 const pct = (part, total) => (total ? roundPercentage((part / total) * 100) : 0);
 
@@ -152,6 +159,7 @@ export function mergeTypicalErrors(perGroup, skillRows, limit = 5) {
   });
   const skillName = Object.fromEntries(skillRows.map((s) => [s.code, s.name]));
   return [...byKey.values()]
+    .filter((e) => e.studentCount >= MIN_REPORTABLE_COUNT)
     .sort((a, b) => b.studentCount - a.studentCount || a.skillCode.localeCompare(b.skillCode) || a.errorTag.localeCompare(b.errorTag))
     .slice(0, limit)
     .map(({ groups, ...e }) => ({ ...e, groupCount: groups.size, skillName: skillName[e.skillCode] ?? e.skillCode }));
@@ -175,28 +183,33 @@ export function buildSchoolPriorities(groups, skills) {
   const evaluatedSkills = skills.filter((s) => s.average != null);
   const schoolPriority = evaluatedSkills.reduce((min, s) => (!min || s.average < min.average ? s : min), null);
   if (schoolPriority) {
-    const affected = groups.filter((g) => {
+    // Solo cuentan los grupos cuyo grado trabaja esa habilidad.
+    const teaching = groups.filter((g) => g.skills.some((entry) => entry.code === schoolPriority.code));
+    const affected = teaching.filter((g) => {
       const s = g.skills.find((entry) => entry.code === schoolPriority.code);
-      return s?.average != null && s.average < 50;
+      return s?.average != null && s.average < ACHIEVED_MIN;
     });
     priorities.push({ type: 'skill', skillCode: schoolPriority.code, groupIds: affected.map((g) => g.id),
-      title: `${schoolPriority.name}: la habilidad con menor dominio en la escuela`,
+      title: `${schoolPriority.name}: la habilidad con menor dominio en la escuela`
+        + (schoolPriority.grades ? ` (se trabaja de ${schoolPriority.grades})` : ''),
       detail: `Promedio ${schoolPriority.average}% · ${schoolPriority.label}. `
-        + `${schoolPriority.needsSupportCount} alumnos necesitan apoyo`
-        + (affected.length ? `; ${affected.length} de ${groups.length} grupos están por debajo de 50%.` : '.'),
+        + `${plural(schoolPriority.needsSupportCount, 'alumno necesita', 'alumnos necesitan')} apoyo`
+        + (affected.length
+          ? `; ${affected.length} de ${plural(teaching.length, 'grupo', 'grupos')} que la trabajan ${affected.length === 1 ? 'está' : 'están'} por debajo de ${ACHIEVED_MIN}%.`
+          : '.'),
       action: 'Proponerla como tema del próximo Consejo Técnico Escolar y compartir estrategias entre docentes.' });
   }
 
-  const support = groups.filter((g) => g.studentCount > 0 && g.evidencePercentage >= MIN_EVIDENCE_PERCENTAGE)
-    .sort((a, b) => b.needsSupportPercentage - a.needsSupportPercentage || a.grade - b.grade)
-    .filter((g) => g.needsSupportCount > 0)
-    .slice(0, 3);
+  // Por umbral y en orden de grado: no es una comparación entre docentes ni un ranking.
+  const support = groups.filter((g) => g.studentCount > 0 && g.evidencePercentage >= MIN_EVIDENCE_PERCENTAGE
+    && g.needsSupportPercentage >= GROUP_SUPPORT_PERCENTAGE)
+    .sort((a, b) => a.grade - b.grade || a.section.localeCompare(b.section));
   for (const g of support) {
     priorities.push({ type: 'group_support', groupIds: [g.id],
-      title: `Acompañar a ${g.name}${g.teacherName ? ` (${g.teacherName})` : ''}`,
+      title: `Acompañar a ${g.name}: más alumnos por apoyar`,
       detail: `${g.needsSupportCount} de ${g.studentCount} alumnos (${g.needsSupportPercentage}%) necesitan apoyo en al menos una habilidad`
         + (g.prioritySkill ? `; prioridad: ${g.prioritySkill.name} (${g.prioritySkill.average}%).` : '.'),
-      action: 'Revisar con la docente o el docente el mapa del grupo y la actividad sugerida.' });
+      action: 'Ofrecer acompañamiento al grupo: revisar juntos el mapa del grupo y la actividad sugerida.' });
   }
 
   const lowCoverage = groups.filter((g) => g.coveragePercentage < MIN_COVERAGE_PERCENTAGE);
@@ -211,15 +224,38 @@ export function buildSchoolPriorities(groups, skills) {
 }
 
 /**
+ * Docentes del ciclo actual con sus grupos (agregados; sin datos de alumnos ni correos).
+ *
+ * @param {Array<{ teacherId: number | null, group: object }>} entries
+ */
+export function summarizeTeachers(entries) {
+  const byTeacher = new Map();
+  for (const { teacherId, group } of entries) {
+    if (teacherId == null) continue;
+    const t = byTeacher.get(teacherId) ?? { name: group.teacherName, groups: [], studentCount: 0,
+      evaluatedStudentCount: 0, needsSupportCount: 0 };
+    t.groups.push(group.name);
+    t.studentCount += group.studentCount;
+    t.evaluatedStudentCount += group.evaluatedStudentCount;
+    t.needsSupportCount += group.needsSupportCount;
+    byTeacher.set(teacherId, t);
+  }
+  return [...byTeacher.values()]
+    .map((t) => ({ ...t, evidencePercentage: pct(t.evaluatedStudentCount, t.studentCount) }))
+    .sort((a, b) => a.groups[0].localeCompare(b.groups[0], 'es', { numeric: true }));
+}
+
+/**
  * Resumen general de la escuela a partir de los grupos del ciclo actual.
  */
-export function summarizeSchool(groups) {
+export function summarizeSchool(groups, teacherIds = []) {
   const total = (key) => groups.reduce((sum, g) => sum + g[key], 0);
   const studentCount = total('studentCount');
   const evaluatedStudentCount = total('evaluatedStudentCount');
   const needsSupportCount = total('needsSupportCount');
-  const teachers = new Set(groups.map((g) => g.teacherName).filter(Boolean));
-  return { groupCount: groups.length, teacherCount: teachers.size, studentCount, evaluatedStudentCount,
+  // Por id (no por nombre): dos docentes con el mismo nombre cuentan como dos.
+  const teacherCount = new Set(teacherIds.filter((id) => id != null)).size;
+  return { groupCount: groups.length, teacherCount, studentCount, evaluatedStudentCount,
     evidencePercentage: pct(evaluatedStudentCount, studentCount), needsSupportCount,
     needsSupportPercentage: pct(needsSupportCount, studentCount),
     coveragePercentage: average(groups.map((g) => g.coveragePercentage)) ?? 0 };
