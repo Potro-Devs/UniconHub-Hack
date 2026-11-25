@@ -83,7 +83,7 @@ El seed es reproducible (semilla fija) y carga:
 - **6 grupos más del ciclo actual** (1.º A, 2.º A, 3.º B, 4.º A, 5.º A y 6.º A) con otros docentes ficticios (`docente.1a@axi.demo`… misma contraseña) y diagnósticos variados, para que el panel tenga promedios que comparar. En una base ya sembrada, `npm run seed` los agrega sin borrar nada.
 - **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
 - **Temario 1.º–6.º** con las 5 habilidades clave y el avance del temario de 3.º A.
-- **120 reactivos** (4 por habilidad y grado), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas.
+- **108 reactivos** (4 por habilidad y grado, solo en las habilidades del programa de cada grado: fracciones desde 3.º y multiplicación desde 2.º), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas. Los niveles se acercan al Programa Sintético del Plan 2022 (p. ej. 4.º multiplica hasta 3 × 2 cifras; 5.º y 6.º usan decimales) y están **por validar con docentes**. Pendiente: problemas con decimales y porcentajes en 5.º y 6.º.
 - Diagnósticos en pantalla ya contestados para 4 habilidades. **Fracciones** está asignada **en papel**, pendiente de captura y con la pantalla bloqueada.
 - Historial de dominio de 3 ciclos y catálogo de 10 actividades sugeridas.
 
