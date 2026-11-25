@@ -69,9 +69,10 @@ export function parseCsv(text) {
  */
 function headerColumns(cells) {
   const folded = cells.map(fold);
-  const isName = (c) => (c.includes('nombre') || c.includes('alumno')) && !c.includes('apellido');
-  if (!folded.some((c) => c.includes('apellido') || isName(c))) return null;
-  const surnames = folded.map((c, i) => (c.includes('apellido') ? i : -1)).filter((i) => i >= 0);
+  const isSurname = (c) => c.includes('apellido') || c.includes('paterno') || c.includes('materno');
+  const isName = (c) => (c.includes('nombre') || c.includes('alumno')) && !isSurname(c);
+  if (!folded.some((c) => isSurname(c) || isName(c))) return null;
+  const surnames = folded.map((c, i) => (isSurname(c) ? i : -1)).filter((i) => i >= 0);
   const nameIndex = folded.findIndex(isName);
   if (surnames.length === 0) return { single: nameIndex >= 0 ? nameIndex : 0 };
   const paternoIdx = folded.findIndex((c) => c.includes('paterno'));

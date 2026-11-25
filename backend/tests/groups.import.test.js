@@ -63,6 +63,12 @@ describe('importación: filas → lista de alumnos', () => {
     assert.equal(result.text, 'Ramírez López, Sofía');
   });
 
+  test('encabezados cortos "Paterno" y "Materno" (sin "Apellido") conservan los apellidos', () => {
+    const result = rowsToStudentList([['Paterno', 'Materno', 'Nombre'], ['Cruz', 'Pérez', 'Ana Paula']]);
+    assert.equal(result.text, 'Cruz Pérez, Ana Paula');
+    assert.equal(result.headerDetected, true);
+  });
+
   test('un archivo solo con encabezados responde con un mensaje claro', () => {
     assert.throws(() => rowsToStudentList([['Apellido paterno', 'Apellido materno', 'Nombre']]), /solo trae encabezados/);
   });
