@@ -10,7 +10,7 @@ import { openDatabase } from '../src/config/database.js';
 import { runMigrations } from '../src/db/migrate.js';
 import { DEMO, runSeed } from '../src/db/seed.js';
 import {
-  SEP_FORMATIVE_FIELDS, buildSchoolPriorities, mapSkillsToFields, mergeTypicalErrors, summarizeFields,
+  CTE_SESSIONS, MAX_PRIORITIES, lastFridayOfMonth, nextCteSession, SEP_FORMATIVE_FIELDS, buildSchoolPriorities, mapSkillsToFields, mergeTypicalErrors, summarizeFields,
   summarizeSchool, summarizeSchoolGroup,
 } from '../src/modules/analytics/analytics.school.domain.js';
 import { configWith, silentLogger, startServer } from './helpers.js';
@@ -80,7 +80,12 @@ describe('analytics.school.domain', () => {
       { code: 'fractions', name: 'Fracciones', average: 40, label: 'En proceso', needsSupportCount: 2 },
       { code: 'reading_comprehension', name: 'Comprensión lectora', average: 65, label: 'Logrado', needsSupportCount: 0 },
     ]);
-    assert.deepEqual(priorities.map((p) => p.type), ['evidence', 'skill', 'group_support', 'coverage']);
+    // Máximo 3 prioridades del mes, en orden: diagnóstico, habilidad, acompañamiento (el temario queda fuera).
+    assert.deepEqual(priorities.map((p) => p.type), ['evidence', 'skill', 'group_support']);
+    for (const p of priorities) {
+      assert.ok(p.title.length <= 60, `título corto: ${p.title}`);
+      assert.ok(`${p.detail} ${p.action}`.length <= 140, `detalle conciso: ${p.detail} ${p.action}`);
+    }
     assert.deepEqual(priorities[0].groupIds, [2]);
     assert.deepEqual(priorities[1].groupIds, [1]);
     for (const p of priorities) assert.doesNotMatch(`${p.title} ${p.detail} ${p.action}`, PUNITIVE);
@@ -95,6 +100,39 @@ describe('analytics.school.domain', () => {
     ], SKILLS);
     assert.deepEqual(merged.map((e) => [e.errorTag, e.studentCount, e.groupCount]), [['x', 7, 2], ['y', 5, 1]]);
     assert.equal(merged[0].skillName, 'Fracciones');
+  });
+});
+
+describe('Consejo Técnico Escolar', () => {
+  test('las sesiones 2026-2027 son el último viernes de su mes (sin diciembre ni abril)', () => {
+    for (const iso of CTE_SESSIONS['2026-2027']) {
+      const [y, m] = iso.split('-').map(Number);
+      assert.equal(lastFridayOfMonth(y, m - 1), iso);
+    }
+    assert.ok(!CTE_SESSIONS['2026-2027'].some((iso) => /-(12|04)-/.test(iso)));
+  });
+
+  test('próxima sesión según el calendario oficial', () => {
+    assert.deepEqual(nextCteSession('2026-11-24', '2026-2027'),
+      { date: '2026-11-27', label: 'viernes 27 de noviembre de 2026', month: 'noviembre 2026', daysUntil: 3, source: 'calendar' });
+    assert.equal(nextCteSession('2026-11-27', '2026-2027').daysUntil, 0);
+    // Sin sesión en diciembre: después del 27 de noviembre sigue el 29 de enero.
+    assert.equal(nextCteSession('2026-11-28', '2026-2027').date, '2027-01-29');
+    assert.equal(nextCteSession('2027-03-27', '2026-2027').date, '2027-05-28');
+  });
+
+  test('sin calendario cargado se estima con el último viernes del mes', () => {
+    const next = nextCteSession('2027-10-05', '2027-2028');
+    assert.equal(next.source, 'rule');
+    assert.equal(next.date, '2027-10-29');
+    // Diciembre, julio y agosto no tienen sesión ordinaria (el 31/12/2027 es viernes, pero son vacaciones).
+    assert.equal(nextCteSession('2027-12-31', '2027-2028').date, '2028-01-28');
+    assert.equal(nextCteSession('2028-07-03', '2027-2028').date, '2028-09-29');
+    assert.equal(nextCteSession('2026-07-01', '2026-2027').date, '2026-09-25');
+  });
+
+  test('máximo de prioridades del mes', () => {
+    assert.equal(MAX_PRIORITIES, 3);
   });
 });
 
@@ -166,11 +204,25 @@ describe('GET /api/v1/analytics/school', () => {
     assert.equal(body.data.summary.studentCount, 0);
   });
 
+  test('el director exporta el panel en PDF Carta (sin datos de alumnos)', async () => {
+    const token = (await api.call('POST', '/api/v1/auth/quick-login/director')).body.data.token;
+    const res = await fetch(`${api.base}/api/v1/analytics/school/export.pdf`, { headers: { authorization: `Bearer ${token}` } });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'application/pdf');
+    assert.match(res.headers.get('content-disposition'), /panel-escuela-2026-2027\.pdf/);
+    const bytes = Buffer.from(await res.arrayBuffer());
+    assert.equal(bytes.subarray(0, 5).toString(), '%PDF-');
+    assert.match(bytes.toString('latin1'), /MediaBox \[0 0 612 792\]/);
+  });
+
   test('docente y alumno reciben 403; sin sesión, 401', async () => {
     const teacher = (await api.call('POST', '/api/v1/auth/quick-login/teacher')).body.data.token;
     const studentToken = (await api.call('POST', '/api/v1/auth/quick-login/student')).body.data.token;
     assert.equal((await api.call('GET', '/api/v1/analytics/school', { token: teacher })).status, 403);
     assert.equal((await api.call('GET', '/api/v1/analytics/school', { token: studentToken })).status, 403);
     assert.equal((await api.call('GET', '/api/v1/analytics/school')).status, 401);
+    const pdf = (token) => fetch(`${api.base}/api/v1/analytics/school/export.pdf`, token ? { headers: { authorization: `Bearer ${token}` } } : {});
+    assert.equal((await pdf(teacher)).status, 403);
+    assert.equal((await pdf()).status, 401);
   });
 });
