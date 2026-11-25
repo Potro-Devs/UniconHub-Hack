@@ -9,8 +9,8 @@ import { CreateGroupScreen } from '@/features/groups/CreateGroupScreen';
 import { GroupDetailScreen } from '@/features/groups/GroupDetailScreen';
 import { TeacherGroupsProvider } from '@/features/groups/TeacherGroupsContext';
 import { HintCardsScreen } from '@/features/paper-mode/HintCardsScreen';
-import { PrintSheetScreen } from '@/features/paper-mode/PrintSheetScreen';
 import { QuickCaptureScreen } from '@/features/paper-mode/QuickCaptureScreen';
+import { QuizzesBuilderScreen } from '@/features/assessments/QuizzesBuilderScreen';
 import { PromoteGroupsScreen } from '@/features/school-admin/PromoteGroupsScreen';
 import { SchoolDashboardScreen } from '@/features/school-admin/SchoolDashboardScreen';
 import { SchoolTeachersScreen } from '@/features/school-admin/SchoolTeachersScreen';
@@ -73,7 +73,8 @@ export function App() {
                 <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
                 <Route path="/docente/temario" element={<CurriculumScreen />} />
                 <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
-                <Route path="/docente/hoja" element={<PrintSheetScreen />} />
+                <Route path="/docente/cuestionarios" element={<QuizzesBuilderScreen />} />
+                <Route path="/docente/hoja" element={<Navigate to="/docente/cuestionarios" replace />} />
                 <Route path="/docente/pistas" element={<HintCardsScreen />} />
                 <Route path="/docente/captura" element={<QuickCaptureScreen />} />
               </Route>

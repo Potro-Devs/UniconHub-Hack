@@ -32,6 +32,7 @@ import {
 } from './seed/demo.data.js';
 import { generateQuestionBank } from './seed/questions.generator.js';
 import { insertSchoolGroups } from './seed/schoolGroups.js';
+import { seedDemoQuizzes } from './seed/quizzes.seed.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
 export { DEMO };
@@ -59,8 +60,14 @@ export function isSeeded(db) {
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
   if (isSeeded(db)) {
+    // Base ya sembrada: agrega lo que falte (director, grupos del ciclo y cuestionarios) sin borrar nada.
     const directorAdded = ensureDemoDirector(db);
     const schoolGroupsAdded = withTransaction(db, () => insertSchoolGroups(db));
+    const quizSeed = withTransaction(db, () => seedDemoQuizzes(db));
+    if (quizSeed.seeded) {
+      return { seeded: true, reason: 'added_missing_quizzes', directorAdded, schoolGroupsAdded,
+        counts: { quizzes: quizSeed.count } };
+    }
     return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded };
   }
 
@@ -332,6 +339,8 @@ function insertDemo(db, rng, bank, passwordHash) {
 
   // Otros grupos del ciclo actual (otros docentes) para el panel de Dirección
   const schoolGroupsAdded = insertSchoolGroups(db);
+  // Cuestionarios de muestra (propios, de colegas de la escuela y precargados por Axi)
+  const quizSeed = seedDemoQuizzes(db, { schoolId, teacherId, passwordHash });
 
   return {
     seeded: true,
@@ -344,6 +353,7 @@ function insertDemo(db, rng, bank, passwordHash) {
       questions: bank.length,
       contents: Object.keys(contentIds).length,
       activities: ACTIVITIES.length,
+      quizzes: quizSeed.count,
       responses: responseCount,
       masteryCuts: [...cutsBy.values()].reduce((n, sessions) => n + sessions.length, 0),
       achievements: achievementCount,
@@ -373,7 +383,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const db = getDatabase();
     runMigrations(db);
     const result = runSeed(db);
-    if (!result.seeded) {
+    if (!result.seeded || result.reason === 'added_missing_quizzes') {
+      if (result.counts?.quizzes) console.log(`Cuestionarios demo agregados a la base existente: ${result.counts.quizzes}`);
       if (result.schoolGroupsAdded) {
         console.log(`Se agregaron ${result.schoolGroupsAdded} grupos demo del ciclo actual (otros docentes).`);
       }
