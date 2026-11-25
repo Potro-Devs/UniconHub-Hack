@@ -125,7 +125,7 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
+> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. **El ejercicio del alumno usa datos reales:** el inicio del alumno lista sus pruebas (`/api/v1/diagnostics`), y al contestar una en pantalla (pistas pedidas al servidor, retroalimentación neutra) se registra el corte de dominio y el mapa del docente cambia. El seed incluye una **práctica abierta de Multiplicación para 3.º A** para recorrer ese ciclo (en una base ya sembrada, `npm run seed` la agrega). Siguen con datos de ejemplo: temario y asignación desde la interfaz, captura en papel, *Mis clases* y *Logros*.
 >
 > La sesión se guarda en `sessionStorage`: se cierra al cerrar la pestaña, pensado para computadoras compartidas en el salón.
 
