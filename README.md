@@ -127,7 +127,7 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
+> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. **Importar alumnos:** en el detalle del grupo, *Importar desde Excel o CSV* lee un `.xlsx` o `.csv` (apellido paterno, apellido materno, nombre(s); con o sin encabezados), llena la lista automáticamente y la docente la revisa y guarda. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
 >
 > La sesión se guarda en `sessionStorage`: se cierra al cerrar la pestaña, pensado para computadoras compartidas en el salón.
 
