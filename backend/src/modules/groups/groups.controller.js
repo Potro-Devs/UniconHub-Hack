@@ -1,7 +1,7 @@
 /**
  * Módulo groups — Capa 1 (Presentación): traduce HTTP ↔ casos de uso. Sin SQL ni reglas de negocio.
  */
-import { sendData } from '../../shared/utils/http.js';
+import { asyncHandler, sendData } from '../../shared/utils/http.js';
 
 /**
  * @param {ReturnType<import('./groups.service.js').createGroupsService>} service
@@ -21,6 +21,8 @@ export function createGroupsController(service) {
     },
     addStudent: (req, res) =>
       sendData(res, service.addStudent(req.auth, req.params.groupId, req.body), { status: 201 }),
+    previewStudentImport: asyncHandler(async (req, res) =>
+      sendData(res, await service.previewStudentImport(req.auth, req.params.groupId, req.body))),
     addStudentsBulk: (req, res) => {
       const result = service.addStudentsBulk(req.auth, req.params.groupId, req.body);
       sendData(res, result, {

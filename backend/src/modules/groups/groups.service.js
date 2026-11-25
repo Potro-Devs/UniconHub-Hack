@@ -25,6 +25,8 @@ import {
   toStudentDto,
 } from './groups.domain.js';
 import { createGroupAccess } from './groups.access.js';
+import { readSpreadsheetRows } from './groups.import.js';
+import { parseImportInput, rowsToStudentList } from './groups.import.domain.js';
 
 const MAX_CODE_ATTEMPTS = 20;
 
@@ -135,6 +137,16 @@ export function createGroupsService({ repository, transaction, random = Math.ran
       const students = parseBulkInput(body);
       const created = transaction(() => students.map((input) => createStudent(group, input)));
       return { created };
+    },
+
+    /**
+     * Vista previa de la importación desde Excel/CSV: lee el archivo y devuelve la lista
+     * "Apellidos, Nombres" que la docente revisa y guarda con el alta por lista. No guarda nada.
+     */
+    async previewStudentImport(auth, groupId, body) {
+      findOwnGroup(auth, groupId);
+      const { kind, buffer } = parseImportInput(body);
+      return rowsToStudentList(await readSpreadsheetRows(kind, buffer));
     },
 
     updateAvatar(auth, studentId, body) {
