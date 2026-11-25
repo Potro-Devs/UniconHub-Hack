@@ -27,6 +27,11 @@ export function createAssessmentsRouter({ db, requireAuth }) {
 
   const router = Router();
   router.get('/questions', staff, controller.listQuestions);
+  router.get('/quizzes', staff, controller.listQuizzes);
+  router.post('/quizzes', teacher, controller.createQuiz);
+  router.get('/quizzes/:quizId', staff, controller.getQuiz);
+  router.patch('/quizzes/:quizId', teacher, controller.updateQuiz);
+  router.get('/quizzes/:quizId/pdf', staff, controller.exportQuizPdf);
   router.get('/groups/:groupId/assignments', staff, controller.listAssignments);
   router.post('/groups/:groupId/assignments', teacher, controller.createAssignment);
   router.get('/assignments/:assignmentId', staff, controller.getAssignment);

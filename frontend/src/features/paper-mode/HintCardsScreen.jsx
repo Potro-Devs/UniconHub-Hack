@@ -46,7 +46,7 @@ export function HintCardsScreen() {
       >
         <button
           type="button"
-          onClick={() => navigate('/docente/hoja')}
+          onClick={() => navigate('/docente/cuestionarios')}
           style={{
             border: 0,
             borderRadius: '9px',
@@ -58,7 +58,7 @@ export function HintCardsScreen() {
             color: COLORS.muted,
           }}
         >
-          Hoja de diagnóstico
+          Cuestionarios y constructor
         </button>
         <button
           type="button"
