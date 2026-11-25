@@ -3,8 +3,9 @@ import { COLORS } from '@/config/brand';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { alertBox, buttonStyle, card, mutedText, noticeBox } from '@/shared/styles/ui';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
+import { errorMessageOf } from '@/shared/api/client';
 import { groupsApi } from './groups.api';
-import { MAX_BULK_LINES, MESSAGES, classifyBulkError, countListLines } from './groups.logic';
+import { MAX_BULK_LINES, MAX_IMPORT_BYTES, MESSAGES, classifyBulkError, countListLines } from './groups.logic';
 import { useTeacherGroups } from './TeacherGroupsContext';
 
 /** Nombres ficticios para la demo (nunca datos reales). */
@@ -33,6 +34,42 @@ export function BulkStudentsForm({ group, title, showExample, onSaved }) {
   const [editedAfterError, setEditedAfterError] = useState(false);
   const errorRef = useRef(null);
   const confirmRef = useRef(null);
+
+  const fileInputRef = useRef(null);
+  const [importState, setImportState] = useState(null); // { pending, message, tone, invalidRows }
+
+  /** Excel o CSV → lista en el cuadro de texto, lista para revisar y guardar (no guarda por sí sola). */
+  const importFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!/\.(xlsx|csv)$/i.test(file.name)) {
+      setImportState({ tone: 'error', message: 'Elige un archivo de Excel (.xlsx) o CSV (.csv).' });
+      return;
+    }
+    if (file.size > MAX_IMPORT_BYTES) {
+      setImportState({ tone: 'error', message: 'El archivo es muy grande. Usa una hoja solo con la lista del grupo.' });
+      return;
+    }
+    setImportState({ pending: true, tone: 'info', message: `Leyendo ${file.name}…` });
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const data = await groupsApi.previewStudentImport(group.id, file.name, dataUrl.split(',')[1] ?? '');
+      onChange({ target: { value: data.text } });
+      setImportState({
+        tone: data.invalidRows.length ? 'warning' : 'success',
+        invalidRows: data.invalidRows,
+        message: `Se leyeron ${data.studentCount} ${data.studentCount === 1 ? 'alumno' : 'alumnos'} de ${file.name}. Revisa la lista y guarda.`,
+      });
+    } catch (err) {
+      setImportState({ tone: 'error', message: errorMessageOf(err) });
+    }
+  };
 
   const count = countListLines(draftText);
   const tooMany = count > MAX_BULK_LINES;
@@ -92,8 +129,31 @@ export function BulkStudentsForm({ group, title, showExample, onSaved }) {
         )}
       </div>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', background: COLORS.surfaceSubtle }}>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={importFile} style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={importState?.pending || phase === 'saving'} style={buttonStyle('secondary')}>
+          {importState?.pending ? 'Leyendo archivo…' : 'Importar desde Excel o CSV'}
+        </button>
+        <span style={{ ...mutedText, fontSize: '14px', flex: '1 1 220px' }}>
+          Columnas: apellido paterno, apellido materno y nombre(s). Puede traer encabezados.
+        </span>
+      </div>
+      {importState && !importState.pending && (
+        <div role={importState.tone === 'error' ? 'alert' : 'status'}
+          style={importState.tone === 'error' ? alertBox : { ...noticeBox, fontSize: '15px', lineHeight: 1.45 }}>
+          {importState.message}
+          {importState.invalidRows?.length > 0 && (
+            <div style={{ marginTop: '6px' }}>
+              Revisa {importState.invalidRows.length === 1 ? 'la fila' : 'las filas'} {importState.invalidRows.map((r) => r.row).join(', ')} del archivo:
+              necesitan nombre y apellido con letras. Corrígelas aquí abajo antes de guardar.
+            </div>
+          )}
+        </div>
+      )}
+
       <label htmlFor={`bulk-text-${group.id}`} style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1.4 }}>
-        Pega la lista de tu control escolar, un alumno por renglón.
+        O pega la lista de tu control escolar, un alumno por renglón.
       </label>
       <div id={helpId} style={mutedText}>
         Si un alumno tiene un solo apellido o dos nombres, escríbelo así: Apellidos, Nombres.

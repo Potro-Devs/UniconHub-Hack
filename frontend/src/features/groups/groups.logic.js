@@ -9,6 +9,8 @@
  * Debe coincidir con `MAX_BULK_LINES` de `backend/src/modules/groups/groups.domain.js`.
  */
 export const MAX_BULK_LINES = 60;
+/** Tamaño máximo del archivo de importación (igual que el servidor). */
+export const MAX_IMPORT_BYTES = 60 * 1024;
 
 export const GRADES = Object.freeze([1, 2, 3, 4, 5, 6]);
 export const SECTIONS = Object.freeze(['A', 'B', 'C', 'D']);
