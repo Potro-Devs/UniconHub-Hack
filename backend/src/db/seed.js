@@ -12,7 +12,7 @@ import bcrypt from 'bcryptjs';
 import { closeDatabase, getDatabase, withTransaction } from '../config/database.js';
 import { env } from '../config/env.js';
 import { computeWeightedMastery, getMasteryLevel } from '../modules/analytics/analytics.domain.js';
-import { phaseForGrade } from '../modules/curriculum/curriculum.domain.js';
+import { isSkillInGrade, phaseForGrade } from '../modules/curriculum/curriculum.domain.js';
 import { evaluateAchievements } from '../modules/diagnostics/diagnostics.domain.js';
 import { AVATAR_PALETTE, buildInitials, generateInternalFolio } from '../modules/groups/groups.domain.js';
 import { runMigrations } from './migrate.js';
@@ -118,6 +118,7 @@ function insertDemo(db, rng, bank, passwordHash) {
   for (let grade = 1; grade <= 6; grade += 1) {
     let order = 1;
     for (const { code } of SKILLS) {
+      if (!isSkillInGrade(code, grade) || !CURRICULUM_BY_SKILL[code][grade - 1]) continue;
       const [title, pda] = CURRICULUM_BY_SKILL[code][grade - 1];
       contentIds[`${grade}:${code}`] = insertContent(grade, formativeFieldFor(code), title, pda, skillIds[code], order++);
     }
@@ -233,11 +234,11 @@ function insertDemo(db, rng, bank, passwordHash) {
 
   for (const s of students) {
     for (const { code } of SKILLS) {
-      if (s.index < HISTORY.firstGradeCount) {
+      if (s.index < HISTORY.firstGradeCount && isSkillInGrade(code, 1)) {
         const pct = s.scores.firstGrade[code];
         addCut(s, code, 1, null, pct, round2(Math.min(100 - pct, rng.next() * 15)), DATES.firstGradeCut);
       }
-      if (s.index < HISTORY.secondGradeCount) {
+      if (s.index < HISTORY.secondGradeCount && isSkillInGrade(code, 2)) {
         const pct = s.scores.secondGrade[code];
         addCut(s, code, 2, null, pct, round2(Math.min(100 - pct, rng.next() * 15)), DATES.secondGradeCut);
       }
