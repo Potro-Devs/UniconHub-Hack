@@ -80,6 +80,20 @@ function placeValue(grade, rng) {
 
 const dec = (value) => String(Number(value.toFixed(2)));
 
+/** Número con décimos que nunca es entero (p. ej. 4.5, nunca 4.0). */
+function tenths(rng, min, max) {
+  let n;
+  do n = rng.int(min, max); while (n % 10 === 0);
+  return n / 10;
+}
+
+/** Entero en el rango que no es múltiplo de 10 (evita "descompón 20" o un producto parcial de 0). */
+function notMultipleOf10(rng, min, max) {
+  let n;
+  do n = rng.int(min, max); while (n % 10 === 0);
+  return n;
+}
+
 // ───────────────────────── Multiplicación ─────────────────────────
 
 const GROUP_CONTEXTS = [
@@ -139,11 +153,11 @@ function multiplication(grade, rng) {
   // 4.º: hasta tres cifras por dos cifras (productos parciales).
   if (grade === 4) {
     const a = rng.int(102, 489);
-    const b = rng.int(12, 48);
+    const b = notMultipleOf10(rng, 12, 48);
     const bTens = Math.floor(b / 10);
     const bUnits = b % 10;
     const x = rng.int(102, 489);
-    const y = rng.int(12, 39);
+    const y = notMultipleOf10(rng, 12, 39);
     const yTens = Math.floor(y / 10) * 10;
     const yUnits = y % 10;
     return {
@@ -165,9 +179,9 @@ function multiplication(grade, rng) {
 
   // 5.º: número decimal por número natural.
   if (grade === 5) {
-    const a = rng.int(11, 99) / 10;
+    const a = tenths(rng, 11, 99);
     const n = rng.int(3, 9);
-    const ex = rng.int(11, 49) / 10;
+    const ex = tenths(rng, 11, 49);
     return {
       stem: `Un listón mide ${dec(a)} m. ¿Cuántos metros miden ${n} listones iguales?`,
       correct: dec(a * n),
@@ -190,11 +204,11 @@ function multiplication(grade, rng) {
   let q;
   let n;
   do {
-    q = rng.int(11, 99) / 10;
+    q = tenths(rng, 11, 99);
     n = rng.int(3, 8);
   } while ((Math.round(q * 10) * n) % 10 === 0);
   const total = q * n;
-  const ex = rng.int(11, 49) / 10;
+  const ex = tenths(rng, 11, 49);
   return {
     stem: `Se reparten ${dec(total)} litros de agua en ${n} garrafones iguales. ¿Cuántos litros lleva cada garrafón?`,
     correct: dec(q),
