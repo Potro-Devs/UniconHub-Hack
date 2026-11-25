@@ -373,10 +373,10 @@ describe('assessments · consistencia con el seed', () => {
     db.close();
   });
 
-  test('targetCounts, questionCount y skills de las 5 pruebas demo cuadran con la base', async () => {
+  test('targetCounts, questionCount y skills de las 6 pruebas demo cuadran con la base', async () => {
     const res = await api.call('GET', `/api/v1/assessments/groups/${groupId}/assignments`, { token });
     assert.equal(res.status, 200);
-    assert.equal(res.body.data.length, 5);
+    assert.equal(res.body.data.length, 6);
     const active = db.prepare("SELECT COUNT(*) AS n FROM group_enrollments WHERE group_id = ? AND status = 'active'").get(groupId).n;
     assert.equal(active, 45);
 
@@ -393,7 +393,9 @@ describe('assessments · consistencia con el seed', () => {
       assert.equal(a.questionCount, qn, a.title);
       assert.ok(a.skills.every((s) => s.questionCount >= 3), `${a.title}: ≥ 3 por habilidad`);
 
-      if (a.modality === 'screen') assert.equal(a.targetCounts.completed_screen, 45, a.title);
+      // Diagnósticos en pantalla cerrados: contestados por los 45. Práctica abierta: pendiente para los 45.
+      if (a.modality === 'screen' && a.status === 'closed') assert.equal(a.targetCounts.completed_screen, 45, a.title);
+      if (a.modality === 'screen' && a.status === 'active') assert.equal(a.targetCounts.pending, 45, a.title);
       const locks = db.prepare('SELECT DISTINCT is_screen_locked AS l FROM assignment_targets WHERE assignment_id = ?').all(a.id).map((r) => r.l);
       assert.deepEqual(locks, [a.modality === 'paper' ? 1 : 0], `${a.title}: bloqueo según modalidad`);
     }

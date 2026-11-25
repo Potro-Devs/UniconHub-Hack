@@ -469,16 +469,19 @@ describe('assessments API con el seed demo', () => {
     assert.ok(res.body.data.every((q) => q.options.filter((o) => o.isCorrect).length === 1));
   });
 
-  test('3.º A lista 4 pruebas en pantalla cerradas y 1 en papel activa bloqueada', async () => {
+  test('3.º A lista 4 pruebas en pantalla cerradas, 1 práctica abierta y 1 en papel activa bloqueada', async () => {
     const res = await api.call('GET', `/api/v1/assessments/groups/${groupId}/assignments`, { token });
     assert.equal(res.status, 200);
-    assert.equal(res.body.meta.count, 5);
+    assert.equal(res.body.meta.count, 6);
     const paper = res.body.data.filter((a) => a.modality === 'paper');
     assert.equal(paper.length, 1);
     assert.equal(paper[0].status, 'active');
     assert.deepEqual(paper[0].skills.map((s) => s.code), ['fractions']);
     assert.equal(paper[0].targetCounts.pending, paper[0].targetCounts.total);
     assert.equal(res.body.data.filter((a) => a.modality === 'screen' && a.status === 'closed').length, 4);
+    const practice = res.body.data.filter((a) => a.modality === 'screen' && a.status === 'active');
+    assert.equal(practice.length, 1);
+    assert.deepEqual(practice[0].skills.map((s) => s.code), ['multiplication']);
 
     const detail = await api.call('GET', `/api/v1/assessments/assignments/${paper[0].id}`, { token });
     assert.ok(detail.body.data.targets.every((t) => t.isScreenLocked));

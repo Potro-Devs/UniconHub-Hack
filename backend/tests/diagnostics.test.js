@@ -637,7 +637,7 @@ describe('diagnostics API', () => {
       assert.equal(fx.db.prepare("SELECT COUNT(*) AS n FROM student_responses WHERE outcome_status = 'unanswered'").get().n, 0);
     });
 
-    test('consistencia con el seed: el primer alumno demo ve sus 5 pruebas y la de papel está bloqueada', async () => {
+    test('consistencia con el seed: el primer alumno demo ve sus 6 pruebas y la de papel está bloqueada', async () => {
       const seedDb = openDatabase(':memory:');
       runMigrations(seedDb);
       runSeed(seedDb);
@@ -654,7 +654,7 @@ describe('diagnostics API', () => {
         });
         const list = await seedApi.call('GET', `/api/v1/diagnostics/students/${studentRow.id}/assignments`, { token });
         assert.equal(list.status, 200);
-        assert.equal(list.body.meta.count, 5);
+        assert.equal(list.body.meta.count, 6);
         const paper = list.body.data.find((a) => a.modality === 'paper');
         assert.equal(paper.isScreenLocked, true);
         const startPaper = await seedApi.call('GET', `/api/v1/diagnostics/assignments/${paper.id}/start`, { token });
