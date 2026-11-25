@@ -58,7 +58,13 @@ export function isSeeded(db) {
  * @param {import('node:sqlite').DatabaseSync} db Base con las migraciones aplicadas.
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
-  if (isSeeded(db)) return { seeded: false, reason: 'already_seeded' };
+  if (isSeeded(db)) {
+    const quizSeed = withTransaction(db, () => seedDemoQuizzes(db));
+    if (quizSeed.seeded) {
+      return { seeded: true, reason: 'added_missing_quizzes', counts: { quizzes: quizSeed.count } };
+    }
+    return { seeded: false, reason: 'already_seeded' };
+  }
 
   const rng = createRng(seed);
   const bank = generateQuestionBank(rng);
@@ -351,6 +357,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const result = runSeed(db);
     if (!result.seeded) {
       console.log('La base ya tiene los datos demo. Usa `npm run seed:reset` para recrearla.');
+    } else if (result.reason === 'added_missing_quizzes') {
+      console.log(`Cuestionarios demo agregados a la base existente: ${result.counts.quizzes}`);
     } else {
       const c = result.counts;
       console.log(

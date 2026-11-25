@@ -10,12 +10,6 @@ const FOOTER_LINE_Y = 734;
 const FOOTER_TEXT_Y = 740;
 const BOTTOM_Y = 722;
 
-const TYPE_HINT = {
-  multiple_choice: 'Rellena el círculo de tu respuesta.',
-  true_false: 'Rellena V si es verdadero o F si es falso.',
-  fill_blank: 'Escribe tu respuesta sobre la línea.',
-};
-
 function measureQuestionHeight(doc, question, boxWidth) {
   const innerWidth = boxWidth - 20;
   doc.font('Helvetica-Bold').fontSize(10);
@@ -54,6 +48,7 @@ function drawHeader(doc, quiz, groupLabel) {
     doc.y + 2,
     { width: CONTENT_WIDTH - 130 },
   );
+  const leftBottom = doc.y;
 
   doc.font('Helvetica').fontSize(9).text(
     'Folio ____________\n(lo llena el docente)',
@@ -61,8 +56,9 @@ function drawHeader(doc, quiz, groupLabel) {
     startY + 2,
     { width: 125, align: 'right' },
   );
+  const folioBottom = doc.y;
 
-  const lineY = Math.max(doc.y, startY + 46) + 6;
+  const lineY = Math.max(leftBottom, folioBottom, startY + 46) + 6;
   doc.lineWidth(1.5).strokeColor('black').moveTo(PAGE_MARGIN, lineY).lineTo(PAGE_MARGIN + CONTENT_WIDTH, lineY).stroke();
 
   const metaY = lineY + 8;
@@ -190,7 +186,7 @@ export function renderQuizPdf(quiz, { groupLabel = null } = {}) {
 
         doc.lineWidth(0.75).strokeColor('black').moveTo(PAGE_MARGIN, FOOTER_LINE_Y).lineTo(PAGE_MARGIN + CONTENT_WIDTH, FOOTER_LINE_Y).stroke();
         doc.font('Helvetica').fontSize(8.5).fillColor('black').text(
-          `Axi · ${quiz.skill.name} · ${quiz.grade}.º grado · ${TYPE_HINT[quiz.questions[0]?.questionType] ?? 'Sin respuestas'}`,
+          `Axi · ${quiz.skill.name} · ${quiz.grade}.º grado · Hoja imprimible sin respuestas`,
           PAGE_MARGIN,
           FOOTER_TEXT_Y,
           { width: CONTENT_WIDTH - 95, height: 12, ellipsis: true, lineBreak: false },

@@ -548,6 +548,13 @@ export function parseQuizInput(body) {
   if (!Array.isArray(body.questions) || body.questions.length === 0) {
     throw invalid('Agrega al menos una pregunta al cuestionario.', { field: 'questions' });
   }
+  if (body.questions.length < MIN_QUESTIONS_PER_SKILL) {
+    throw new DomainError(
+      'INSUFFICIENT_QUESTIONS_PER_SKILL',
+      `Cada cuestionario necesita al menos ${MIN_QUESTIONS_PER_SKILL} preguntas.`,
+      { field: 'questions', min: MIN_QUESTIONS_PER_SKILL, received: body.questions.length },
+    );
+  }
   if (body.questions.length > MAX_QUESTIONS_PER_ASSIGNMENT) {
     throw invalid(`Un cuestionario admite como máximo ${MAX_QUESTIONS_PER_ASSIGNMENT} preguntas.`, {
       field: 'questions',

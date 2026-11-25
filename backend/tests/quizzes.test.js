@@ -219,6 +219,15 @@ describe('quizzes and builder API', () => {
           correctAnswer: '4',
           hint: '',
         },
+        {
+          questionType: 'multiple_choice',
+          prompt: '¿Qué fracción representa la mitad?',
+          options: [
+            { label: 'A', text: '1/2', isCorrect: true },
+            { label: 'B', text: '1/4', isCorrect: false },
+          ],
+          hint: '',
+        },
       ],
     };
 
@@ -243,17 +252,32 @@ describe('quizzes and builder API', () => {
     });
     assert.equal(ok.status, 200);
     assert.equal(ok.body.data.title, 'Mi cuestionario actualizado');
-    assert.equal(ok.body.data.questionCount, 2);
+    assert.equal(ok.body.data.questionCount, 3);
     assert.equal(ok.body.data.questions[0].questionType, 'true_false');
     assert.equal(ok.body.data.questions[1].correctAnswer, '4');
   });
 
-  test('constructor crea cuestionario estilo Kahoot! con los 3 tipos y rechaza entradas inválidas', async () => {
+  test('constructor crea cuestionario estilo Kahoot! con los 3 tipos y rechaza entradas inválidas o menos de 3 reactivos', async () => {
     const bad = await api.call('POST', '/api/v1/assessments/quizzes', {
       token: fx.tokens.teacherA,
       body: { title: '   ', skillCode: 'fractions', grade: 3, questions: [] },
     });
     assert.equal(bad.status, 400);
+
+    const tooShort = await api.call('POST', '/api/v1/assessments/quizzes', {
+      token: fx.tokens.teacherA,
+      body: {
+        title: 'Solo dos reactivos',
+        skillCode: 'fractions',
+        grade: 3,
+        questions: [
+          { questionType: 'true_false', prompt: 'Uno', correctAnswer: 'Verdadero' },
+          { questionType: 'fill_blank', prompt: 'Dos ___', correctAnswer: '2' },
+        ],
+      },
+    });
+    assert.equal(tooShort.status, 422);
+    assert.equal(tooShort.body.error.code, 'INSUFFICIENT_QUESTIONS_PER_SKILL');
 
     const payload = {
       title: 'Reto mixto de multiplicación',
@@ -347,9 +371,36 @@ describe('quizzes and builder API', () => {
     assert.ok(!pdfLatin1.includes('UN_ENTERO_SECRETO'), 'el PDF no debe incluir la respuesta de completar frase');
     const pageMatches = pdfLatin1.match(/\/Type\s*\/Page\b/g) ?? [];
     assert.equal(pageMatches.length, 1, 'un cuestionario de 3 preguntas debe caber en 1 sola página sin hojas en blanco');
+
+    // Título largo (120 caracteres) no debe encimar encabezado ni generar páginas vacías
+    const longTitleQuiz = await api.call('POST', '/api/v1/assessments/quizzes', {
+      token: fx.tokens.teacherA,
+      body: {
+        title: 'Evaluación diagnóstica integral de fracciones equivalentes y comparación de partes iguales para tercer grado de primaria',
+        skillCode: 'fractions',
+        grade: 3,
+        questions: [
+          {
+            questionType: 'multiple_choice',
+            prompt: '¿Qué fracción equivale a 1/2?',
+            options: [
+              { label: 'A', text: '2/4', isCorrect: true },
+              { label: 'B', text: '1/4', isCorrect: false },
+            ],
+          },
+          { questionType: 'true_false', prompt: '3/6 es igual a 1/2.', correctAnswer: 'Verdadero' },
+          { questionType: 'fill_blank', prompt: 'La mitad de 10 es ___ .', correctAnswer: '5' },
+        ],
+      },
+    });
+    assert.equal(longTitleQuiz.status, 201);
+    const longPdf = await fetchBinary(fx.db, `/api/v1/assessments/quizzes/${longTitleQuiz.body.data.id}/pdf?groupId=${fx.ids.groupA}`, fx.tokens.teacherA);
+    assert.equal(longPdf.status, 200);
+    const longPages = longPdf.bytes.toString('latin1').match(/\/Type\s*\/Page\b/g) ?? [];
+    assert.equal(longPages.length, 1);
   });
 
-  test('consistencia del seed completo con cuestionarios demo', () => {
+  test('consistencia del seed completo y carga en base previamente sembrada sin cuestionarios', () => {
     const seedDb = openDatabase(':memory:');
     runMigrations(seedDb);
     const seedResult = runSeed(seedDb);
@@ -359,6 +410,17 @@ describe('quizzes and builder API', () => {
     const map = Object.fromEntries(rows.map((r) => [r.origin_type, r.n]));
     assert.equal(map.teacher, 4);
     assert.equal(map.system, 3);
+
+    // Simula una BD ya sembrada antes de la migración 004 (sin cuestionarios aún)
+    seedDb.prepare('DELETE FROM quizzes').run();
+    const incremental = runSeed(seedDb);
+    assert.equal(incremental.seeded, true);
+    assert.equal(incremental.reason, 'added_missing_quizzes');
+    assert.equal(incremental.counts.quizzes, 7);
+
+    // Una segunda llamada ya no inserta nada
+    const noop = runSeed(seedDb);
+    assert.deepEqual(noop, { seeded: false, reason: 'already_seeded' });
     seedDb.close();
   });
 });

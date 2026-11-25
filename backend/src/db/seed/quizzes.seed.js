@@ -6,6 +6,7 @@
 import { pathToFileURL } from 'node:url';
 import bcrypt from 'bcryptjs';
 import { closeDatabase, getDatabase, withTransaction } from '../../config/database.js';
+import { runMigrations } from '../migrate.js';
 import { COLLEAGUE_TEACHERS, DEMO, SEED_QUIZZES } from './demo.data.js';
 
 /**
@@ -90,6 +91,7 @@ export function seedDemoQuizzes(db, ctx = {}) {
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const db = getDatabase();
+    runMigrations(db);
     const res = withTransaction(db, () => seedDemoQuizzes(db));
     console.log(res.seeded ? `Cuestionarios demo cargados: ${res.count}` : `Cuestionarios omitidos (${res.reason}: ${res.count}).`);
   } finally {

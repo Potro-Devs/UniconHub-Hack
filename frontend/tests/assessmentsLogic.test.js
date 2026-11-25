@@ -73,6 +73,32 @@ describe('assessments.logic · constructor de cuestionarios', () => {
     assert.equal(res.payload.questions[2].correctAnswer, '4');
   });
 
+  test('validateQuizDraft rechaza cuestionarios con menos de 3 preguntas', () => {
+    const draft = createEmptyQuizDraft(3);
+    draft.title = 'Cuestionario corto';
+    draft.questions = [
+      {
+        uid: '1',
+        questionType: 'true_false',
+        prompt: 'Pregunta 1',
+        hint: '',
+        options: [],
+        correctAnswer: 'Verdadero',
+      },
+      {
+        uid: '2',
+        questionType: 'fill_blank',
+        prompt: 'Pregunta 2 ___',
+        hint: '',
+        options: [],
+        correctAnswer: 'dos',
+      },
+    ];
+    const res = validateQuizDraft(draft);
+    assert.equal(res.valid, false);
+    assert.match(res.error, /3 preguntas/);
+  });
+
   test('quizDetailToDraft rellena a 4 opciones en opción múltiple para editar sin pérdida', () => {
     const draft = quizDetailToDraft({
       id: 99,

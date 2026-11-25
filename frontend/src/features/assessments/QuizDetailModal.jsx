@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { COLORS } from '@/config/brand';
+import { APP_NAME, COLORS } from '@/config/brand';
 import { FormMessage } from '@/shared/components/FormMessage';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { buttonStyle } from '@/shared/styles/ui';
@@ -184,7 +184,7 @@ export function QuizDetailModal({
 
                       {q.hint && (
                         <div style={{ fontSize: '13px', color: COLORS.muted, paddingTop: '2px' }}>
-                          <strong>Pista de Axi:</strong> {q.hint}
+                          <strong>Pista de {APP_NAME}:</strong> {q.hint}
                         </div>
                       )}
                     </article>

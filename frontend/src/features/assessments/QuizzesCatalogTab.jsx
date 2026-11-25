@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { COLORS } from '@/config/brand';
+import { APP_NAME, COLORS } from '@/config/brand';
 import { schoolYearToDisplay } from '@/features/groups/groups.logic';
 import { Mascot } from '@/features/mascot';
 import { FormMessage } from '@/shared/components/FormMessage';
@@ -40,7 +40,7 @@ function buildPrioritySummary(groupContext, recommendedCount) {
   }
 
   const detail = highlights.length ? `El grupo ${groupContext.groupName} presenta ${highlights.join(' y ')}.` : '';
-  return `${detail} ${recommendedCount > 0 ? `Axi destacó ${recommendedCount} cuestionarios ideales para reforzar estas áreas.` : 'Explora los cuestionarios disponibles para reutilizar en clase.'}`.trim();
+  return `${detail} ${recommendedCount > 0 ? `${APP_NAME} destacó ${recommendedCount} cuestionarios ideales para reforzar estas áreas.` : 'Explora los cuestionarios disponibles para reutilizar en clase.'}`.trim();
 }
 
 /**

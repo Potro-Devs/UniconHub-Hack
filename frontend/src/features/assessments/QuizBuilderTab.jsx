@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { COLORS } from '@/config/brand';
+import { APP_NAME, COLORS } from '@/config/brand';
 import { FormMessage } from '@/shared/components/FormMessage';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { buttonStyle } from '@/shared/styles/ui';
 import {
   GRADE_OPTIONS,
+  MIN_QUESTIONS_PER_QUIZ,
   QUESTION_TYPE_META,
   SKILL_OPTIONS,
   createEmptyQuestion,
@@ -485,7 +486,7 @@ export function QuizBuilderTab({
             {/* Pista opcional */}
             <div className="qb-field">
               <label htmlFor="qb-hint-input" className="qb-label">
-                Pista de Axi (opcional, sin revelar la respuesta)
+                Pista de {APP_NAME} (opcional, sin revelar la respuesta)
               </label>
               <input
                 id="qb-hint-input"
@@ -504,7 +505,7 @@ export function QuizBuilderTab({
                 onClick={addQuestion}
                 style={buttonStyle('secondary')}
               >
-                + Guardar y agregar siguiente pregunta →
+                + Agregar otra pregunta
               </button>
             </div>
           </section>
@@ -555,7 +556,7 @@ export function QuizBuilderTab({
             </button>
 
             <div style={{ fontSize: '13px', color: COLORS.muted, lineHeight: 1.4 }}>
-              Al guardar podrás visualizar tu cuestionario completo, editar sus reactivos en cualquier momento y exportarlo a PDF sin respuestas.
+              Incluye al menos {MIN_QUESTIONS_PER_QUIZ} preguntas. Al guardar podrás visualizar tu cuestionario completo, editar sus reactivos en cualquier momento y exportarlo a PDF sin respuestas.
             </div>
           </section>
 

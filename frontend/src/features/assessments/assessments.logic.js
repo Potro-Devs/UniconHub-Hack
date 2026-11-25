@@ -1,4 +1,6 @@
-import { LEVELS } from '../../config/brand.js';
+import { APP_NAME, LEVELS } from '../../config/brand.js';
+
+export const MIN_QUESTIONS_PER_QUIZ = 3;
 
 export const SKILL_OPTIONS = [
   { code: 'fractions', name: 'Fracciones' },
@@ -27,7 +29,7 @@ export const ORIGIN_FILTERS = [
 export const ORIGIN_LABELS = {
   own: 'Tu cuestionario',
   other_teacher: 'De otro docente',
-  preloaded: 'Precargado por Axi',
+  preloaded: `Precargado por ${APP_NAME}`,
 };
 
 let uidCounter = 1;
@@ -161,6 +163,13 @@ export function validateQuizDraft(draft) {
 
   if (!Array.isArray(draft.questions) || draft.questions.length === 0) {
     return { valid: false, error: 'Agrega al menos una pregunta al cuestionario.', focusIndex: 0 };
+  }
+  if (draft.questions.length < MIN_QUESTIONS_PER_QUIZ) {
+    return {
+      valid: false,
+      error: `Cada cuestionario necesita al menos ${MIN_QUESTIONS_PER_QUIZ} preguntas.`,
+      focusIndex: draft.questions.length - 1,
+    };
   }
 
   const normalizedQuestions = [];

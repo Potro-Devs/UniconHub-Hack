@@ -6,7 +6,7 @@
 CREATE TABLE quizzes (
   id           INTEGER PRIMARY KEY,
   school_id    INTEGER REFERENCES schools(id) ON DELETE CASCADE,
-  created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_by   INTEGER REFERENCES users(id) ON DELETE RESTRICT,
   origin_type  TEXT NOT NULL CHECK (origin_type IN ('teacher', 'system')),
   title        TEXT NOT NULL,
   description  TEXT NOT NULL DEFAULT '',

@@ -185,7 +185,7 @@ export const ACTIVITIES = Object.freeze([
 ]);
 
 export const COLLEAGUE_TEACHERS = Object.freeze([
-  { email: 'jorge@axi.demo', fullName: 'Mtro. Jorge Salas' },
+  { email: 'carlos@axi.demo', fullName: 'Mtro. Carlos Mendoza' },
   { email: 'ana@axi.demo', fullName: 'Mtra. Ana Lucía Paz' },
 ]);
 
@@ -276,7 +276,7 @@ export const SEED_QUIZZES = Object.freeze([
   },
   {
     originType: 'teacher',
-    ownerKey: 'jorge@axi.demo',
+    ownerKey: 'carlos@axi.demo',
     title: 'Fracciones visuales: medios, cuartos y octavos',
     description: 'Ideal para grupos que inician fracciones y suelen invertir numerador y denominador.',
     skillCode: 'fractions',
