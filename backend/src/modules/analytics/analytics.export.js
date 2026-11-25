@@ -212,14 +212,15 @@ export function renderAnalyticsPdf(data) {
   });
 }
 
-const SCHOOL_NOTICE = 'Reporte de uso escolar interno. Solo agregados por escuela, grupo y docente: no incluye nombres, folios ni datos individuales de alumnos.';
+const SCHOOL_NOTICE = 'Reporte de uso escolar interno con promedios por escuela y grupo. Incluye el nombre del docente de cada grupo; no incluye nombres, folios ni datos individuales de alumnos.';
 const SCHOOL_METHODOLOGY = [
   'Prioridades orientativas: cada habilidad se mide con un diagnóstico corto y el temario de cada grado está por validar con docentes. Son para conversar en el Consejo Técnico, no una calificación.',
   'Cada grupo se evalúa solo en las habilidades del programa de su grado (fracciones desde 3.º, multiplicación desde 2.º) y con cortes de ese grado.',
   'Escala: Necesita apoyo 0-24.99%; En proceso 25-49.99%; Logrado 50-74.99%; Dominado 75-100%. Sin evaluar no equivale a 0%.',
   'Un campo formativo sin reactivos en la plataforma se reporta como "Sin evaluación", nunca como 0%.',
   'Errores típicos: alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.',
-  'Campos formativos: Plan de Estudio 2022 (SEP). Fechas del CTE: calendario escolar SEP del ciclo.',
+  'No es una evaluación del desempeño docente: los resultados dependen del punto de partida de cada grupo.',
+  'Campos formativos: Plan de Estudio 2022 (SEP). Fechas del CTE: tomadas de notas de prensa sobre el calendario escolar SEP del ciclo; confirmar en el acuerdo publicado en el DOF.',
 ];
 const levelText = (average, label) => (average == null ? label : `${average.toFixed(2)}% · ${label}`);
 
@@ -287,7 +288,9 @@ export function renderSchoolPdf(data) {
       paragraph(`${SCHOOL_NOTICE} Generado: ${generatedAt()} (Ciudad de México).`, 9);
       if (data.cte) {
         paragraph(`Próximo Consejo Técnico Escolar: ${data.cte.label}`
-          + (data.cte.source === 'rule' ? ' (estimado: último viernes del mes; confirmar con el calendario oficial).' : '.'), 11, true);
+          + (data.cte.source === 'rule'
+            ? ' (estimado: último viernes del mes; confirmar con el calendario oficial).'
+            : ' (calendario SEP del ciclo; confirmar en el DOF).'), 11, true);
       }
 
       section('Indicadores generales');

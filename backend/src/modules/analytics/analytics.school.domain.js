@@ -168,9 +168,12 @@ export function mergeTypicalErrors(perGroup, skillRows, limit = 5) {
 /** Máximo de prioridades del mes: pocas y accionables para la sesión del CTE. */
 export const MAX_PRIORITIES = 3;
 
-const listNames = (groups) => {
+/** "3.º A", "3.º A y 5.º A", "1.º A, 2.º A, 3.º A y 2 más" (títulos cortos aunque haya muchos grupos). */
+const listNames = (groups, max = 3) => {
   const names = groups.map((g) => g.name);
-  return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
+  if (names.length <= 1) return names.join('');
+  if (names.length > max) return `${names.slice(0, max).join(', ')} y ${names.length - max} más`;
+  return `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
 };
 
 /**
@@ -230,15 +233,20 @@ export function buildSchoolPriorities(groups, skills) {
 // ───────────────────────── Consejo Técnico Escolar ─────────────────────────
 
 /**
- * Sesiones ordinarias del CTE por ciclo escolar (calendario escolar SEP 2026-2027, publicado
- * en el DOF). Son el último viernes del mes, sin sesión en diciembre ni en abril.
+ * Sesiones ordinarias del CTE por ciclo escolar, cargadas a mano. 2026-2027: tomadas de notas de
+ * prensa sobre el calendario escolar SEP (por verificar en el acuerdo publicado en el DOF). Son el
+ * último viernes del mes, sin sesión en diciembre ni en abril.
  */
 export const CTE_SESSIONS = Object.freeze({
   '2026-2027': Object.freeze(['2026-09-25', '2026-10-30', '2026-11-27', '2027-01-29', '2027-02-26',
     '2027-03-26', '2027-05-28', '2027-06-25']),
 });
 
-/** Meses sin sesión ordinaria del CTE (vacaciones de invierno y de verano). */
+/**
+ * Meses que la estimación salta: vacaciones de invierno (diciembre) y de verano (julio y agosto).
+ * Abril sí se estima: en 2026-2027 no hubo sesión por Semana Santa, pero esa fecha cambia cada año;
+ * por eso la estimación siempre se marca para confirmar con el calendario oficial.
+ */
 const NO_CTE_MONTHS = [6, 7, 11];
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre',
   'octubre', 'noviembre', 'diciembre'];

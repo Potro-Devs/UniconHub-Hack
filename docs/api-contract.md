@@ -192,7 +192,8 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
     Orden por `type`: `evidence` (< 50 % con diagnóstico), `skill` (habilidad con menor dominio de la escuela),
     `group_support` (grupos con ≥ 50 % de alumnos que necesitan apoyo, en un solo elemento), `coverage` (< 25 % del temario visto).
   - `cte`: próxima sesión ordinaria del Consejo Técnico Escolar `{ date, label, month, daysUntil, source }`.
-    `source: 'calendar'` usa el calendario escolar SEP del ciclo (2026-2027: último viernes del mes, sin diciembre ni abril);
+    `source: 'calendar'` usa fechas cargadas a mano (`CTE_SESSIONS`; 2026-2027 tomadas de notas de prensa sobre el calendario SEP,
+    por verificar en el DOF: último viernes del mes, sin diciembre ni abril);
     `source: 'rule'` estima el último viernes del mes (sin diciembre, julio ni agosto) cuando el ciclo no está cargado. `null` si no hay ciclo.
   - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`;
     `studentCount` son alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.
