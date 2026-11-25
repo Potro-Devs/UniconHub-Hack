@@ -4,12 +4,34 @@ import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { useSpeech } from '@/shared/hooks/useSpeech';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { BlockCompleteOverlay } from './BlockCompleteOverlay';
 import { nextUnanswered, splitStem } from './assignmentLogic';
 import { diagnosticsApi, friendlyDiagnosticsError } from './diagnostics.api';
 
 const MAX_HINTS = 3;
+
+/** Texto que lee la bocina: lectura (si hay), pregunta y opciones. */
+function questionSpeech(question) {
+  if (!question) return '';
+  const { passage, prompt } = splitStem(question.stem);
+  const options = question.options.map((o) => `${o.label}: ${o.text}`).join('. ');
+  return [passage?.join('. '), prompt, `Opciones. ${options}`].filter(Boolean).join('. ');
+}
+
+/** Botón de bocina: lee en voz alta solo cuando se toca (o detiene la lectura). */
+function SpeakerButton({ speech, id, text, label }) {
+  if (!speech.supported) return null;
+  const on = speech.speakingId === id;
+  return (
+    <button type="button" className="kid-button kid-button-small" aria-pressed={on}
+      aria-label={on ? 'Detener la lectura' : label} onClick={() => speech.speak(text, id)}
+      style={{ minHeight: '44px' }}>
+      <span aria-hidden="true">{on ? '■' : '🔊'}</span> {on ? 'Detener' : 'Escuchar'}
+    </button>
+  );
+}
 const isFraction = (text) => /^\d+\/\d+$/.test(text);
 
 /**
@@ -23,7 +45,8 @@ export function StudentAssignmentScreen() {
   const navigate = useNavigate();
   const { narrow } = useBreakpoint();
   const reducedMotion = useReducedMotion();
-  const { axiColor } = useAppUi();
+  const { axiColor, sound } = useAppUi();
+  const speech = useSpeech();
 
   const [state, setState] = useState({ status: 'loading', assignment: null, questions: [], error: null });
   const [index, setIndex] = useState(0);
@@ -53,6 +76,17 @@ export function StudentAssignmentScreen() {
   const answeredCount = useMemo(() => questions.filter((q) => q.answered).length, [questions]);
   const allAnswered = questions.length > 0 && answeredCount === questions.length;
   const hintsUsed = useMemo(() => questions.reduce((sum, q) => sum + (q.hints?.length ?? 0), 0), [questions]);
+
+  // Con "Sonido: sí" (apagado por defecto) se lee cada pregunta nueva; al cambiar de pregunta se detiene.
+  const { speak, stop } = speech;
+  const questionId = question?.id;
+  const questionAnswered = question?.answered;
+  useEffect(() => {
+    stop();
+    if (sound && questionId && !questionAnswered) speak(questionSpeech(question), `q-${questionId}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionId, sound]);
+  useEffect(() => () => stop(), [stop]);
 
   const updateQuestion = (id, patch) => setState((prev) => ({
     ...prev, questions: prev.questions.map((q) => (q.id === id ? { ...q, ...patch } : q)),
@@ -190,7 +224,10 @@ export function StudentAssignmentScreen() {
             {passage.slice(1).map((p, i) => <p key={i} style={{ margin: '0 0 8px' }}>{p}</p>)}
           </div>
         )}
-        <div className="font-display" style={{ fontWeight: 700, fontSize: narrow ? '24px' : '28px', lineHeight: 1.25 }}>{prompt}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="font-display" style={{ flex: '1 1 260px', fontWeight: 700, fontSize: narrow ? '24px' : '28px', lineHeight: 1.25 }}>{prompt}</div>
+          <SpeakerButton speech={speech} id={`q-${question.id}`} text={questionSpeech(question)} label="Escuchar la pregunta y las opciones" />
+        </div>
 
         {question.answered ? (
           <div role="status" style={{ padding: '14px 16px', borderRadius: '20px', background: COLORS.primarySoftBg, fontSize: '19px', fontWeight: 700 }}>
@@ -206,7 +243,12 @@ export function StudentAssignmentScreen() {
             </div>
             {hints.length > 0 && (
               <div role="status" style={{ background: COLORS.noticeBg, borderRadius: '18px', padding: '16px', fontSize: '18px', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {hints.map((h, i) => <span key={i}><strong>Pista {i + 1}: </strong>{h}</span>)}
+                {hints.map((h, i) => (
+                  <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ flex: '1 1 220px' }}><strong>Pista {i + 1}: </strong>{h}</span>
+                    <SpeakerButton speech={speech} id={`h-${question.id}-${i}`} text={`Pista ${i + 1}. ${h}`} label={`Escuchar la pista ${i + 1}`} />
+                  </span>
+                ))}
               </div>
             )}
             <div role="radiogroup" aria-label="Opciones de respuesta" style={{ display: 'grid', gridTemplateColumns: narrow && hasTextOptions ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
