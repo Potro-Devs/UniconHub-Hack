@@ -18,16 +18,23 @@ import {
   assertQuestionsPerSkill,
   assertRequestedSkillsHaveQuestions,
   assertStudentsInGroup,
+  buildGroupSkillContext,
   orderQuestionsByIds,
   orderQuestionsBySkills,
   parseAssignmentInput,
   parseQuestionFilters,
+  parseQuizInput,
+  parseQuizListQuery,
   toAssignmentSummaryDto,
   toQuestionDto,
+  toQuizDetailDto,
+  toQuizSummaryDto,
   toTargetDto,
 } from './assessments.domain.js';
+import { renderQuizPdf } from './assessments.pdf.js';
 
 const ASSIGNMENT_NOT_FOUND = () => new HttpError(404, 'ASSIGNMENT_NOT_FOUND', 'No encontramos esa prueba.');
+const QUIZ_NOT_FOUND = () => new HttpError(404, 'QUIZ_NOT_FOUND', 'No encontramos ese cuestionario.');
 
 /** Agrupa filas por una llave (`Map<key, rows[]>`). */
 function groupBy(rows, key) {
@@ -137,6 +144,148 @@ export function createAssessmentsService({ repository, groupsRepository, transac
         repository.insertTargets(id, studentIds, initialTargetState(input.modality));
         return buildDetail(repository.findAssignmentById(id));
       });
+    },
+
+    listQuizzes(auth, query = {}) {
+      const { groupId, origin } = parseQuizListQuery(query);
+      let groupContext = null;
+      if (groupId != null) {
+        const group = findReadableGroup(auth, groupId);
+        groupContext = buildGroupSkillContext(
+          group,
+          repository.listAllSkills(),
+          repository.listGroupLatestMastery(group.id, group.school_id),
+        );
+      }
+
+      const rawSummaries = repository
+        .listVisibleQuizzes(auth.schoolId)
+        .map((row) => toQuizSummaryDto(row, auth.sub, groupContext))
+        .sort(
+          (a, b) =>
+            Number(b.isRecommended) - Number(a.isRecommended) ||
+            b.recommendationScore - a.recommendationScore ||
+            b.id - a.id,
+        );
+
+      // Si el grupo domina todas las habilidades (ninguna alcanza el umbral >= 74),
+      // destacamos dinámicamente las 2 opciones con mayor afinidad para su grado y desempeño.
+      const hasExplicitMatch = rawSummaries.some((q) => q.isRecommended);
+      const allSummaries =
+        groupContext && !hasExplicitMatch
+          ? rawSummaries.map((q, idx) =>
+              idx < 2 && q.recommendationScore >= 40 ? { ...q, isRecommended: true } : q,
+            )
+          : rawSummaries;
+
+      const counts = {
+        all: allSummaries.length,
+        recommended: allSummaries.filter((q) => q.isRecommended).length,
+        own: allSummaries.filter((q) => q.origin === 'own').length,
+        other_teachers: allSummaries.filter((q) => q.origin === 'other_teacher').length,
+        preloaded: allSummaries.filter((q) => q.origin === 'preloaded').length,
+      };
+
+      const quizzes = allSummaries.filter((q) => {
+        if (origin === 'all') return true;
+        if (origin === 'recommended') return q.isRecommended;
+        if (origin === 'own') return q.origin === 'own';
+        if (origin === 'other_teachers') return q.origin === 'other_teacher';
+        if (origin === 'preloaded') return q.origin === 'preloaded';
+        return true;
+      });
+
+      return { quizzes, counts, groupContext };
+    },
+
+    getQuiz(auth, quizId, query = {}) {
+      const id = parsePositiveId(quizId, 'id del cuestionario');
+      const { groupId } = parseQuizListQuery(query);
+      const quiz = repository.findQuizById(id);
+      if (!quiz || (quiz.origin_type !== 'system' && Number(quiz.school_id) !== Number(auth.schoolId))) {
+        throw QUIZ_NOT_FOUND();
+      }
+
+      let groupContext = null;
+      if (groupId != null) {
+        const group = findReadableGroup(auth, groupId);
+        groupContext = buildGroupSkillContext(
+          group,
+          repository.listAllSkills(),
+          repository.listGroupLatestMastery(group.id, group.school_id),
+        );
+      }
+
+      return toQuizDetailDto(quiz, repository.listQuizQuestions(id), auth.sub, groupContext);
+    },
+
+    createQuiz(auth, body) {
+      const input = parseQuizInput(body);
+      const skillId = repository.findSkillIdByCode(input.skillCode);
+      if (!skillId) throw new HttpError(400, 'SKILL_NOT_FOUND', 'No encontramos esa habilidad.');
+
+      return transaction(() => {
+        const quizId = repository.insertQuiz({
+          schoolId: auth.schoolId,
+          createdBy: Number(auth.sub),
+          title: input.title,
+          description: input.description,
+          skillId,
+          grade: input.grade,
+        });
+        repository.replaceQuizQuestions(quizId, input.questions);
+        return toQuizDetailDto(repository.findQuizById(quizId), repository.listQuizQuestions(quizId), auth.sub);
+      });
+    },
+
+    updateQuiz(auth, quizId, body) {
+      const id = parsePositiveId(quizId, 'id del cuestionario');
+      const existing = repository.findQuizById(id);
+      if (!existing || (existing.origin_type !== 'system' && Number(existing.school_id) !== Number(auth.schoolId))) {
+        throw QUIZ_NOT_FOUND();
+      }
+      if (existing.origin_type !== 'teacher' || Number(existing.created_by) !== Number(auth.sub)) {
+        throw new HttpError(403, 'QUIZ_NOT_OWNED', 'Solo puedes editar cuestionarios creados por ti.');
+      }
+
+      const input = parseQuizInput(body);
+      const skillId = repository.findSkillIdByCode(input.skillCode);
+      if (!skillId) throw new HttpError(400, 'SKILL_NOT_FOUND', 'No encontramos esa habilidad.');
+
+      return transaction(() => {
+        repository.updateQuiz({
+          id,
+          title: input.title,
+          description: input.description,
+          skillId,
+          grade: input.grade,
+        });
+        repository.replaceQuizQuestions(id, input.questions);
+        return toQuizDetailDto(repository.findQuizById(id), repository.listQuizQuestions(id), auth.sub);
+      });
+    },
+
+    async exportQuizPdf(auth, quizId, query = {}) {
+      const id = parsePositiveId(quizId, 'id del cuestionario');
+      const { groupId } = parseQuizListQuery(query);
+      const quiz = repository.findQuizById(id);
+      if (!quiz || (quiz.origin_type !== 'system' && Number(quiz.school_id) !== Number(auth.schoolId))) {
+        throw QUIZ_NOT_FOUND();
+      }
+
+      let groupLabel = null;
+      if (groupId != null) {
+        const group = findReadableGroup(auth, groupId);
+        groupLabel = `${group.grade}.º ${group.section}`;
+      }
+
+      const detail = toQuizDetailDto(quiz, repository.listQuizQuestions(id), auth.sub);
+      const buffer = await renderQuizPdf(detail, { groupLabel });
+      return {
+        buffer,
+        filename: `cuestionario-${detail.id}.pdf`,
+        contentType: 'application/pdf',
+      };
     },
   };
 }

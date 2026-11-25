@@ -185,3 +185,290 @@ export const ACTIVITIES = Object.freeze([
     description: 'Descubran el significado de palabras nuevas usando las oraciones de alrededor y compruébenlo en el diccionario.',
   },
 ]);
+
+export const COLLEAGUE_TEACHERS = Object.freeze([
+  { email: 'carlos@axi.demo', fullName: 'Mtro. Carlos Mendoza' },
+  { email: 'ana@axi.demo', fullName: 'Mtra. Ana Lucía Paz' },
+]);
+
+/**
+ * Cuestionarios iniciales para "Cuestionarios y constructor":
+ * - `own`: creados por la docente demo (`Mtra. Elena Torres`)
+ * - `colleagueEmail`: creados por otros docentes de la escuela
+ * - `originType: 'system'`: precargados por Axi
+ */
+export const SEED_QUIZZES = Object.freeze([
+  {
+    originType: 'teacher',
+    ownerKey: 'demo',
+    title: 'Problemas de suma y resta con datos extra',
+    description: 'Detecta si el alumno opera con todos los números del enunciado sin identificar la pregunta.',
+    skillCode: 'problem_solving',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: 'Lucía compró 12 lápices azules y 8 rojos. Si regaló 5 lápices azules, ¿cuántos lápices azules le quedaron?',
+        options: [
+          { label: 'A', text: '7 lápices azules', isCorrect: true },
+          { label: 'B', text: '15 lápices azules', isCorrect: false },
+          { label: 'C', text: '25 lápices azules', isCorrect: false },
+          { label: 'D', text: '3 lápices azules', isCorrect: false },
+        ],
+        correctAnswer: '7 lápices azules',
+        hint: 'Observa de qué color te pregunta al final y qué datos corresponden solo a ese color.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'Si en un problema aparecen tres cantidades, siempre debemos sumarlas todas para responder.',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: false },
+          { label: 'B', text: 'Falso', isCorrect: true },
+        ],
+        correctAnswer: 'Falso',
+        hint: 'Piensa si todos los datos sirven para contestar la pregunta o algunos son solo información adicional.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'En una caja había 40 canicas y en otra 25 bolsas de plástico. Si se perdieron 12 canicas, quedaron ___ canicas.',
+        options: [],
+        correctAnswer: '28',
+        hint: 'Separa los objetos que son canicas de los que no se están contando.',
+      },
+    ],
+  },
+  {
+    originType: 'teacher',
+    ownerKey: 'demo',
+    title: 'Fracciones cotidianas en tiras y repartos',
+    description: 'Evaluación corta para revisar medios, cuartos y comparación básica antes del cierre del trimestre.',
+    skillCode: 'fractions',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: '¿Qué fracción representa 1 parte pintada de una barra dividida en 4 partes iguales?',
+        options: [
+          { label: 'A', text: '1/3', isCorrect: false },
+          { label: 'B', text: '1/4', isCorrect: true },
+          { label: 'C', text: '4/1', isCorrect: false },
+          { label: 'D', text: '3/4', isCorrect: false },
+        ],
+        correctAnswer: '1/4',
+        hint: 'El número de abajo indica en cuántas partes iguales se partió toda la barra.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'Un medio (1/2) de un pastel es más grande que un cuarto (1/4) del mismo pastel.',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: true },
+          { label: 'B', text: 'Falso', isCorrect: false },
+        ],
+        correctAnswer: 'Verdadero',
+        hint: 'Imagina que divides el mismo pastel entre 2 personas o entre 4 personas.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'Si partes una naranja en 8 gajos iguales y tomas 3 gajos, tomaste la fracción ___ .',
+        options: [],
+        correctAnswer: '3/8',
+        hint: 'Escribe arriba las partes que tomaste y abajo el total de gajos iguales.',
+      },
+    ],
+  },
+  {
+    originType: 'teacher',
+    ownerKey: 'carlos@axi.demo',
+    title: 'Fracciones visuales: medios, cuartos y octavos',
+    description: 'Ideal para grupos que inician fracciones y suelen invertir numerador y denominador.',
+    skillCode: 'fractions',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: 'Sofía dobló una hoja en 8 rectángulos iguales y coloreó 5. ¿Qué fracción coloreó?',
+        options: [
+          { label: 'A', text: '8/5', isCorrect: false },
+          { label: 'B', text: '5/8', isCorrect: true },
+          { label: 'C', text: '5/3', isCorrect: false },
+          { label: 'D', text: '3/8', isCorrect: false },
+        ],
+        correctAnswer: '5/8',
+        hint: 'Cuenta primero todas las partes iguales de la hoja para colocar ese número abajo.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'Dos cuartos (2/4) ocupan exactamente la misma cantidad que un medio (1/2).',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: true },
+          { label: 'B', text: 'Falso', isCorrect: false },
+        ],
+        correctAnswer: 'Verdadero',
+        hint: 'Compara la mitad de una tira de 4 partes iguales con una tira partida a la mitad.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'Para completar un entero cuando ya tienes 1/4, te faltan ___ cuartos.',
+        options: [],
+        correctAnswer: '3/4',
+        hint: 'Un entero dividido en cuartos tiene 4 partes iguales.',
+      },
+    ],
+  },
+  {
+    originType: 'teacher',
+    ownerKey: 'ana@axi.demo',
+    title: 'Multiplicación y reparto en arreglos rectangulares',
+    description: 'Relaciona filas y columnas con repartos equitativos sin confundir suma con multiplicación.',
+    skillCode: 'multiplication',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: 'En el huerto hay 4 surcos con 6 plantas de maíz cada uno. ¿Cuántas plantas hay en total?',
+        options: [
+          { label: 'A', text: '10 plantas', isCorrect: false },
+          { label: 'B', text: '20 plantas', isCorrect: false },
+          { label: 'C', text: '24 plantas', isCorrect: true },
+          { label: 'D', text: '28 plantas', isCorrect: false },
+        ],
+        correctAnswer: '24 plantas',
+        hint: 'Suma 6 plantas cuatro veces o usa la tabla del 4.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'Multiplicar 3 × 7 da el mismo resultado que multiplicar 7 × 3.',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: true },
+          { label: 'B', text: 'Falso', isCorrect: false },
+        ],
+        correctAnswer: 'Verdadero',
+        hint: 'Imagina girar un rectángulo de 3 filas por 7 columnas.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'Si repartes 32 fichas en 4 equipos iguales, cada equipo recibe ___ fichas.',
+        options: [],
+        correctAnswer: '8',
+        hint: 'Busca qué número multiplicado por 4 da 32.',
+      },
+    ],
+  },
+  {
+    originType: 'system',
+    ownerKey: null,
+    title: 'Diagnóstico base SEP · Fracciones en partes iguales',
+    description: 'Cuestionario precargado por Axi para identificar inversión de numerador y denominador.',
+    skillCode: 'fractions',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: 'Una cinta se cortó en 4 trozos del mismo tamaño y se usaron 3. ¿Qué fracción de la cinta se usó?',
+        options: [
+          { label: 'A', text: '3/4', isCorrect: true },
+          { label: 'B', text: '4/3', isCorrect: false },
+          { label: 'C', text: '1/4', isCorrect: false },
+          { label: 'D', text: '3/1', isCorrect: false },
+        ],
+        correctAnswer: '3/4',
+        hint: 'Recuerda: partes usadas arriba, total de partes iguales abajo.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'Si un chocolate está dividido en 3 pedazos de distinto tamaño, cada pedazo es exactamente 1/3.',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: false },
+          { label: 'B', text: 'Falso', isCorrect: true },
+        ],
+        correctAnswer: 'Falso',
+        hint: 'Fíjate en la condición indispensable de las fracciones: las partes deben ser iguales.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'La mitad de 12 manzanas equivale a ___ manzanas.',
+        options: [],
+        correctAnswer: '6',
+        hint: 'Divide las 12 manzanas en 2 grupos iguales.',
+      },
+    ],
+  },
+  {
+    originType: 'system',
+    ownerKey: null,
+    title: 'Diagnóstico base SEP · Valor posicional hasta 10 000',
+    description: 'Cuestionario precargado por Axi para verificar lectura y descomposición de cifras.',
+    skillCode: 'place_value',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: 'En el número 4 728, ¿cuánto vale la cifra 7 según el lugar que ocupa?',
+        options: [
+          { label: 'A', text: '7', isCorrect: false },
+          { label: 'B', text: '70', isCorrect: false },
+          { label: 'C', text: '700', isCorrect: true },
+          { label: 'D', text: '7 000', isCorrect: false },
+        ],
+        correctAnswer: '700',
+        hint: 'Cuenta de derecha a izquierda: unidades, decenas, centenas.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'El número 3 050 es mayor que el número 3 500.',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: false },
+          { label: 'B', text: 'Falso', isCorrect: true },
+        ],
+        correctAnswer: 'Falso',
+        hint: 'Compara primero las centenas de ambos números.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'La suma 2 000 + 300 + 40 + 9 forma el número ___ .',
+        options: [],
+        correctAnswer: '2349',
+        hint: 'Acomoda cada cifra en unidades de millar, centenas, decenas y unidades.',
+      },
+    ],
+  },
+  {
+    originType: 'system',
+    ownerKey: null,
+    title: 'Diagnóstico base SEP · Comprensión lectora de textos breves',
+    description: 'Cuestionario precargado por Axi sobre idea principal y vocabulario en contexto.',
+    skillCode: 'reading_comprehension',
+    grade: 3,
+    questions: [
+      {
+        questionType: 'multiple_choice',
+        prompt: 'Lee: "Las abejas visitan las flores para tomar néctar y, sin darse cuenta, llevan polen que ayuda a nacer frutos." ¿Cuál es la idea principal?',
+        options: [
+          { label: 'A', text: 'Las abejas vuelan muy rápido en el jardín.', isCorrect: false },
+          { label: 'B', text: 'Al buscar alimento, las abejas ayudan a que nazcan frutos.', isCorrect: true },
+          { label: 'C', text: 'Todas las flores tienen néctar dulce.', isCorrect: false },
+          { label: 'D', text: 'Los frutos cambian de color en verano.', isCorrect: false },
+        ],
+        correctAnswer: 'Al buscar alimento, las abejas ayudan a que nazcan frutos.',
+        hint: 'Busca la oración que resume qué hacen las abejas y para qué sirve.',
+      },
+      {
+        questionType: 'true_false',
+        prompt: 'La idea principal de un texto suele explicar de qué trata todo el párrafo y no solo un detalle suelto.',
+        options: [
+          { label: 'A', text: 'Verdadero', isCorrect: true },
+          { label: 'B', text: 'Falso', isCorrect: false },
+        ],
+        correctAnswer: 'Verdadero',
+        hint: 'Piensa si un dato pequeño puede resumir toda la lectura.',
+      },
+      {
+        questionType: 'fill_blank',
+        prompt: 'En "El sendero era tan angosto que solo pasaba una persona a la vez", "angosto" significa ___ .',
+        options: [],
+        correctAnswer: 'estrecho',
+        hint: 'Usa la pista de que solo cabe una persona a la vez.',
+      },
+    ],
+  },
+]);
