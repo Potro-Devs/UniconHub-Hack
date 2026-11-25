@@ -45,7 +45,7 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
 - **Acceso y autenticación:**
   - Login docente con correo electrónico + contraseña.
   - **Botones de acceso rápido debajo del login** para pruebas/demo: *Entrar como Docente*, *Entrar como Directivo* y *Entrar como Alumno*.
-  - *Entrar como Directivo* es una excepción para la demo: el director solo **consulta** los grupos de su escuela (lectura). La gestión de Dirección sigue en el Roadmap y sus pantallas usan datos de ejemplo.
+  - *Entrar como Directivo* es una excepción para la demo: el director ve el **Panel de la escuela** y **Docentes** con agregados reales del ciclo actual (sin datos de alumnos). Alta de docentes, promoción y traslados siguen en el Roadmap con datos de ejemplo.
   - Acceso estándar del alumno mediante código de grupo (6 caracteres) y selección de tarjeta/avatar.
 - **Gestión escolar básica:** Alta/edición de grupos, alta individual o masiva (lista pegada) de alumnos, generación automática de `internal_folio` y avatar por defecto.
 - **Temario y asignación:** Marcado de avance (`pending`, `in_progress`, `seen`) y asignación de pruebas (todo el grupo o alumnos específicos) en modalidad `screen` o `paper`.
