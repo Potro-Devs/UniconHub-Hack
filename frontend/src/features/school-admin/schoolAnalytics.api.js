@@ -5,4 +5,5 @@ import { apiClient } from '@/shared/api/client';
 
 export const schoolAnalyticsApi = {
   school: (options) => apiClient.get('/analytics/school', options),
+  exportPdf: () => apiClient.download('/analytics/school/export.pdf'),
 };

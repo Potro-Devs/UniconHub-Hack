@@ -15,6 +15,25 @@
 .sd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .sd-chips li { background: rgb(255 255 255 / 75%); border-radius: 999px; padding: 6px 12px; font-size: .8125rem; font-weight: 700; color: var(--axi-ink); }
 
+/* Encabezado: título + exportar */
+.sd-hero-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sd-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 240px; }
+.sd-export { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px; border: 0; border-radius: 14px; background: var(--axi-primary); color: var(--axi-onPrimary); font-size: 1rem; font-weight: 700; cursor: pointer; }
+.sd-export:disabled { opacity: .6; cursor: not-allowed; }
+.sd-download { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--axi-primarySoftBg); font-size: .875rem; line-height: 1.45; }
+.sd-download-error { background: var(--axi-alertBg); color: var(--axi-alertFg); }
+
+/* Pestañas por sección (se envuelven en celular: sin scroll horizontal) */
+.sd-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.sd-tab { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 1px solid var(--axi-border); border-radius: 999px; background: var(--axi-surface); color: var(--axi-muted); font-size: .9375rem; font-weight: 700; cursor: pointer; }
+.sd-tab[aria-selected='true'] { background: var(--axi-primary); border-color: var(--axi-primary); color: var(--axi-onPrimary); }
+.sd-tab:focus-visible, .sd-export:focus-visible { outline: 3px solid var(--axi-focusRing); outline-offset: 2px; }
+
+/* Próximo CTE */
+.sd-cte { display: flex; flex-direction: column; gap: 8px; background: var(--axi-noticeBg); border-color: transparent; }
+.sd-cte-date { font-family: 'Baloo 2', system-ui, sans-serif; font-size: 1.5rem; line-height: 1.15; }
+.sd-cte-days { font-weight: 700; color: var(--axi-noticeFg); }
+
 /* Indicadores */
 .sd-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .sd-kpi { display: flex; flex-direction: column; gap: 6px; }

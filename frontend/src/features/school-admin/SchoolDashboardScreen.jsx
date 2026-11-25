@@ -1,9 +1,20 @@
+import { useState } from 'react';
 import { LEVELS } from '@/config/brand';
 import { errorMessageOf } from '@/shared/api/client';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { buttonStyle } from '@/shared/styles/ui';
+import { schoolAnalyticsApi } from './schoolAnalytics.api';
 import { useSchoolAnalytics } from './useSchoolAnalytics';
 import './school-dashboard.css';
+
+/** Secciones del panel: una a la vez para evitar tanto scroll vertical. */
+const SECTIONS = [
+  { id: 'resumen', label: 'Resumen', icon: 'star' },
+  { id: 'campos', label: 'Campos formativos', icon: 'book' },
+  { id: 'habilidades', label: 'Habilidades', icon: 'map' },
+  { id: 'grupos', label: 'Grupos', icon: 'groups' },
+  { id: 'errores', label: 'Errores típicos', icon: 'pencil' },
+];
 
 const levelOf = (code) => LEVELS.find((l) => l.code === code);
 
@@ -125,6 +136,8 @@ function GroupRow({ group }) {
  */
 export function SchoolDashboardScreen() {
   const request = useSchoolAnalytics();
+  const [tab, setTab] = useState('resumen');
+  const [download, setDownload] = useState({ pending: false, message: '', error: false });
 
   if (request.status === 'loading') return <p role="status" aria-live="polite">Cargando el panel de la escuela…</p>;
   if (request.status === 'error') {
@@ -136,15 +149,41 @@ export function SchoolDashboardScreen() {
     );
   }
 
-  const { school, summary, fields, skills, groups, priorities, typicalErrors } = request.data;
+  const { school, summary, fields, skills, groups, priorities, typicalErrors, cte } = request.data;
   const updated = formatDate(summary.latestRecordedAt);
   const maxErrorCount = Math.max(1, ...typicalErrors.map((e) => e.studentCount));
+  const tabs = SECTIONS.filter((s) => s.id !== 'errores' || typicalErrors.length > 0);
+
+  const exportPdf = async () => {
+    setDownload({ pending: true, message: '', error: false });
+    try {
+      const blob = await schoolAnalyticsApi.exportPdf();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `panel-escuela-${school.schoolYear ?? 'ciclo'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setDownload({ pending: false, message: 'PDF listo. Incluye indicadores, prioridades del mes, campos formativos, habilidades y resumen por grupo, sin datos de alumnos.', error: false });
+    } catch (error) {
+      setDownload({ pending: false, message: errorMessageOf(error), error: true });
+    }
+  };
 
   return (
     <div className="sd">
       <header className="sd-hero">
-        <span className="sd-eyebrow">Panel de la escuela</span>
-        <h1>{school.name}</h1>
+        <div className="sd-hero-top">
+          <div className="sd-hero-text">
+            <span className="sd-eyebrow">Panel de la escuela</span>
+            <h1>{school.name}</h1>
+          </div>
+          <button type="button" className="sd-export" onClick={exportPdf} disabled={download.pending || groups.length === 0}>
+            <InterfaceIcon name="paper" size={18} />{download.pending ? 'Preparando…' : 'Exportar PDF'}
+          </button>
+        </div>
         <ul className="sd-chips" aria-label="Datos del ciclo">
           <li>Ciclo {school.schoolYear?.replace('-', '–') ?? '—'}</li>
           <li>{plural(summary.groupCount, 'grupo', 'grupos')}</li>
@@ -152,86 +191,119 @@ export function SchoolDashboardScreen() {
           {updated && <li>Último diagnóstico: {updated}</li>}
         </ul>
       </header>
+      {download.message && <p className={`sd-download ${download.error ? 'sd-download-error' : ''}`} role={download.error ? 'alert' : 'status'}>{download.message}</p>}
 
       {groups.length === 0 ? (
         <div className="sd-card"><p className="sd-muted">Aún no hay grupos en el ciclo actual.</p></div>
       ) : (
         <>
-          <section aria-label="Indicadores generales" className="sd-kpis">
-            <Kpi icon="groups" label="Alumnos inscritos" value={summary.studentCount} note={`En ${plural(summary.groupCount, 'grupo', 'grupos')}`} />
-            <Kpi icon="pencil" label="Con diagnóstico" value={`${summary.evidencePercentage}%`} meter={summary.evidencePercentage}
-              note={`${summary.evaluatedStudentCount} de ${summary.studentCount} alumnos`} />
-            <Kpi icon="spark" label="Necesitan apoyo" value={summary.needsSupportCount} meter={summary.needsSupportPercentage}
-              note={`${summary.needsSupportPercentage}% · en al menos una habilidad`} />
-            <Kpi icon="book" label="Temario visto" value={`${summary.coveragePercentage}%`} meter={summary.coveragePercentage}
-              note="Promedio de los grupos" />
-          </section>
+          <div className="sd-tabs" role="tablist" aria-label="Secciones del panel">
+            {tabs.map((s) => (
+              <button key={s.id} type="button" role="tab" id={`sd-tab-${s.id}`} aria-selected={tab === s.id}
+                aria-controls={`sd-panel-${s.id}`} className="sd-tab" onClick={() => setTab(s.id)}>
+                <InterfaceIcon name={s.icon} size={18} />{s.label}
+              </button>
+            ))}
+          </div>
 
-          <div className="sd-split">
-            <section aria-labelledby="sd-fields" className="sd-section">
+          {tab === 'resumen' && (
+            <section role="tabpanel" id="sd-panel-resumen" aria-labelledby="sd-tab-resumen" className="sd-section">
+              <div className="sd-kpis">
+                <Kpi icon="groups" label="Alumnos inscritos" value={summary.studentCount} note={`En ${plural(summary.groupCount, 'grupo', 'grupos')}`} />
+                <Kpi icon="pencil" label="Con diagnóstico" value={`${summary.evidencePercentage}%`} meter={summary.evidencePercentage}
+                  note={`${summary.evaluatedStudentCount} de ${summary.studentCount} alumnos`} />
+                <Kpi icon="spark" label="Necesitan apoyo" value={summary.needsSupportCount} meter={summary.needsSupportPercentage}
+                  note={`${summary.needsSupportPercentage}% · en al menos una habilidad`} />
+                <Kpi icon="book" label="Temario visto" value={`${summary.coveragePercentage}%`} meter={summary.coveragePercentage}
+                  note="Promedio de los grupos" />
+              </div>
+              <div className="sd-split">
+                <div className="sd-section">
+                  <div className="sd-section-head">
+                    <h2>Prioridades del mes</h2>
+                    {cte && <span className="sd-muted">Para el CTE de {cte.month}</span>}
+                  </div>
+                  {priorities.length === 0 ? (
+                    <div className="sd-card"><p className="sd-muted">Sin alertas este mes.</p></div>
+                  ) : (
+                    <ol className="sd-priorities">
+                      {priorities.map((p, i) => (
+                        <li key={`${p.type}-${i}`} className="sd-card sd-priority">
+                          <strong>{p.title}</strong>
+                          <p>{p.detail}</p>
+                          <p className="sd-action">{p.action}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  <p className="sd-muted">Orientativas: diagnóstico corto y temario por validar con docentes. Para conversar en el CTE, no como calificación.</p>
+                </div>
+                {cte && (
+                  <aside className="sd-card sd-cte" aria-label="Próximo Consejo Técnico Escolar">
+                    <span className="sd-eyebrow">Próximo Consejo Técnico</span>
+                    <strong className="sd-cte-date">{cte.label}</strong>
+                    <span className="sd-cte-days">{cte.daysUntil === 0 ? 'Es hoy' : `Faltan ${plural(cte.daysUntil, 'día', 'días')}`}</span>
+                    <p className="sd-muted">
+                      {cte.source === 'calendar'
+                        ? 'Según el calendario escolar SEP del ciclo (sesiones ordinarias el último viernes del mes).'
+                        : 'Estimado: último viernes del mes. Confirma la fecha con el calendario oficial.'}
+                    </p>
+                  </aside>
+                )}
+              </div>
+            </section>
+          )}
+
+          {tab === 'campos' && (
+            <section role="tabpanel" id="sd-panel-campos" aria-labelledby="sd-tab-campos" className="sd-section">
               <div className="sd-section-head">
-                <h2 id="sd-fields">Campos formativos</h2>
+                <h2>Campos formativos</h2>
                 <span className="sd-muted">Plan de Estudio 2022 · SEP</span>
               </div>
               <div className="sd-fields">{fields.map((f) => <FieldCard key={f.code} field={f} />)}</div>
             </section>
+          )}
 
-            <section aria-labelledby="sd-priorities" className="sd-section">
-              <div className="sd-section-head"><h2 id="sd-priorities">Prioridades para decidir</h2></div>
-              {priorities.length === 0 ? (
-                <div className="sd-card"><p className="sd-muted">No hay alertas: los grupos tienen diagnóstico y avance del temario.</p></div>
-              ) : (
-                <ol className="sd-priorities">
-                  {priorities.map((p, i) => (
-                    <li key={`${p.type}-${i}`} className="sd-card sd-priority">
-                      <strong>{p.title}</strong>
-                      <p>{p.detail}</p>
-                      <p className="sd-action">{p.action}</p>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-          </div>
-
-          <div className="sd-split sd-split-even">
-            <section aria-labelledby="sd-skills" className="sd-card sd-section">
+          {tab === 'habilidades' && (
+            <section role="tabpanel" id="sd-panel-habilidades" aria-labelledby="sd-tab-habilidades" className="sd-card sd-section">
               <div className="sd-section-head">
-                <h2 id="sd-skills">Habilidades clave</h2>
+                <h2>Habilidades clave</h2>
                 <span className="sd-muted">La línea marca 50% (Logrado)</span>
               </div>
               <ul className="sd-skills">{skills.map((s) => <SkillRow key={s.code} skill={s} />)}</ul>
             </section>
+          )}
 
-            {typicalErrors.length > 0 && (
-              <section aria-labelledby="sd-errors" className="sd-card sd-section">
-                <div className="sd-section-head">
-                  <h2 id="sd-errors">Errores típicos frecuentes</h2>
-                  <span className="sd-muted">Temas para el Consejo Técnico</span>
-                </div>
-                <ol className="sd-errors">
-                  {typicalErrors.map((e) => (
-                    <li key={`${e.skillCode}-${e.errorTag}`} className="sd-error">
-                      <p><strong>{e.skillName}:</strong> {e.explanation}</p>
-                      <div className="sd-meter" aria-hidden="true"><span style={{ width: `${(e.studentCount / maxErrorCount) * 100}%`, background: 'var(--axi-noticeFg)' }} /></div>
-                      <small>{plural(e.studentCount, 'alumno', 'alumnos')} en {plural(e.groupCount, 'grupo', 'grupos')}</small>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
-          </div>
+          {tab === 'grupos' && (
+            <section role="tabpanel" id="sd-panel-grupos" aria-labelledby="sd-tab-grupos" className="sd-section">
+              <div className="sd-section-head">
+                <h2>Resumen por grupo</h2>
+                <span className="sd-muted">Promedios del grupo; sin datos de alumnos</span>
+              </div>
+              <div className="sd-groups-head" aria-hidden="true">
+                <span>Grupo</span><span>Alumnos</span><span>Con diagnóstico</span><span>Necesitan apoyo</span><span>Campos formativos</span><span>Prioridad</span>
+              </div>
+              <ul className="sd-groups">{groups.map((g) => <GroupRow key={g.id} group={g} />)}</ul>
+            </section>
+          )}
 
-          <section aria-labelledby="sd-groups" className="sd-section">
-            <div className="sd-section-head">
-              <h2 id="sd-groups">Resumen por grupo</h2>
-              <span className="sd-muted">Promedios del grupo; sin datos de alumnos</span>
-            </div>
-            <div className="sd-groups-head" aria-hidden="true">
-              <span>Grupo</span><span>Alumnos</span><span>Con diagnóstico</span><span>Necesitan apoyo</span><span>Campos formativos</span><span>Prioridad</span>
-            </div>
-            <ul className="sd-groups">{groups.map((g) => <GroupRow key={g.id} group={g} />)}</ul>
-          </section>
+          {tab === 'errores' && (
+            <section role="tabpanel" id="sd-panel-errores" aria-labelledby="sd-tab-errores" className="sd-card sd-section">
+              <div className="sd-section-head">
+                <h2>Errores típicos frecuentes</h2>
+                <span className="sd-muted">Temas para el Consejo Técnico</span>
+              </div>
+              <ol className="sd-errors">
+                {typicalErrors.map((e) => (
+                  <li key={`${e.skillCode}-${e.errorTag}`} className="sd-error">
+                    <p><strong>{e.skillName}:</strong> {e.explanation}</p>
+                    <div className="sd-meter" aria-hidden="true"><span style={{ width: `${(e.studentCount / maxErrorCount) * 100}%`, background: 'var(--axi-noticeFg)' }} /></div>
+                    <small>{plural(e.studentCount, 'alumno', 'alumnos')} en {plural(e.groupCount, 'grupo', 'grupos')}</small>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </>
       )}
     </div>
