@@ -7,6 +7,7 @@ export function InterfaceIcon({ name, size = 24 }) {
     book: 'M12 5v16M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-2-1-6-2-10 1',
     paper: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7',
     pencil: 'm4 16 12-12 4 4L8 20H4zM13 7l4 4',
+    tutors: 'M4 6h6v12H4zM14 6h6v12h-6zM10 9h4M10 15h4',
     star: 'm12 3 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z',
     spark: 'm12 3 2 7 7 2-7 2-2 7-2-7-7-2 7-2z',
     games: 'M8 7h8a5 5 0 0 1 5 4l1 6a3 3 0 0 1-5 2l-3-3h-4l-3 3a3 3 0 0 1-5-2l1-6a5 5 0 0 1 5-4M7 10v5M4.5 12.5h5M16 11h.01M18 14h.01',

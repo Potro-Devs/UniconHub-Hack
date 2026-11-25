@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
+import { LanguageSwitch } from '@/shared/i18n/LanguageContext';
 import { MotionToggle } from '@/shared/components/MotionToggle';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { errorMessageOf } from '@/shared/api/client';
@@ -72,6 +73,7 @@ export function LoginScreen() {
 
   return <div className="welcome-page">
     <header className="welcome-header"><span className="brand-link"><Mascot size={46} /><span className="font-display">{APP_NAME}</span></span><MotionToggle /></header>
+    <div className="language-toolbar language-toolbar--public"><LanguageSwitch /></div>
     <main className="welcome-grid">
       <section className="welcome-world" aria-labelledby="welcome-title">
         <span className="welcome-tag"><InterfaceIcon name="spark" size={18} /> Cada descubrimiento cuenta</span>

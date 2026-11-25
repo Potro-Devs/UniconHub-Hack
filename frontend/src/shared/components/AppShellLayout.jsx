@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { APP_NAME, COLORS } from '@/config/brand';
+import { APP_NAME, COLORS, TEAM_LEARNING_NAME, TEAM_LEARNING_SHORT_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { InterfaceIcon } from './InterfaceIcon';
 import { MotionToggle } from './MotionToggle';
@@ -10,6 +10,7 @@ import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { initialsOf } from '@/shared/state/session';
 import { useSession } from '@/shared/state/SessionContext';
+import { BiText, LanguageSwitch } from '@/shared/i18n/LanguageContext';
 import { Toast } from './Toast';
 
 const DOCENTE_NAV = [
@@ -23,6 +24,7 @@ const DOCENTE_NAV = [
     short: 'Cuestionarios',
     matches: ['/docente/cuestionarios', '/docente/hoja', '/docente/pistas'],
   },
+  { id: 'tutores', path: '/docente/tutores', label: TEAM_LEARNING_NAME, short: TEAM_LEARNING_SHORT_NAME, matches: ['/docente/tutores'] },
   { id: 'captura', path: '/docente/captura', label: 'Captura', short: 'Captura', matches: ['/docente/captura'] },
 ];
 
@@ -219,7 +221,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} />{item.label}
+                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
                 </button>
               );
             })}
@@ -265,7 +267,7 @@ export function AppShellLayout() {
                 cursor: 'pointer',
               }}
             >
-              Cerrar sesión
+              <BiText k="common.signOut">Cerrar sesión</BiText>
             </button>
           </div>
         </aside>
@@ -330,11 +332,13 @@ export function AppShellLayout() {
                   cursor: 'pointer',
                 }}
               >
-                Salir
+                <BiText k="common.exit">Salir</BiText>
               </button>
             )}
           </div>
         </header>
+
+        <div className="language-toolbar"><LanguageSwitch /></div>
 
         <main id="teacher-content" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           <div
@@ -370,7 +374,8 @@ export function AppShellLayout() {
           <nav
             style={{
               flex: 'none',
-              display: 'flex',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               background: '#fff',
               borderTop: `1px solid ${COLORS.border}`,
               padding: '6px 6px 10px',
@@ -385,7 +390,8 @@ export function AppShellLayout() {
                   aria-current={active ? 'page' : undefined}
                   onClick={() => navigate(item.path)}
                   style={{
-                    flex: 1,
+                    minWidth: 0,
+                    overflowWrap: 'anywhere',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -401,7 +407,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} />{item.short}
+                  <InterfaceIcon name={({ grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
                 </button>
               );
             })}
