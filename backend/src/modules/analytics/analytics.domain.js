@@ -196,10 +196,20 @@ export function summarizeAutonomyProgress(skills, students) {
  * Plan concreto para la siguiente clase: la habilidad prioritaria, el error típico más
  * frecuente en ella (por alumnos distintos) y la actividad del catálogo que lo atiende.
  */
+/**
+ * Error típico prioritario de una habilidad: el que muestran más alumnos distintos; a igualdad,
+ * el de más respuestas. Lo usan la tarjeta "Qué hago mañana" y la actividad sugerida, para que
+ * la actividad atienda exactamente el error que se muestra.
+ */
+export function topErrorForSkill(typicalErrors, skillCode) {
+  return typicalErrors.filter((entry) => entry.skillCode === skillCode)
+    .reduce((top, entry) => (!top || entry.studentCount > top.studentCount
+      || (entry.studentCount === top.studentCount && (entry.count ?? 0) > (top.count ?? 0)) ? entry : top), null);
+}
+
 export function buildNextStep(weakestSkill, typicalErrors, activity, currentGrade) {
   if (!weakestSkill) return null;
-  const error = typicalErrors.filter((entry) => entry.skillCode === weakestSkill.code)
-    .reduce((top, entry) => !top || entry.studentCount > top.studentCount ? entry : top, null);
+  const error = topErrorForSkill(typicalErrors, weakestSkill.code);
   const currentGradeEvidence = Number.isInteger(currentGrade)
     && (weakestSkill.gradeCounts?.[currentGrade] ?? 0) > 0;
   return { skillCode: weakestSkill.code, skillName: weakestSkill.name,
@@ -237,7 +247,7 @@ export function countStudentsNeedingSupport(students) {
 export function selectRecommendedActivity(activities, skillCode, typicalErrors) {
   if (!skillCode) return null;
   const candidates = activities.filter((activity) => activity.skill_code === skillCode);
-  const error = typicalErrors.find((entry) => entry.skillCode === skillCode);
+  const error = topErrorForSkill(typicalErrors, skillCode);
   const activity = candidates.find((entry) => error && entry.target_error_tag === error.errorTag) ?? candidates[0];
   return activity ? { id: activity.id, title: activity.title, description: activity.description,
     durationMinutes: activity.duration_minutes, grouping: activity.grouping, materials: activity.materials,
