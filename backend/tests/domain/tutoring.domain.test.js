@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { buildCardScript, buildPairingProposal, chooseCardQuestions, classifyDemonstration, latestDemonstrations,
-  parseDemonstrationInput, parseSessionInput, pickTuteeErrorTag, summarizeNetwork, validatePairs } from '../../src/modules/tutoring/tutoring.domain.js';
+  assertDemonstrationQuestions, parseDemonstrationInput, parseSessionInput, pickTuteeErrorTag,
+  summarizeNetwork, validatePairs } from '../../src/modules/tutoring/tutoring.domain.js';
 
 const s = (id, masteryPercentage, level) => ({ id, masteryPercentage, level });
 
@@ -9,7 +10,7 @@ describe('tutoring domain', () => {
   test('solo Dominado puede enseñar; Logrado no es tutor ni tutorado', () => {
     const proposal = buildPairingProposal({ students: [s(1, 80, 'mastered'), s(2, 60, 'achieved'), s(3, 30, 'in_progress')] });
     assert.deepEqual(proposal.tutorIds, [1]);
-    assert.deepEqual(proposal.pairs, [{ tutorId: 1, tutees: [{ id: 3, errorTag: null, tutorOvercameError: false, sharedLanguage: null }] }]);
+    assert.deepEqual(proposal.pairs, [{ tutorId: 1, tutees: [{ id: 3, errorTag: null, tutorOvercameError: false }] }]);
     assert.deepEqual(proposal.teacherTable, []);
   });
 
@@ -28,7 +29,7 @@ describe('tutoring domain', () => {
       errorsByStudent: new Map([[10, [{ errorTag: 'add_across', count: 2 }, { errorTag: 'other', count: 1 }]]]),
       overcomeByStudent: new Map([[2, new Set(['add_across'])]]),
     });
-    assert.deepEqual(pairs, [{ tutorId: 2, tutees: [{ id: 10, errorTag: 'add_across', tutorOvercameError: true, sharedLanguage: null }] }]);
+    assert.deepEqual(pairs, [{ tutorId: 2, tutees: [{ id: 10, errorTag: 'add_across', tutorOvercameError: true }] }]);
   });
 
   test('quien demostró 3/3 ya puede enseñar aunque su dominio oficial no cambie', () => {
@@ -89,20 +90,22 @@ describe('tutoring domain', () => {
     assert.equal(buildCardScript(null), null);
   });
 
-  test('con 3 reactivos la demostración sigue siendo de 3 reutilizando la práctica', () => {
+  test('la práctica nunca se reutiliza; requiere 4 reactivos distintos para completar la demostración', () => {
     const qs = [{ id: 1, errorTags: [] }, { id: 2, errorTags: ['y'] }, { id: 3, errorTags: [] }];
     const { practice, demonstration } = chooseCardQuestions(qs, 'y');
     assert.equal(practice.id, 2);
-    assert.deepEqual(demonstration.map((q) => q.id), [1, 3, 2]);
+    assert.deepEqual(demonstration.map((q) => q.id), [1, 3]);
+    assert.throws(() => assertDemonstrationQuestions(qs), { code: 'INSUFFICIENT_DEMONSTRATION_QUESTIONS' });
+    assert.doesNotThrow(() => assertDemonstrationQuestions([...qs, { id: 4, errorTags: [] }]));
     assert.deepEqual(chooseCardQuestions([], 'y'), { practice: null, demonstration: [] });
   });
 
   test('latestDemonstrations y summarizeNetwork cuentan la última demostración por alumno', () => {
     const rows = [
-      { id: 1, skill_code: 'm', target_error_tag: 'e', tutor_student_id: 9, tutee_student_id: 1, demo_correct: 1, demo_recorded_at: '2026-01-01' },
-      { id: 2, skill_code: 'm', target_error_tag: 'e', tutor_student_id: 9, tutee_student_id: 1, demo_correct: 3, demo_recorded_at: '2026-01-02' },
-      { id: 3, skill_code: 'm', target_error_tag: 'e', tutor_student_id: null, tutee_student_id: 2, demo_correct: 2, demo_recorded_at: '2026-01-02' },
-      { id: 4, skill_code: 'm', target_error_tag: 'e', tutor_student_id: 1, tutee_student_id: 3, demo_correct: null, demo_recorded_at: null },
+      { id: 1, session_id: 1, session_created_at: '2026-01-01', skill_code: 'm', target_error_tag: 'e', tutor_student_id: 9, tutee_student_id: 1, demo_correct: 1, demo_recorded_at: '2026-01-05' },
+      { id: 2, session_id: 2, session_created_at: '2026-01-02', skill_code: 'm', target_error_tag: 'e', tutor_student_id: 9, tutee_student_id: 1, demo_correct: 3, demo_recorded_at: '2026-01-02' },
+      { id: 3, session_id: 3, session_created_at: '2026-01-03', skill_code: 'm', target_error_tag: 'e', tutor_student_id: null, tutee_student_id: 2, demo_correct: 2, demo_recorded_at: '2026-01-03' },
+      { id: 4, session_id: 4, session_created_at: '2026-01-04', skill_code: 'm', target_error_tag: 'e', tutor_student_id: 1, tutee_student_id: 3, demo_correct: null, demo_recorded_at: null },
     ];
     assert.equal(latestDemonstrations(rows).get(1).demo_correct, 3);
     const network = summarizeNetwork({
@@ -113,6 +116,20 @@ describe('tutoring domain', () => {
     assert.deepEqual(network.skills, [{ code: 'm', name: 'M', canTeachCount: 2 }]);
     assert.deepEqual(network.errors[0], { skillCode: 'm', errorTag: 'e', explanation: null, tutoredCount: 3,
       demonstratedCount: 2, readyToTeachCount: 1, progressingCount: 1, peerTutoredCount: 2 });
+    assert.equal(network.tutorsWhoWereTuteesCount, 1);
+  });
+
+  test('una corrección de sesión vieja no sustituye la sesión más nueva ni cuenta como tutoría previa', () => {
+    const rows = [
+      { id: 1, session_id: 1, session_created_at: '2026-01-01', skill_code: 'm', tutee_student_id: 1, tutor_student_id: null, demo_correct: 3, demo_recorded_at: '2026-01-10' },
+      { id: 2, session_id: 2, session_created_at: '2026-01-02', skill_code: 'm', tutee_student_id: 1, tutor_student_id: null, demo_correct: 1, demo_recorded_at: '2026-01-02' },
+      { id: 3, session_id: 3, session_created_at: '2026-01-03', skill_code: 'm', tutee_student_id: 2, tutor_student_id: 1, demo_correct: null, demo_recorded_at: null },
+      { id: 4, session_id: 4, session_created_at: '2026-01-04', skill_code: 'm', tutee_student_id: 3, tutor_student_id: 4, demo_correct: null, demo_recorded_at: null },
+      { id: 5, session_id: 5, session_created_at: '2026-01-05', skill_code: 'm', tutee_student_id: 4, tutor_student_id: null, demo_correct: 3, demo_recorded_at: '2026-01-05' },
+    ];
+
+    assert.equal(latestDemonstrations(rows).get(1).demo_correct, 1);
+    const network = summarizeNetwork({ skills: [], students: [], readyBySkill: new Map(), pairRows: rows });
     assert.equal(network.tutorsWhoWereTuteesCount, 1);
   });
 });

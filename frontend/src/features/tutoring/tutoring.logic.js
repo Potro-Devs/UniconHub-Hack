@@ -52,3 +52,8 @@ export function tutorOptions(tutors, rows, tuteeId, maxPerTutor) {
 export function sessionBody(skillCode, rows) {
   return { skillCode, pairs: rows.map(({ tutorId, tuteeId }) => ({ tutorId, tuteeId })) };
 }
+
+export function proposalRefreshAction(previousCode, nextCode, hasUnsavedEdits) {
+  if ((previousCode === 'ready_to_teach') === (nextCode === 'ready_to_teach')) return 'none';
+  return hasUnsavedEdits ? 'defer' : 'refresh';
+}

@@ -171,9 +171,10 @@ describe('tutoring API — casos borde', () => {
     assert.deepEqual(pairs.map((x) => x.tutee.id), [ctx.ids.dani]);
     assert.equal(list.body.data.network.students.some((s) => s.id === ctx.ids.celia), false);
     assert.equal((await demo(celiaPair, 3)).status, 404);
-    const text = pdfStreams((await pdf(created.body.data.id)).bytes).join('\n');
-    assert.equal(text.includes('Celia'), false, 'el PDF no lista al alumno retirado');
-    assert.ok(text.includes('Dani'));
+    const pages = pdfStreams((await pdf(created.body.data.id)).bytes);
+    const text = pages.join('\n');
+    assert.equal(text.includes('Celia'), false, 'las tarjetas no imprimen nombres de alumnos');
+    assert.equal(pages.filter((page) => page.includes('Pista 1')).length, 1, 'solo se genera material para la pareja activa');
   });
 
   test('tutor retirado después de la sesión: no aparece su nombre ni puede volver a ser tutor', async () => {
@@ -261,13 +262,13 @@ describe('tutoring API — casos borde', () => {
     assert.equal(ctx.db.prepare('SELECT demo_correct FROM tutoring_pairs WHERE id = ?').get(pairId).demo_correct, null);
   });
 
-  test('banco insuficiente bloquea PDF y demostración sin modificar resultados; tres reactivos permiten continuar', async () => {
+  test('banco insuficiente bloquea PDF y demostración sin modificar resultados; cuatro reactivos permiten continuar', async () => {
     const created = await create([{ tutorId: ctx.ids.ana, tuteeId: ctx.ids.celia }]);
     assert.equal(created.status, 201);
     const sessionId = created.body.data.id;
     const pairId = created.body.data.pairs[0].id;
     const questions = ctx.db.prepare('SELECT id FROM questions ORDER BY id').all();
-    for (const count of [0, 1, 2]) {
+    for (const count of [0, 1, 2, 3]) {
       ctx.db.exec('UPDATE questions SET grade = 4');
       for (const question of questions.slice(0, count)) ctx.db.prepare('UPDATE questions SET grade = 3 WHERE id = ?').run(question.id);
       for (const part of ['cards', 'key']) {
@@ -281,7 +282,7 @@ describe('tutoring API — casos borde', () => {
       assert.equal(ctx.db.prepare('SELECT demo_correct FROM tutoring_pairs WHERE id = ?').get(pairId).demo_correct, null);
     }
     ctx.db.exec('UPDATE questions SET grade = 4');
-    for (const question of questions.slice(0, 3)) ctx.db.prepare('UPDATE questions SET grade = 3 WHERE id = ?').run(question.id);
+    for (const question of questions.slice(0, 4)) ctx.db.prepare('UPDATE questions SET grade = 3 WHERE id = ?').run(question.id);
     assert.equal((await pdf(sessionId)).status, 200);
     assert.equal((await pdf(sessionId, teacher(), 'key')).status, 200);
     assert.equal((await demo(pairId, 3)).status, 200);
@@ -356,24 +357,43 @@ describe('tutoring API — casos borde', () => {
     assert.equal((await pdf(created.body.data.id, tokenFor({ sub: String(ctx.ids.celia), role: 'student', schoolId: ctx.school }), 'key')).status, 403);
   });
 
-  test('PDF conserva nombres largos completos y separa guía y demostración sin páginas vacías', async () => {
+  test('PDF para alumnos omite nombres y la guía docente identifica su mesa de apoyo', async () => {
     const firstNames = 'María Fernanda Alejandra Guadalupe';
     const lastNames = 'Hernández de los Santos Martínez del Valle';
     ctx.db.prepare('UPDATE students SET first_names = ?, last_names = ? WHERE id = ?').run(firstNames, lastNames, ctx.ids.ana);
     ctx.db.prepare('UPDATE students SET first_names = ?, last_names = ? WHERE id = ?').run('José Leonardo Maximiliano Santiago', 'González de la Cruz Rodríguez del Río', ctx.ids.celia);
-    const created = await create([{ tutorId: ctx.ids.ana, tuteeId: ctx.ids.celia }]);
+    const created = await create([{ tutorId: ctx.ids.ana, tuteeId: ctx.ids.celia }, { tutorId: null, tuteeId: ctx.ids.dani }]);
     assert.equal(created.status, 201);
     const file = await pdf(created.body.data.id);
     assert.equal(file.status, 200);
     const pages = pdfStreams(file.bytes);
     const normal = (value) => value.replace(/\s+/g, ' ');
     const text = normal(pages.join('\n'));
-    assert.ok(text.includes(`${firstNames} ${lastNames}`), 'el nombre completo del compañero guía no se corta');
-    assert.ok(text.includes('José Leonardo Maximiliano Santiago González de la Cruz Rodríguez del Río'), 'el nombre completo de quien practica no se corta');
+    assert.equal(text.includes(`${firstNames} ${lastNames}`), false, 'la copia para alumnos no incluye el nombre del compañero guía');
+    assert.equal(text.includes('José Leonardo Maximiliano Santiago González de la Cruz Rodríguez del Río'), false, 'la copia para alumnos no incluye el nombre de quien practica');
+    assert.ok(text.includes('Compañero guía: ____________________'));
+    assert.ok(text.includes('Vamos a practicar: ____________________'));
+    assert.ok(text.includes('Nombre: ____________________'));
     assert.equal(pages.filter((page) => page.includes('Pista 1')).length, 1);
     assert.equal(pages.filter((page) => page.includes('Respuesta: ______')).length, 1);
     assert.ok(pages.every((page) => page.replace(/Uso escolar privado[^\n]*|Página \d+ de \d+/g, '').trim().length > 40), 'no hay páginas con solo pie');
     assert.match(file.bytes.toString('latin1'), /\/MediaBox \[0 0 612 792\]/, 'formato Carta');
+
+    const key = pdfStreams((await pdf(created.body.data.id, teacher(), 'key')).bytes).join('\n');
+    assert.ok(key.includes('Dani'), 'la guía docente identifica a quien recibe atención en su mesa');
+  });
+
+  test('PDF conserva la etiqueta base en varias páginas de continuación', async () => {
+    const longHint = 'Mira con calma los datos y explica cómo los relacionas. '.repeat(120);
+    const questionId = ctx.db.prepare('SELECT id FROM questions WHERE grade = 3 ORDER BY id LIMIT 1').get().id;
+    ctx.db.prepare('UPDATE questions SET hint_1 = ?, hint_2 = ?, hint_3 = ? WHERE id = ?')
+      .run(longHint, longHint, longHint, questionId);
+    const created = await create([{ tutorId: ctx.ids.ana, tuteeId: ctx.ids.celia }]);
+    const pages = pdfStreams((await pdf(created.body.data.id)).bytes);
+    const continuationLabel = 'Hoja 1 - Para conversar y practicar - Continuación';
+
+    assert.ok(pages.filter((page) => page.includes(continuationLabel)).length >= 2);
+    assert.equal(pages.some((page) => page.includes(`${continuationLabel} - Continuación`)), false);
   });
 
   test('PDF: la clave se imprime legible (sin caracteres fuera de WinAnsi)', async () => {

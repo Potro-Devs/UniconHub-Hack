@@ -413,24 +413,26 @@ tutor sin evidencia suficiente: 422 `TUTOR_NOT_READY`. La creación es atómica.
 en tres reactivos. `demonstration` contiene `{ code, label, correct, total: 3 }`:
 3/3 es `ready_to_teach` ("Ya puede enseñarlo"), 2/3 es `progressing` ("Va
 avanzando") y 0–1/3 es `keep_practicing` ("Seguimos practicando juntos").
-Se puede corregir una captura; la última demostración registrada determina si
-puede enseñar. Una pareja ajena al grupo o con tutorado retirado responde 404
+Se puede corregir una captura; la demostración de la sesión más reciente determina
+si puede enseñar, aunque se corrija una sesión anterior después. Una pareja ajena al
+grupo o con tutorado retirado responde 404
 `PAIR_NOT_FOUND`. Estas capturas nunca modifican `skill_mastery_history`,
 respuestas de evaluaciones ni logros oficiales.
 Para imprimir cualquiera de los PDF o registrar una demostración se necesitan
-al menos tres reactivos distintos de la habilidad en el grado del grupo; si no
+al menos cuatro reactivos de la habilidad en el grado del grupo: uno de práctica y
+tres distintos para la demostración. Si no
 hay suficientes, responde 422 `INSUFFICIENT_DEMONSTRATION_QUESTIONS` y no guarda
 aciertos ni habilita nuevos tutores.
 
 `network` incluye cantidades por habilidad, errores trabajados y alumnos que
 pueden enseñar, sin comparar posiciones. Las consultas agregan
 `meta.contentReview`: guiones y frases por validar con docente de primaria.
-El idioma de la interfaz es una preferencia local del dispositivo y no requiere
-el módulo de apoyos ni almacena la lengua del alumno en este servicio.
+El idioma de la interfaz es una preferencia local del dispositivo. No se almacena
+la lengua del alumno en este servicio ni se usa para formar equipos.
 
 Los PDF son Carta, blanco y negro, con `Content-Disposition: attachment` y
 `Cache-Control: no-store`. Las tarjetas contienen práctica, tres pistas y
-demostración; no imprimen la clave de respuestas. La clave es un documento
-separado para uso docente. Los nombres de las parejas se incluyen solo en estos
-documentos privados autenticados; no se incluyen folios internos. Una sesión
-inexistente o de otro grupo responde 404 `SESSION_NOT_FOUND`.
+demostración; no imprimen la clave ni nombres de alumnos. La guía docente privada
+puede mostrar los nombres de estudiantes asignados a la mesa docente; ningún PDF
+incluye folios internos. Una sesión inexistente o de otro grupo responde 404
+`SESSION_NOT_FOUND`.

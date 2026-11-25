@@ -187,7 +187,7 @@ En los datos demo, Fracciones aún no tiene errores registrados hasta capturar l
 
 ### Aprendemos en equipo e idiomas
 
-Entra como docente y abre **En equipo**. Elige una habilidad para ver los equipos formados automáticamente con los resultados del grupo. Revisa la propuesta y usa **Guardar equipos y preparar material**. Si necesitas modificarla, abre **Ajustar equipos**. Cada compañero guía acompaña hasta dos compañeros; quienes necesitan atención docente quedan en su mesa. Las tarjetas de equipo y la guía docente se descargan como PDF Carta en blanco y negro, con pasos, pistas y espacios para responder. Contienen nombres: consérvalas dentro de la escuela.
+Entra como docente y abre **En equipo**. Elige una habilidad para ver los equipos formados automáticamente con los resultados del grupo. Revisa la propuesta y usa **Guardar equipos y preparar material**. Si necesitas modificarla, abre **Ajustar equipos**. Cada compañero guía acompaña hasta dos compañeros; quienes necesitan atención docente quedan en su mesa. Las tarjetas de equipo se descargan como PDF Carta en blanco y negro, con pasos, pistas y espacios para responder, sin nombres. La guía docente privada puede incluir los nombres de quienes reciben atención docente; consérvala dentro de la escuela.
 
 Después de la práctica, registra cuántos de tres reactivos resolvió cada alumno sin ayuda. Esta demostración orienta futuros equipos y **no cambia el dominio ni el historial oficial**. Los materiales están **por validar con docente de primaria**.
 

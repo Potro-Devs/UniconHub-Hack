@@ -8,11 +8,9 @@ import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { useSession } from '@/shared/state/SessionContext';
 import { buttonStyle, card, mutedText, noticeBox, pageTitle } from '@/shared/styles/ui';
 import { tutoringApi } from './tutoring.api';
-import { assignTutor, groupRows, rowsFromProposal, sessionBody, tutorOptions } from './tutoring.logic';
+import { assignTutor, groupRows, proposalRefreshAction, rowsFromProposal, sessionBody, tutorOptions } from './tutoring.logic';
 import { useRequest } from './useTutoring';
 import './tutoring.css';
-
-const PRIVACY = 'Las tarjetas incluyen nombres de alumnos. Imprímelas y guárdalas solo dentro de la escuela.';
 
 async function saveBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -68,10 +66,12 @@ function TuteeRow({ tutee, rows, tutors, maxPerTutor, originalTutorId, currentTu
   </li>;
 }
 
-function PairsEditor({ proposal, groupId, canEdit, onSaved, onOpenMaterial }) {
+function PairsEditor({ proposal, groupId, canEdit, onSaved, onOpenMaterial, onDirtyChange,
+  proposalRefreshPending, onDiscardAndRefresh }) {
   // Las ediciones pertenecen a una propuesta: si llega otra, se parte de ella en el mismo render.
   const [edit, setEdit] = useState(() => ({ source: proposal, rows: rowsFromProposal(proposal) }));
   const rows = edit.source === proposal ? edit.rows : rowsFromProposal(proposal);
+  const initialRows = useMemo(() => rowsFromProposal(proposal), [proposal]);
   const [state, setState] = useState({ pending: false, error: '' });
   const [adjusting, setAdjusting] = useState(false);
   const active = useRef(true);
@@ -84,7 +84,11 @@ function PairsEditor({ proposal, groupId, canEdit, onSaved, onOpenMaterial }) {
   const grouped = groupRows(rows);
   const change = (tuteeId, tutorId) => {
     if (saving.current || state.saved) return;
-    setEdit({ source: proposal, rows: assignTutor(rows, tuteeId, tutorId, proposal.maxPerTutor) });
+    const nextRows = assignTutor(rows, tuteeId, tutorId, proposal.maxPerTutor);
+    setEdit({ source: proposal, rows: nextRows });
+    onDirtyChange(nextRows.length !== initialRows.length
+      || nextRows.some((row, index) => row.tuteeId !== initialRows[index]?.tuteeId
+        || row.tutorId !== initialRows[index]?.tutorId));
   };
   const row = (id) => <TuteeRow key={id} tutee={tutees.get(id)} rows={rows} tutors={proposal.tutors} maxPerTutor={proposal.maxPerTutor}
     originalTutorId={tutees.get(id).originalTutorId} currentTutorId={rows.find((r) => r.tuteeId === id).tutorId} onChange={change} editable={canEdit && !state.pending && !state.saved} />;
@@ -96,6 +100,7 @@ function PairsEditor({ proposal, groupId, canEdit, onSaved, onOpenMaterial }) {
       const session = await tutoringApi.createSession(groupId, sessionBody(proposal.skill.code, rows));
       if (!active.current) return;
       setState({ pending: false, error: '', saved: true });
+      onDirtyChange(false);
       onSaved(session);
     } catch (error) {
       if (active.current) setState({ pending: false, error: errorMessageOf(error) });
@@ -108,6 +113,10 @@ function PairsEditor({ proposal, groupId, canEdit, onSaved, onOpenMaterial }) {
       <div><span className="tut-eyebrow">2 · EQUIPOS LISTOS PARA REVISAR</span><h3>La propuesta se forma automáticamente</h3><p>Según la evidencia de aprendizaje de tu grupo. Cada compañero guía acompaña hasta a {proposal.maxPerTutor} compañeros.</p></div>
       <dl className="tut-counts"><div><dt>Equipos</dt><dd>{grouped.pairs.length}</dd></div><div><dt>Compañeros que practican</dt><dd>{rows.length}</dd></div><div><dt>Mesa docente</dt><dd>{grouped.teacherTable.length}</dd></div></dl>
       {state.error && <p role="alert" style={{ margin: 0, color: COLORS.alertFg }}>{state.error}</p>}
+      {proposalRefreshPending && <div role="status" className="tut-refresh-pending">
+        <p>La práctica cambió quién puede guiar. Conservamos tus ajustes; guarda los equipos o descártalos para actualizar la propuesta.</p>
+        <button type="button" style={buttonStyle('secondary')} onClick={onDiscardAndRefresh}>Descartar ajustes y actualizar</button>
+      </div>}
       {state.saved ? <div className="tut-saved"><p role="status">✓ Equipos guardados. Tu material está listo en el paso 3.</p><button type="button" style={buttonStyle('secondary')} onClick={onOpenMaterial}>Ir al material</button></div> : canEdit ? <button type="button" style={buttonStyle('primary', { tall: true, fullWidth: true })} disabled={state.pending} onClick={save}><InterfaceIcon name="paper" size={20} />{state.pending ? 'Guardando equipos…' : 'Guardar equipos y preparar material'}</button> : <p style={mutedText}>Vista de consulta: solo el docente del grupo guarda equipos.</p>}
     </div>
     {!proposal.tutors.length && <p style={noticeBox}>Hoy el grupo trabaja en la mesa docente. Al reunir nueva evidencia podrán formarse equipos con compañeros guía.</p>}
@@ -157,7 +166,10 @@ function SessionCard({ session, groupId, editable, onRecorded, highlighted }) {
     setDownload({ pending: part, message: '', error: false });
     const filename = part === 'key' ? `hoja-docente-equipo-${session.id}.pdf` : `tarjetas-equipo-${session.id}.pdf`;
     const ready = part === 'key' ? 'Hoja docente lista: incluye la clave, no la repartas.' : 'Tarjetas listas para repartir a los compañeros guía.';
-    try { await saveBlob(await tutoringApi.pdf(groupId, session.id, part), filename); setDownload({ pending: null, message: `${ready} ${PRIVACY}`, error: false }); }
+    const privacy = part === 'key'
+      ? 'Puede incluir nombres de quienes reciben atención docente; consérvala dentro de la escuela.'
+      : 'No incluye nombres de alumnos.';
+    try { await saveBlob(await tutoringApi.pdf(groupId, session.id, part), filename); setDownload({ pending: null, message: `${ready} ${privacy}`, error: false }); }
     catch (error) { setDownload({ pending: null, message: errorMessageOf(error), error: true }); }
   };
   return <article className={`tut-panel tut-session ${highlighted ? 'tut-session-new' : ''}`} aria-labelledby={`session-${session.id}`}>
@@ -201,6 +213,8 @@ export function TutoringScreen() {
   const [skillCode, setSkillCode] = useState('');
   const [createdSession, setCreatedSession] = useState(null);
   const [planVersion, setPlanVersion] = useState(0);
+  const [teamEditsDirty, setTeamEditsDirty] = useState(false);
+  const [proposalRefreshPending, setProposalRefreshPending] = useState(false);
   const activeGroup = useRef(groupId);
   const materialSection = useRef(null);
   const openedMaterial = useRef(null);
@@ -213,7 +227,13 @@ export function TutoringScreen() {
   const proposal = useRequest(groupId ? `${groupId}|${skillCode}` : null, (options) => tutoringApi.proposal(groupId, skillCode, options));
   const sessions = useRequest(groupId ? String(groupId) : null, (options) => tutoringApi.sessions(groupId, options));
   const [demoOverrides, setDemoOverrides] = useState({});
-  useEffect(() => { setSkillCode(''); setCreatedSession(null); setDemoOverrides({}); }, [groupId]);
+  useEffect(() => {
+    setSkillCode('');
+    setCreatedSession(null);
+    setDemoOverrides({});
+    setTeamEditsDirty(false);
+    setProposalRefreshPending(false);
+  }, [groupId]);
   useEffect(() => { if (sessions.status === 'ready') setDemoOverrides({}); }, [sessions.status, sessions.data]);
   useEffect(() => {
     const savedKey = createdSession?.groupId === groupId ? `${groupId}|${createdSession.session.id}` : null;
@@ -224,18 +244,26 @@ export function TutoringScreen() {
   if (groups.status === 'loading') return <p role="status">Cargando grupos…</p>;
   if (!groups.activeGroup) return <div style={card}><h1 style={pageTitle}>{TEAM_LEARNING_NAME}</h1><p style={mutedText}>Crea un grupo y agrega alumnos para formar equipos.</p></div>;
   const canEdit = session?.role === 'teacher';
+  const refreshProposal = () => {
+    setPlanVersion((value) => value + 1);
+    setTeamEditsDirty(false);
+    setProposalRefreshPending(false);
+    proposal.retry();
+  };
   const onSaved = (created) => {
     if (activeGroup.current !== groupId) return;
     setCreatedSession({ groupId, session: created });
     sessions.retry();
+    if (proposalRefreshPending) refreshProposal();
   };
-  // La captura se ve al instante; la red se actualiza en segundo plano. La propuesta solo se
-  // recarga si cambió quién puede ser tutor (entrar o salir de 3 de 3).
+  // La captura se ve al instante. Si hay ajustes, se conservan hasta guardarlos o descartarlos.
   const onRecorded = (pair, result) => {
     if (activeGroup.current !== groupId) return;
     setDemoOverrides((current) => ({ ...current, [pair.id]: result.demonstration }));
     sessions.retry();
-    if ([pair.demonstration?.code, result.demonstration?.code].includes('ready_to_teach')) proposal.retry();
+    const refreshAction = proposalRefreshAction(pair.demonstration?.code, result.demonstration?.code, teamEditsDirty);
+    if (refreshAction === 'defer') setProposalRefreshPending(true);
+    if (refreshAction === 'refresh') refreshProposal();
   };
   const justCreated = createdSession?.groupId === groupId ? createdSession.session : null;
   const listedSessions = sessions.data?.sessions ?? [];
@@ -253,8 +281,13 @@ export function TutoringScreen() {
     <section className="tut-panel" aria-labelledby="pairs-title"><span className="tut-eyebrow">1 · ELIGE LA HABILIDAD</span>
       <h2 id="pairs-title" className="font-display">¿Qué habilidad trabajarán?</h2>
       {proposal.status === 'ready' ? <>
-        <SkillPicker skills={proposal.data.skills} value={proposal.data.skill.code} onChange={setSkillCode} />
-        <PairsEditor key={`${groupId}|${proposal.data.skill.code}|${planVersion}`} proposal={proposal.data} groupId={groupId} canEdit={canEdit} onSaved={onSaved} onOpenMaterial={openMaterial} />
+        <SkillPicker skills={proposal.data.skills} value={proposal.data.skill.code} onChange={(code) => {
+          setTeamEditsDirty(false);
+          setProposalRefreshPending(false);
+          setSkillCode(code);
+        }} />
+        <PairsEditor key={`${groupId}|${proposal.data.skill.code}|${planVersion}`} proposal={proposal.data} groupId={groupId} canEdit={canEdit} onSaved={onSaved} onOpenMaterial={openMaterial}
+          onDirtyChange={setTeamEditsDirty} proposalRefreshPending={proposalRefreshPending} onDiscardAndRefresh={refreshProposal} />
       </> : <StateMessage request={proposal} label="la propuesta" />}
     </section>
 

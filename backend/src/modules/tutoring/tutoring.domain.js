@@ -68,13 +68,11 @@ export function pickTuteeErrorTag(errorCounts = []) {
  *   errorsByStudent?: Map<number, Array<{ errorTag: string, count: number }>>,
  *   overcomeByStudent?: Map<number, Set<string>>,
  *   readyToTeachIds?: Set<number>,
- *   languageByStudent?: Map<number, string | null>,
  *   maxPerTutor?: number,
  * }} input
- * Si el tutorado habla una lengua indígena, se prefiere un tutor que hable la misma.
  */
 export function buildPairingProposal({ students, errorsByStudent = new Map(), overcomeByStudent = new Map(),
-  readyToTeachIds = new Set(), languageByStudent = new Map(), maxPerTutor = MAX_TUTEES_PER_TUTOR }) {
+  readyToTeachIds = new Set(), maxPerTutor = MAX_TUTEES_PER_TUTOR }) {
   const tutors = students.filter((s) => canTeach(s, readyToTeachIds.has(s.id)))
     .map((s) => ({ ...s, load: 0, assigned: [] }));
   const tutees = students.filter((s) => needsTutoring(s, readyToTeachIds.has(s.id)))
@@ -83,22 +81,16 @@ export function buildPairingProposal({ students, errorsByStudent = new Map(), ov
     .sort((a, b) => (b.masteryPercentage ?? 0) - (a.masteryPercentage ?? 0) || a.id - b.id);
 
   const overcame = (tutor, errorTag) => Boolean(errorTag && overcomeByStudent.get(tutor.id)?.has(errorTag));
-  const sameLanguage = (tutor, tutee) => {
-    const language = languageByStudent.get(tutee.id);
-    return Boolean(language && language !== 'es' && languageByStudent.get(tutor.id) === language);
-  };
   const unassigned = new Set(tutees.map((t) => t.id));
   for (let cap = 1; cap <= maxPerTutor; cap += 1) {
     for (const tutee of tutees) {
       if (!unassigned.has(tutee.id)) continue;
       const tutor = tutors.filter((t) => t.load < cap)
-        .sort((a, b) => Number(sameLanguage(b, tutee)) - Number(sameLanguage(a, tutee))
-          || Number(overcame(b, tutee.errorTag)) - Number(overcame(a, tutee.errorTag))
+        .sort((a, b) => Number(overcame(b, tutee.errorTag)) - Number(overcame(a, tutee.errorTag))
           || a.load - b.load || (b.masteryPercentage ?? 0) - (a.masteryPercentage ?? 0) || a.id - b.id)[0];
       if (!tutor) break;
       tutor.load += 1;
-      tutor.assigned.push({ id: tutee.id, errorTag: tutee.errorTag, tutorOvercameError: overcame(tutor, tutee.errorTag),
-        sharedLanguage: sameLanguage(tutor, tutee) ? languageByStudent.get(tutee.id) : null });
+      tutor.assigned.push({ id: tutee.id, errorTag: tutee.errorTag, tutorOvercameError: overcame(tutor, tutee.errorTag) });
       unassigned.delete(tutee.id);
     }
   }
@@ -172,19 +164,17 @@ export function classifyDemonstration(correct) {
 
 export const isReadyToTeach = (correct) => correct === DEMONSTRATION_ITEMS;
 
-/** La demostración necesita tres reactivos distintos antes de imprimirse o capturarse. */
+/** Separa el reactivo de práctica de los tres reactivos de demostración. */
 export function assertDemonstrationQuestions(questions) {
-  if (new Set(questions.map((question) => question.id)).size < DEMONSTRATION_ITEMS) {
+  if (new Set(questions.map((question) => question.id)).size < DEMONSTRATION_ITEMS + 1) {
     throw new DomainError('INSUFFICIENT_DEMONSTRATION_QUESTIONS',
-      `Se necesitan al menos ${DEMONSTRATION_ITEMS} reactivos de esta habilidad y grado para la demostración.`);
+      `Se necesitan al menos ${DEMONSTRATION_ITEMS + 1} reactivos: uno de práctica y ${DEMONSTRATION_ITEMS} distintos para la demostración.`);
   }
 }
 
 /**
  * Reactivos para la tarjeta: uno de práctica guiada (de preferencia con el error del
- * tutorado) y 3 para la demostración, distintos de la práctica cuando el banco alcanza.
- * Con menos de 4 reactivos se reutiliza la práctica para que la demostración siga siendo
- * de 3 (la captura es siempre de 0 a 3). Con menos de 3 en total, la demostración es corta.
+ * tutorado) y 3 para la demostración, siempre distintos de la práctica.
  *
  * Nota (por validar con docente): los reactivos salen del mismo banco del grado que usan
  * las evaluaciones; imprimirlos los expone antes de la siguiente prueba.
@@ -193,8 +183,7 @@ export function assertDemonstrationQuestions(questions) {
  */
 export function chooseCardQuestions(questions, errorTag) {
   const practice = questions.find((q) => errorTag && q.errorTags.includes(errorTag)) ?? questions[0] ?? null;
-  const others = questions.filter((q) => q !== practice);
-  const demonstration = [...others, ...(practice ? [practice] : [])].slice(0, DEMONSTRATION_ITEMS);
+  const demonstration = questions.filter((q) => q.id !== practice?.id).slice(0, DEMONSTRATION_ITEMS);
   return { practice, demonstration };
 }
 
@@ -211,14 +200,19 @@ export function buildCardScript(question) {
   };
 }
 
-/** Último resultado de demostración por alumno (los cortes llegan en cualquier orden). */
+function compareSessionOrder(a, b) {
+  const createdAt = String(a.session_created_at ?? '').localeCompare(String(b.session_created_at ?? ''));
+  if (createdAt) return createdAt;
+  return Number(a.session_id ?? a.id) - Number(b.session_id ?? b.id);
+}
+
+/** Último resultado por sesión, sin dejar que una corrección vieja reemplace una sesión nueva. */
 export function latestDemonstrations(rows) {
   const latest = new Map();
   for (const row of rows) {
     if (row.demo_correct === null || row.demo_correct === undefined) continue;
     const current = latest.get(row.tutee_student_id);
-    if (!current || row.demo_recorded_at > current.demo_recorded_at
-      || (row.demo_recorded_at === current.demo_recorded_at && row.id > current.id)) latest.set(row.tutee_student_id, row);
+    if (!current || compareSessionOrder(row, current) > 0) latest.set(row.tutee_student_id, row);
   }
   return latest;
 }
@@ -231,8 +225,8 @@ export function latestDemonstrations(rows) {
  *   students: Array<{ id: number, skills: Array<{ code: string, level: string | null }> }>,
  *   readyBySkill: Map<string, Set<number>>,
  *   pairRows: Array<{ skill_code: string, target_error_tag: string | null, error_explanation?: string | null,
- *     tutee_student_id: number, tutor_student_id: number | null, demo_correct: number | null,
- *     demo_recorded_at: string | null, id: number }>,
+ *     session_id: number, session_created_at: string, tutee_student_id: number,
+ *     tutor_student_id: number | null, demo_correct: number | null, demo_recorded_at: string | null, id: number }>,
  * }} input
  */
 export function summarizeNetwork({ skills, students, readyBySkill, pairRows }) {
@@ -260,13 +254,16 @@ export function summarizeNetwork({ skills, students, readyBySkill, pairRows }) {
       peerTutoredCount: new Set(entry.rows.filter((row) => row.tutor_student_id !== null).map((row) => row.tutee_student_id)).size };
   }).sort((a, b) => b.tutoredCount - a.tutoredCount || a.skillCode.localeCompare(b.skillCode));
 
+  const tutorsWhoWereTutees = pairRows.filter((row) => row.tutor_student_id !== null
+    && pairRows.some((previous) => previous.tutee_student_id === row.tutor_student_id
+      && previous.skill_code === row.skill_code && isReadyToTeach(previous.demo_correct)
+      && compareSessionOrder(previous, row) < 0));
+
   return {
     studentCount: students.length,
     teachSomethingCount: canTeachCounts.filter((entry) => entry.skills.length > 0).length,
     skills: bySkill,
     errors,
-    tutorsWhoWereTuteesCount: new Set(pairRows.filter((row) => row.tutor_student_id !== null
-      && pairRows.some((other) => other.tutee_student_id === row.tutor_student_id && other.skill_code === row.skill_code
-        && isReadyToTeach(other.demo_correct))).map((row) => row.tutor_student_id)).size,
+    tutorsWhoWereTuteesCount: new Set(tutorsWhoWereTutees.map((row) => row.tutor_student_id)).size,
   };
 }

@@ -66,6 +66,8 @@
 .tut-history { display:flex; flex-direction:column; gap:12px; }
 .tut-disclosure[open] > .tut-panel { margin-top:12px; }
 .tut-saved { margin:0; padding:12px 14px; border:1px solid var(--axi-primary); border-radius:12px; color:var(--axi-primaryText); background:var(--axi-primarySoftBg); line-height:1.5; font-weight:700; }
+.tut-refresh-pending { display:grid; gap:10px; padding:12px 14px; border:1px solid var(--axi-borderInput); border-radius:12px; background:var(--axi-surfaceSubtle); line-height:1.5; }
+.tut-refresh-pending p { margin:0; color:var(--axi-primaryText); }
 .tut-empty { margin:0; padding:18px; border:1px dashed var(--axi-borderInput); border-radius:16px; background:var(--axi-surfaceSubtle); color:var(--axi-muted); line-height:1.5; }
 .tutoring button:disabled { opacity:.65; cursor:wait; }
 .tutoring button:focus-visible, .tutoring summary:focus-visible, .tutoring select:focus-visible { outline:3px solid var(--axi-focusRing); outline-offset:3px; }

@@ -98,7 +98,7 @@ export function createTutoringService({ repository, groupsRepository, analyticsR
         masteryPercentage: s.masteryPercentage, level: s.level, label: s.label, readyToTeach: s.readyToTeach }]));
       const tutee = (entry) => ({ ...byId.get(entry.id), errorTag: entry.errorTag,
         explanation: entry.errorTag ? explanations.get(entry.errorTag) ?? null : null,
-        tutorOvercameError: entry.tutorOvercameError ?? false, sharedLanguage: entry.sharedLanguage ?? null });
+        tutorOvercameError: entry.tutorOvercameError ?? false });
       return { data: {
         group: groupDto(group), skill: { code: skill.code, name: skill.name }, skills: counts,
         maxPerTutor: MAX_TUTEES_PER_TUTOR,
@@ -182,7 +182,8 @@ export function createTutoringService({ repository, groupsRepository, analyticsR
         return { ...pair, script: buildCardScript(practice), practice, demonstration };
       });
       if (part === 'key') {
-        return { buffer: await renderTeacherKeyPdf({ group: groupDto(group), session, cards }),
+        return { buffer: await renderTeacherKeyPdf({ group: groupDto(group), session, cards,
+          demonstrationItems: DEMONSTRATION_ITEMS }),
           filename: `guia-docente-equipo-${group.id}-${session.id}.pdf` };
       }
       const buffer = await renderTutorCardsPdf({ group: groupDto(group), session, cards,

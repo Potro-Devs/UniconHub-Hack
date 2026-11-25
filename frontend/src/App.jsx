@@ -58,7 +58,11 @@ export function App() {
               <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
               <Route path="/docente/grupos/nuevo" element={<CreateGroupScreen />} />
               <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
-              <Route path="/docente/tutores" element={<TutoringScreen />} />
+              <Route path="/docente/tutores" element={
+                <RequireRole roles={['teacher']} redirectTo="/login">
+                  <TutoringScreen />
+                </RequireRole>
+              } />
               <Route path="/docente/mapa" element={<GroupMapScreen />} />
               <Route path="/docente/perfil" element={<StudentProfileScreen />} />
               <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />

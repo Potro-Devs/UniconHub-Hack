@@ -34,7 +34,7 @@ test('migración de tutorías conserva cuestionarios de main y es repetible', ()
   try {
     const quiz = db.prepare('SELECT * FROM quizzes').get();
     const question = db.prepare('SELECT * FROM quiz_questions').get();
-    assert.deepEqual(runMigrations(db), ['005_peer_tutoring.sql']);
+    assert.deepEqual(runMigrations(db), ['005_peer_tutoring.sql', '006_tutoring_tutor_set_null.sql']);
     assert.deepEqual(db.prepare('SELECT * FROM quizzes').get(), quiz);
     assert.deepEqual(db.prepare('SELECT * FROM quiz_questions').get(), question);
     db.exec("INSERT INTO tutoring_sessions (group_id, skill_id, created_by, note) VALUES (1, 1, 1, 'Sesión ficticia')");
@@ -50,9 +50,36 @@ test('migración renumerada conserva tutorías de una base con la antigua 004', 
     db.exec(migration('005_peer_tutoring.sql'));
     db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run('004_peer_tutoring.sql');
     db.exec("INSERT INTO tutoring_sessions (group_id, skill_id, created_by, note) VALUES (1, 1, 1, 'Respaldo previo')");
-    assert.deepEqual(runMigrations(db), ['005_peer_tutoring.sql']);
+    assert.deepEqual(runMigrations(db), ['005_peer_tutoring.sql', '006_tutoring_tutor_set_null.sql']);
     assert.equal(db.prepare('SELECT note FROM tutoring_sessions').get().note, 'Respaldo previo');
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM quizzes').get().count, 1);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { db.close(); }
+});
+
+test('la migración conserva parejas y deja la mesa docente si se elimina al tutor', () => {
+  const db = existingMainDatabase();
+  try {
+    db.exec(migration('005_peer_tutoring.sql'));
+    db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run('005_peer_tutoring.sql');
+    db.exec(`
+      INSERT INTO students (id, school_id, internal_folio, first_names, last_names, initials, avatar_color)
+        VALUES (1, 1, 'MIG-TUTOR', 'Ana', 'Ejemplo', 'AE', '#123456'),
+               (2, 1, 'MIG-TUTEE', 'Beto', 'Ejemplo', 'BE', '#654321');
+      INSERT INTO tutoring_sessions (id, group_id, skill_id, created_by)
+        VALUES (1, 1, 1, 1);
+      INSERT INTO tutoring_pairs (id, session_id, tutor_student_id, tutee_student_id, demo_correct, demo_recorded_at)
+        VALUES (1, 1, 1, 2, 3, '2026-01-02 10:00:00');
+    `);
+
+    assert.deepEqual(runMigrations(db), ['006_tutoring_tutor_set_null.sql']);
+    const tutorForeignKey = db.prepare('PRAGMA foreign_key_list(tutoring_pairs)').all()
+      .find((key) => key.from === 'tutor_student_id');
+    assert.equal(tutorForeignKey.on_delete, 'SET NULL');
+
+    db.prepare('DELETE FROM students WHERE id = 1').run();
+    assert.deepEqual({ ...db.prepare('SELECT tutor_student_id, tutee_student_id, demo_correct FROM tutoring_pairs').get() },
+      { tutor_student_id: null, tutee_student_id: 2, demo_correct: 3 });
     assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   } finally { db.close(); }
 });

@@ -14,7 +14,9 @@ function layout(doc) {
     if (doc.y + height <= BOTTOM) return;
     doc.addPage();
     const context = pageContexts.get(doc);
-    if (context) header(doc, context.group, context.session, { ...context.options, label: `${context.options.label} - Continuación` });
+    if (context) header(doc, context.group, context.session, {
+      ...context.options, label: `${context.baseLabel} - Continuación`, baseLabel: context.baseLabel,
+    });
   };
   const text = (value, { size = 11, bold = false, gap = 7 } = {}) => {
     font(doc, size, bold);
@@ -50,8 +52,8 @@ function layout(doc) {
   return { text, box };
 }
 
-function header(doc, group, session, { label, title, privateCopy = false }) {
-  pageContexts.set(doc, { group, session, options: { label, title, privateCopy } });
+function header(doc, group, session, { label, title, privateCopy = false, baseLabel = label }) {
+  pageContexts.set(doc, { group, session, baseLabel, options: { label, title, privateCopy } });
   const { text } = layout(doc);
   text(privateCopy ? 'SOLO PARA DOCENTES - NO REPARTIR' : 'APRENDEMOS EN EQUIPO', { size: 9, bold: true, gap: 10 });
   text(title, { size: 23, bold: true, gap: 4 });
@@ -88,8 +90,8 @@ function identity(doc, card, students = null) {
   const { text } = layout(doc);
   if (students) text(`Vamos a practicar: ${students.join(', ')}`, { size: 11, bold: true, gap: 12 });
   else {
-    text(`Compañero guía: ${card.tutor.name}`, { size: 11, bold: true, gap: 4 });
-    text(`Vamos a practicar: ${card.tutee.name}`, { size: 11, bold: true, gap: 12 });
+    text('Compañero guía: ____________________', { size: 11, bold: true, gap: 4 });
+    text('Vamos a practicar: ____________________', { size: 11, bold: true, gap: 12 });
   }
 }
 
@@ -141,7 +143,7 @@ export function renderTutorCardsPdf({ group, session, cards, frames, rules, demo
       guide(doc, card, frames, rules);
       doc.addPage();
       header(doc, group, session, { title: 'Ahora lo intento', label: 'Hoja 2 - Demostración individual' });
-      layout(doc).text(`Nombre: ${card.tutee.name}`, { size: 11, bold: true, gap: 12 });
+      layout(doc).text('Nombre: ____________________', { size: 11, bold: true, gap: 12 });
       demonstration(doc, card, demonstrationItems);
     });
     footer(doc);
@@ -149,7 +151,7 @@ export function renderTutorCardsPdf({ group, session, cards, frames, rules, demo
 }
 
 /** Clave y material de la mesa docente en un documento separado y privado. */
-export function renderTeacherKeyPdf({ group, session, cards }) {
+export function renderTeacherKeyPdf({ group, session, cards, demonstrationItems }) {
   return render('Aprendemos en equipo - guía docente privada', (doc) => {
     header(doc, group, session, { title: 'Guía docente', label: 'Aprendemos en equipo', privateCopy: true });
     const { text, box } = layout(doc);
@@ -170,7 +172,7 @@ export function renderTeacherKeyPdf({ group, session, cards }) {
       text('En las páginas siguientes encontrarás la práctica, las pistas y la demostración para acompañar a estos alumnos.', { size: 11, gap: 10 });
       teacherRows.forEach((card) => text(`${card.tutee.name}${card.tutorInactive ? ' (su compañero guía ya no está en el grupo)' : ''}`, { size: 11, gap: 5 }));
     }
-    box('Al registrar', 'Anota solo los aciertos resueltos sin ayuda (0 a 3). Si cambia una captura, se toma la demostración registrada más recientemente.', { size: 10 });
+    box('Al registrar', 'Anota solo los aciertos resueltos sin ayuda (0 a 3). La elegibilidad usa la demostración de la sesión más reciente; corregir una sesión anterior no sustituye una posterior.', { size: 10 });
     const materials = new Map();
     for (const card of teacherRows) {
       const key = JSON.stringify([card.errorTag, card.practice?.id, card.demonstration.map((question) => question.id)]);
@@ -186,7 +188,7 @@ export function renderTeacherKeyPdf({ group, session, cards }) {
       doc.addPage();
       header(doc, group, session, { title: 'Material para la mesa docente', label: 'Demostración individual', privateCopy: true });
       identity(doc, card, students);
-      demonstration(doc, card, 3);
+      demonstration(doc, card, demonstrationItems);
     }
     footer(doc, true);
   });

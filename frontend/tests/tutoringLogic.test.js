@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assignTutor, groupRows, rowsFromProposal, sessionBody, tutorLoad, tutorOptions } from '../src/features/tutoring/tutoring.logic.js';
+import { assignTutor, groupRows, proposalRefreshAction, rowsFromProposal, sessionBody, tutorLoad, tutorOptions } from '../src/features/tutoring/tutoring.logic.js';
 
 const proposal = {
   pairs: [{ tutor: { id: 1 }, tutees: [{ id: 10 }, { id: 11 }] }, { tutor: { id: 2 }, tutees: [{ id: 12 }] }],
@@ -34,6 +34,13 @@ test('tutorOptions incluye al tutor actual y excluye completos', () => {
 
 test('sessionBody arma el cuerpo exacto para la API', () => {
   assert.deepEqual(sessionBody('fractions', [{ tuteeId: 5, tutorId: null, extra: 1 }]), { skillCode: 'fractions', pairs: [{ tutorId: null, tuteeId: 5 }] });
+});
+
+test('aplaza actualizar la propuesta mientras haya ajustes manuales sin guardar', () => {
+  assert.equal(proposalRefreshAction('progressing', 'ready_to_teach', true), 'defer');
+  assert.equal(proposalRefreshAction('ready_to_teach', 'progressing', false), 'refresh');
+  assert.equal(proposalRefreshAction('progressing', 'keep_practicing', false), 'none');
+  assert.equal(proposalRefreshAction('ready_to_teach', 'ready_to_teach', true), 'none');
 });
 
 test('agrupa automáticamente filas intercaladas sin perder alumnos ni modificar la propuesta', () => {
