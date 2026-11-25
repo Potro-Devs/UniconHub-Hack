@@ -81,11 +81,15 @@ export function StudentAssignmentScreen() {
   const { speak, stop } = speech;
   const questionId = question?.id;
   const questionAnswered = question?.answered;
+  const finished = Boolean(result);
   useEffect(() => {
     stop();
-    if (sound && questionId && !questionAnswered) speak(questionSpeech(question), `q-${questionId}`);
+    // `toggle: false`: la lectura automática siempre inicia (no detiene una lectura previa del mismo botón).
+    if (sound && !finished && questionId && !questionAnswered) {
+      speak(questionSpeech(question), `q-${questionId}`, { toggle: false });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionId, sound]);
+  }, [questionId, sound, finished]);
   useEffect(() => () => stop(), [stop]);
 
   const updateQuestion = (id, patch) => setState((prev) => ({
@@ -127,6 +131,7 @@ export function StudentAssignmentScreen() {
   };
 
   const finish = async () => {
+    stop();
     setPending('complete');
     setNotice(null);
     try {
@@ -209,8 +214,8 @@ export function StudentAssignmentScreen() {
           {questions.map((q, i) => (
             <button key={q.id} type="button" onClick={() => { setIndex(i); setSelected(null); setNotice(null); }}
               aria-label={`Ir a la pregunta ${i + 1}${q.answered ? ', contestada' : ''}`} aria-current={i === index ? 'step' : undefined}
-              style={{ width: '28px', height: '28px', borderRadius: '999px', border: `2px solid ${i === index ? COLORS.primaryAccent : COLORS.border}`,
-                background: q.answered ? COLORS.ink : '#fff', color: q.answered ? '#fff' : COLORS.ink, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+              style={{ width: '44px', height: '44px', borderRadius: '999px', border: `2px solid ${i === index ? COLORS.primaryAccent : COLORS.border}`,
+                background: q.answered ? COLORS.ink : '#fff', color: q.answered ? '#fff' : COLORS.ink, fontWeight: 700, cursor: 'pointer', fontSize: '16px' }}>
               {q.answered ? '✓' : i + 1}
             </button>
           ))}

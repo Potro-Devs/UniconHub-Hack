@@ -47,10 +47,13 @@ export function useSpeech() {
     setSpeakingId(null);
   }, [supported, synth]);
 
-  /** Lee `text`; `id` identifica qué botón está sonando. Tocar el mismo botón lo detiene. */
-  const speak = useCallback((text, id = 'default') => {
+  /**
+   * Lee `text`; `id` identifica qué botón está sonando. Con `toggle` (botones) tocar el mismo botón
+   * lo detiene; la lectura automática usa `toggle: false` para iniciar siempre.
+   */
+  const speak = useCallback((text, id = 'default', { toggle = true } = {}) => {
     if (!supported || !text) return;
-    if (speakingId === id) { stop(); return; }
+    if (toggle && speakingId === id) { stop(); return; }
     synth.cancel();
     const utterance = new window.SpeechSynthesisUtterance(speakableText(text));
     utterance.lang = voiceRef.current?.lang ?? 'es-MX';
