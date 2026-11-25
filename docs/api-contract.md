@@ -162,7 +162,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
-- **Analytics (`/api/v1/analytics`):** `GET /school` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
+- **Analytics (`/api/v1/analytics`):** `GET /school` y `GET /school/export.pdf` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
 - **Interventions (`/api/v1/interventions`):** ciclo actividad aplicada → nueva prueba (ver contrato al final).
 
@@ -188,13 +188,19 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
   - `skills`: `{ code, name, average, level, label, evaluatedCount, needsSupportCount, grades }` de toda la escuela (`grades`: "3.º a 6.º").
   - `teachers`: `{ name, groups: ["3.º A"], studentCount, evaluatedStudentCount, needsSupportCount, evidencePercentage }` (sin correos).
   - `groups`: `{ id, name, grade, section, schoolYear, teacherName, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, fields, skills, prioritySkill, coveragePercentage }`.
-  - `priorities`: `{ type, title, detail, action, groupIds, skillCode? }` con `type` ∈ `evidence` (< 50 % con diagnóstico),
-    `skill` (habilidad con menor dominio de la escuela), `group_support` (hasta 3 grupos con más alumnos que necesitan apoyo),
-    `coverage` (< 25 % del temario visto).
+  - `priorities`: prioridades del mes, máximo 3 y resumidas: `{ type, title, detail, action, groupIds, skillCode? }`.
+    Orden por `type`: `evidence` (< 50 % con diagnóstico), `skill` (habilidad con menor dominio de la escuela),
+    `group_support` (grupos con ≥ 50 % de alumnos que necesitan apoyo, en un solo elemento), `coverage` (< 25 % del temario visto).
+  - `cte`: próxima sesión ordinaria del Consejo Técnico Escolar `{ date, label, month, daysUntil, source }`.
+    `source: 'calendar'` usa el calendario escolar SEP del ciclo (2026-2027: último viernes del mes, sin diciembre ni abril);
+    `source: 'rule'` estima el último viernes del mes (sin diciembre, julio ni agosto) cuando el ciclo no está cargado. `null` si no hay ciclo.
   - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`;
     `studentCount` son alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.
   - Nota: la interfaz del director solo usa este endpoint, pero la API conserva su lectura de
     `/groups`, `/analytics/groups/*`, `/curriculum`, `/assessments` e `/interventions` de su escuela (pendiente de restringir).
+- `GET /school/export.pdf` (**solo director**): el panel en PDF Carta, blanco y negro (`application/pdf`,
+  `panel-escuela-<ciclo>.pdf`): indicadores, próximo CTE, prioridades del mes, campos formativos, habilidades,
+  resumen por grupo, errores típicos y metodología. Solo agregados; sin datos de alumnos.
 - `GET /groups/:groupId`: `{ data: { group, skills, students, summary }, meta }`.
 - `GET /groups/:groupId/students/:studentId`: `{ data: { group, student, skills, history, recommendedActivity, typicalErrors }, meta }`.
 - `group`: `{ id, grade, section, schoolYear }`.
