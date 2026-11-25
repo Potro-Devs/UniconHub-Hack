@@ -1,35 +1,19 @@
-import { useEffect, useState } from 'react';
 import { LEVELS } from '@/config/brand';
 import { errorMessageOf } from '@/shared/api/client';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { buttonStyle } from '@/shared/styles/ui';
-import { schoolAnalyticsApi } from './schoolAnalytics.api';
+import { useSchoolAnalytics } from './useSchoolAnalytics';
 import './school-dashboard.css';
 
 const levelOf = (code) => LEVELS.find((l) => l.code === code);
 
-function formatDate(value) {
+export function formatDate(value) {
   if (!value) return null;
   const date = new Date(value.replace(' ', 'T'));
   return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-
-function useSchoolAnalytics() {
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState({ status: 'loading', data: null, error: null });
-  useEffect(() => {
-    const controller = new AbortController();
-    let cancelled = false;
-    setState({ status: 'loading', data: null, error: null });
-    schoolAnalyticsApi.school({ signal: controller.signal })
-      .then((data) => !cancelled && setState({ status: 'ready', data, error: null }))
-      .catch((error) => !cancelled && setState({ status: 'error', data: null, error }));
-    return () => { cancelled = true; controller.abort(); };
-  }, [attempt]);
-  return { ...state, retry: () => setAttempt((n) => n + 1) };
-}
+export const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /** Porcentaje + etiqueta: el color nunca es el único indicador. */
 function Level({ average, level, label }) {
@@ -101,7 +85,7 @@ function SkillRow({ skill }) {
         <span style={{ width: `${skill.average ?? 0}%`, background: colors?.solid ?? 'var(--axi-borderInput)' }} />
         <i />
       </div>
-      <span className="sd-skill-note">{plural(skill.needsSupportCount, 'alumno necesita', 'alumnos necesitan')} apoyo · {skill.evaluatedCount} con dato</span>
+      <span className="sd-skill-note">{skill.grades ? `Se trabaja de ${skill.grades} · ` : ''}{plural(skill.needsSupportCount, 'alumno necesita', 'alumnos necesitan')} apoyo · {skill.evaluatedCount} con dato</span>
     </li>
   );
 }

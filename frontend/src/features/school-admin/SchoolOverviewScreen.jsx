@@ -44,7 +44,7 @@ export function SchoolOverviewScreen() {
             Escuela de ejemplo
           </h1>
           <div style={{ fontSize: '14px', color: COLORS.muted, marginTop: '4px' }}>
-            Así se verá el equipo docente de tu escuela. Los grupos reales están en “Ver grupos (solo lectura)”.
+            Vista previa (Roadmap) con datos de ejemplo: así se verá el equipo docente de la escuela.
           </div>
         </div>
 

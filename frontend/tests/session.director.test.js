@@ -17,10 +17,12 @@ describe('sesión del director', () => {
     assert.equal(homePathFor(session), '/direccion/panel');
   });
 
-  test('safeReturnPath: el director solo vuelve a su panel', () => {
+  test('safeReturnPath: el director solo vuelve a sus pantallas (ruta exacta)', () => {
     const director = toSession(directorData);
-    assert.equal(safeReturnPath('/direccion/panel', director), '/direccion/panel');
-    for (const from of ['/direccion/promover', '/docente/mapa', '/docente/grupos']) {
+    for (const ok of ['/direccion/panel', '/direccion/docentes', '/direccion/promover', '/direccion/traslados']) {
+      assert.equal(safeReturnPath(ok, director), ok);
+    }
+    for (const from of ['/direccion/escuela', '/direccion/panelX', '/direccion/panel/../../docente/grupos', '/docente/mapa', '/docente/grupos']) {
       assert.equal(safeReturnPath(from, director), '/direccion/panel', from);
     }
   });

@@ -22,6 +22,7 @@ const DOCENTE_NAV = [
 
 const DIRECCION_NAV = [
   { id: 'panel', path: '/direccion/panel', label: 'Panel de la escuela', short: 'Panel', matches: ['/direccion/panel'] },
+  { id: 'docentes', path: '/direccion/docentes', label: 'Docentes', short: 'Docentes', matches: ['/direccion/docentes'] },
   { id: 'escuela', path: '/direccion/escuela', label: 'Escuela', short: 'Escuela', matches: ['/direccion/escuela'] },
   { id: 'promover', path: '/direccion/promover', label: 'Promover grupos', short: 'Promover', matches: ['/direccion/promover'] },
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
@@ -154,10 +155,11 @@ export function AppShellLayout() {
 
   const isDirector = session?.role === 'director';
   const isDir = isDirector || pathname.startsWith('/direccion');
-  // Dirección solo tiene su panel con datos reales; la docente ve la vista previa (Roadmap) sin el panel.
+  // Director: panel y docentes (datos reales) + promover y traslados (Roadmap).
+  // Docente: vista previa de Dirección con datos de ejemplo.
   const navDef = isDirector
-    ? DIRECCION_NAV.filter((item) => item.id === 'panel')
-    : isDir ? DIRECCION_NAV.filter((item) => item.id !== 'panel') : DOCENTE_NAV;
+    ? DIRECCION_NAV.filter((item) => item.id !== 'escuela')
+    : isDir ? DIRECCION_NAV.filter((item) => !['panel', 'docentes'].includes(item.id)) : DOCENTE_NAV;
 
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -218,7 +220,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ panel: 'map', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} />{item.label}
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} />{item.label}
                 </button>
               );
             })}
@@ -400,7 +402,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ panel: 'map', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} />{item.short}
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} />{item.short}
                 </button>
               );
             })}
