@@ -19,7 +19,7 @@ import { TransfersScreen } from '@/features/school-admin/TransfersScreen';
 import { StudentAchievementsScreen } from '@/features/student-portal/StudentAchievementsScreen';
 import { StudentClassesScreen } from '@/features/student-portal/StudentClassesScreen';
 import { StudentCodeScreen } from '@/features/student-portal/StudentCodeScreen';
-import { StudentExerciseScreen } from '@/features/student-portal/StudentExerciseScreen';
+import { StudentAssignmentScreen } from '@/features/student-portal/StudentAssignmentScreen';
 import { StudentHomeScreen } from '@/features/student-portal/StudentHomeScreen';
 import { StudentLayout } from '@/features/student-portal/StudentLayout';
 import { StudentNameScreen } from '@/features/student-portal/StudentNameScreen';
@@ -83,7 +83,9 @@ export function App() {
               <Route path="codigo" element={<StudentCodeScreen />} />
               <Route path="nombre" element={<StudentNameScreen />} />
               <Route element={<RequireRole roles={['student']} redirectTo="/login" />}>
-                <Route path="ejercicio" element={<StudentExerciseScreen />} />
+                {/* Ejercicio con datos reales; sin id vuelve al inicio, donde se elige la actividad. */}
+                <Route path="ejercicio" element={<Navigate to="/alumno/inicio" replace />} />
+                <Route path="ejercicio/:assignmentId" element={<StudentAssignmentScreen />} />
                 <Route path="resumen" element={<StudentSummaryScreen />} />
               </Route>
             </Route>
