@@ -252,9 +252,12 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
 - `typicalErrors`: `[{ skillCode, errorTag, explanation, count, studentCount }]`
   (`count` respuestas, `studentCount` alumnos distintos), respuestas
   incorrectas reales de aplicaciones terminadas del grupo actual, alumnos
-  activos y escuela autorizada; el perfil filtra además al alumno. Orden:
-  frecuencia descendente, habilidad, etiqueta y explicación. Las respuestas
-  de sesiones en progreso no se cuentan.
+  activos y escuela autorizada; el perfil filtra además al alumno. Una fila por
+  `(skillCode, errorTag)`: `explanation` es una explicación representativa
+  (puede variar por reactivo) y cada alumno cuenta una sola vez. Orden: más
+  alumnos distintos, luego más respuestas, habilidad y etiqueta. Las respuestas
+  de sesiones en progreso no se cuentan. `nextStep.error` y la actividad
+  sugerida usan el mismo error: el de más alumnos de la habilidad prioritaria.
 - `history`: `[{ id, skillCode, skillName, grade, schoolYear, sessionIndex,
   sessionPercentage, autonomousPercentage, supportedPercentage,
   masteryPercentage, level, label, recordedAt }]`. Incluye cortes de grados
@@ -395,12 +398,16 @@ durationMinutes, grouping }, skillCode, skillName, targetErrorTag,
 errorExplanation, outcome }`. `outcome` es `{ status, baselineCount,
 reevaluatedCount, overcameCount, stillWithErrorCount, awaitingCount }`:
 
-- `baselineCount`: alumnos que mostraron `targetErrorTag` (o cualquier respuesta
-  incorrecta de la habilidad si la actividad no tiene etiqueta) hasta `appliedAt`.
-- `reevaluatedCount`: de ellos, quienes contestaron reactivos de la habilidad
-  después de `appliedAt`; `stillWithErrorCount` volvió a mostrar el error y
-  `overcameCount` ya no. `awaitingCount` aún no presenta nueva prueba y no se
-  cuenta como avance ni como pendiente de mejora.
+- Antes y después se comparan por **prueba completa** (destinatario terminado), no por
+  respuesta: una prueba es "antes" si empezó antes de registrar la actividad y "después"
+  si empezó después, así una prueba en curso nunca se parte. Solo cuentan pruebas con
+  reactivos de la habilidad que permitían mostrar `targetErrorTag` (misma regla en ambos lados).
+- `baselineCount`: alumnos cuya prueba "antes" más reciente mostró `targetErrorTag` (o
+  cualquier respuesta incorrecta de la habilidad si la actividad no tiene etiqueta).
+- `reevaluatedCount`: de ellos, quienes tienen una prueba "después"; se usa la más
+  reciente: `stillWithErrorCount` volvió a mostrar el error en ella y `overcameCount`
+  ya no. `awaitingCount` aún no presenta nueva prueba y no se cuenta como avance ni
+  como pendiente de mejora.
 - `status`: `awaiting_retest` si nadie del grupo base ha sido reevaluado;
   `measured` en otro caso.
 
