@@ -4,15 +4,21 @@
  * Contrato: docs/api-contract.md § "Paper Mode".
  */
 import { Router } from 'express';
+import { createAssessmentsRepository } from '../assessments/assessments.repository.js';
 import { ROLES } from '../auth/auth.domain.js';
+import { createGroupsRepository } from '../groups/groups.repository.js';
 import { createPaperModeController } from './paper-mode.controller.js';
+import { createPaperModeService } from './paper-mode.service.js';
 
 /**
  * @param {{ db: import('node:sqlite').DatabaseSync, requireAuth: Function }} deps
  */
-export function createPaperModeRouter({ requireAuth }) {
-  // TODO(paper-mode): crear service/repository con `db` y pasarlos al controller.
-  const controller = createPaperModeController();
+export function createPaperModeRouter({ db, requireAuth }) {
+  const service = createPaperModeService({
+    assessmentsRepository: createAssessmentsRepository(db),
+    groupsRepository: createGroupsRepository(db),
+  });
+  const controller = createPaperModeController(service);
 
   const staff = requireAuth(ROLES.TEACHER, ROLES.DIRECTOR);
   const teacher = requireAuth(ROLES.TEACHER);
