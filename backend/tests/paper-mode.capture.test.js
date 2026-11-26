@@ -32,8 +32,9 @@ function createFixtures() {
   const mateo = student('Mateo', 'AXI-BBBBBBBB');
   const ana = student('Ana', 'AXI-CCCCCCCC');
   const leo = student('Leo', 'AXI-EEEEEEEE');
+  const eva = student('Eva', 'AXI-FFFFFFFF');
   const lucia = student('Lucía', 'AXI-DDDDDDDD');
-  for (const s of [sofia, mateo, ana, leo, lucia]) {
+  for (const s of [sofia, mateo, ana, leo, eva, lucia]) {
     db.prepare("INSERT INTO group_enrollments (group_id, student_id, status) VALUES (?, ?, 'active')").run(groupA, s);
   }
 
@@ -65,14 +66,14 @@ function createFixtures() {
   }
   const target = (a, s, locked) =>
     db.prepare("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', ?)").run(a, s, locked);
-  for (const s of [sofia, mateo, ana, leo]) target(paper, s, 1);
+  for (const s of [sofia, mateo, ana, leo, eva]) target(paper, s, 1);
   target(screen, sofia, 0);
   target(closed, sofia, 1);
 
   const staff = (sub, role) => tokenFor({ sub: String(sub), role, schoolId: school });
   return {
     db,
-    ids: { paper, screen, closed, sofia, mateo, ana, leo, lucia, fractions, multiplication },
+    ids: { paper, screen, closed, sofia, mateo, ana, leo, eva, lucia, fractions, multiplication },
     questions,
     tokens: {
       teacherA: staff(teacherA, 'teacher'),
@@ -142,7 +143,7 @@ describe('POST /paper/assignments/:id/capture/:studentId', () => {
   test('el avance de captura refleja la hoja capturada', async () => {
     const res = await server.call('GET', `/api/v1/paper/assignments/${ids.paper}/capture-status`, { token: tokens.teacherA });
     assert.equal(res.status, 200);
-    assert.deepEqual([res.body.data.total, res.body.data.captured, res.body.data.pending], [4, 1, 3]);
+    assert.deepEqual([res.body.data.total, res.body.data.captured, res.body.data.pending], [5, 1, 4]);
   });
 
   test('recapturar → 409 ALREADY_CAPTURED sin duplicar respuestas', async () => {
@@ -224,6 +225,19 @@ describe('POST /paper/assignments/:id/capture/:studentId', () => {
       .get(ids.leo, ids.fractions);
     assert.ok(cut.supported_percentage > 0, JSON.stringify(cut));
     assert.ok(cut.autonomous_percentage < 100, JSON.stringify(cut));
+  });
+
+  test('casilla general "Usó tarjetas": los aciertos de la hoja cuentan como apoyo, sin detalle por reactivo', async () => {
+    const [f1, f2, f3] = questions;
+    const body = { answers: { [f1.id]: f1.correct, [f2.id]: f2.correct, [f3.id]: f3.wrong }, supportUsed: true };
+    const res = await server.call('POST', capturePath(ids.paper, ids.eva), { token: tokens.teacherA, body });
+    assert.equal(res.status, 200);
+    const { summary } = res.body.data;
+    assert.deepEqual([summary.correctAutonomous, summary.achievedWithSupport, summary.incorrect], [0, 2, 1]);
+    const cut = db.prepare('SELECT autonomous_percentage, supported_percentage FROM skill_mastery_history WHERE student_id = ? AND skill_id = ?')
+      .get(ids.eva, ids.fractions);
+    assert.equal(cut.autonomous_percentage, 0);
+    assert.ok(cut.supported_percentage > 0, JSON.stringify(cut));
   });
 
   test('hintLevels inválidos → 400 sin guardar nada', async () => {
