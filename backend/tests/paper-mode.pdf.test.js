@@ -132,6 +132,8 @@ describe('PDF de Modo Papel', () => {
       }
     }
     for (const s of ['Pista 1', 'Pista 2', 'Pista 3']) assert.ok(text.includes(asPdf(s)), `falta "${s}"`);
+    // Indica a la docente anotar la tarjeta usada, para capturarla como "Logrado con apoyo".
+    assert.ok(text.includes(asPdf('Logrado con apoyo')), 'falta la indicación de anotar la tarjeta usada');
     for (const s of ['Opcion buena 1', 'Opcion distractor 1', 'Sofia', 'AXI-ZZZZZZZZ', 'etiqueta_error']) {
       assert.ok(!text.includes(asPdf(s)), `no debe aparecer "${s}"`);
     }

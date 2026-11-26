@@ -19,7 +19,8 @@ const HINT_LEVEL_LABELS = Object.freeze(['Pista 1 · Qué observar', 'Pista 2 ·
 
 const INSTRUCTIONS =
   'Recorta por la línea punteada. Entrega una pista a la vez, empezando por la 1, solo si el alumno la pide. '
-  + 'Ninguna pista dice la respuesta.';
+  + 'Ninguna pista dice la respuesta. Anota en la hoja del alumno, junto al reactivo, el número de la tarjeta más alta '
+  + 'que usó (1, 2 o 3): al capturar, ese acierto cuenta como "Logrado con apoyo".';
 
 function measureRow(doc, question) {
   doc.font('Helvetica').fontSize(9);

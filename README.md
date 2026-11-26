@@ -163,10 +163,10 @@ Para grupos sin dispositivos para todos. El flujo completo vive en `/api/v1/pape
 
 1. **Asignar en papel** (`POST /assessments/groups/:groupId/assignments` con `modality: "paper"`): cada alumno queda con la pantalla bloqueada para esa prueba, así no puede contestarla también en pantalla.
 2. **Imprimir** la hoja genérica (`GET /assignments/:id/pdf`) y las tarjetas de pistas (`GET /assignments/:id/hints-pdf`). Las dos son tamaño Carta, en blanco y negro, sin datos del alumno ni respuestas. Las tarjetas traen una pista por nivel, para recortarlas y entregar una a la vez.
-3. **Capturar** hoja por hoja (`POST /assignments/:id/capture/:studentId` con `{ answers }` o `{ absent: true }` si faltó). Cada captura guarda las respuestas y el error típico de cada distractor, y actualiza el dominio por habilidad con la misma regla que en pantalla. El resultado aparece en el **Mapa del grupo**.
+3. **Capturar** hoja por hoja (`POST /assignments/:id/capture/:studentId` con `{ answers, hintLevels }` o `{ absent: true }` si faltó). `hintLevels` indica, por reactivo, la tarjeta de pista más alta que usó el alumno (0 a 3). Cada captura guarda las respuestas y el error típico de cada distractor, y actualiza el dominio por habilidad con la misma regla que en pantalla. El resultado aparece en el **Mapa del grupo**.
 4. **Avance** (`GET /assignments/:id/capture-status`): cuántas hojas van capturadas y cuántas faltan.
 
-En papel no se registra el uso de las tarjetas de pistas, así que no hay "Logrado con apoyo". La prueba en papel de los datos demo es *Fracciones · prueba 1* de 3.º A (45 alumnos). Las pantallas de impresión y Captura rápida todavía muestran datos de ejemplo; su conexión a esta API está en curso.
+Un acierto con tarjeta de pista cuenta como **"Logrado con apoyo"**, separado del dominio autónomo, igual que en pantalla. Por eso las tarjetas piden anotar en la hoja del alumno qué tarjeta usó. La prueba en papel de los datos demo es *Fracciones · prueba 1* de 3.º A (45 alumnos). Las pantallas de impresión y Captura rápida todavía muestran datos de ejemplo; su conexión a esta API está en curso.
 
 ### Juegos de práctica del alumno
 
