@@ -5,6 +5,7 @@ import { openDatabase } from '../src/config/database.js';
 import { runMigrations } from '../src/db/migrate.js';
 import { DEMO, runSeed } from '../src/db/seed.js';
 import { createRng } from '../src/db/seed/random.js';
+import { isSkillInGrade } from '../src/modules/curriculum/curriculum.domain.js';
 import { QUESTIONS_PER_SKILL_AND_GRADE, generateQuestionBank, hintsMentionAnswer } from '../src/db/seed/questions.generator.js';
 
 const scalar = (db, sql, ...params) => Object.values(db.prepare(sql).get(...params))[0];
@@ -83,12 +84,33 @@ describe('seed demo', () => {
     assert.equal(levelUp, 1);
   });
 
-  test('hay reactivos de 1.º a 6.º en las 5 habilidades, al menos 3 por combinación', () => {
+  test('hay reactivos de 1.º a 6.º solo en las habilidades de cada grado, al menos 3 por combinación', () => {
     const rows = db.prepare(`
       SELECT q.grade, s.code, count(*) AS n FROM questions q JOIN skills s ON s.id = q.skill_id
       GROUP BY q.grade, s.code`).all();
-    assert.equal(rows.length, 6 * 5);
+    // 6 grados × 5 habilidades, menos fracciones en 1.º y 2.º y multiplicación en 1.º.
+    assert.equal(rows.length, 6 * 5 - 3);
+    for (const r of rows) assert.ok(isSkillInGrade(r.code, r.grade), `${r.code} no corresponde a ${r.grade}.º`);
     for (const r of rows) assert.ok(r.n >= 3, `${r.code} ${r.grade}.º tiene ${r.n} reactivos`);
+  });
+
+  test('temario, historial y actividades solo usan habilidades del programa de cada grado', () => {
+    const contents = db.prepare(`SELECT c.grade, s.code FROM curriculum_contents c JOIN skills s ON s.id = c.skill_id`).all();
+    for (const c of contents) assert.ok(isSkillInGrade(c.code, c.grade), `contenido ${c.code} en ${c.grade}.º`);
+    const cuts = db.prepare(`SELECT DISTINCT h.grade, s.code FROM skill_mastery_history h JOIN skills s ON s.id = h.skill_id`).all();
+    for (const c of cuts) assert.ok(isSkillInGrade(c.code, c.grade), `historial ${c.code} en ${c.grade}.º`);
+    const activities = db.prepare(`SELECT a.grade_min, s.code FROM recommended_activities a JOIN skills s ON s.id = a.skill_id`).all();
+    for (const a of activities) assert.ok(isSkillInGrade(a.code, a.grade_min), `actividad ${a.code} desde ${a.grade_min}.º`);
+  });
+
+  test('niveles de los reactivos de Fase 4 y 5 (por validar con docentes)', () => {
+    const stems = (grade, code) => db.prepare(`SELECT q.stem, o.text FROM questions q JOIN skills s ON s.id = q.skill_id
+      JOIN question_options o ON o.question_id = q.id AND o.is_correct = 1 WHERE q.grade = ? AND s.code = ?`).all(grade, code);
+    for (const { text } of stems(3, 'fractions')) assert.match(text, /^\d+\/(4|8)$/, `3.º fracciones: ${text}`);
+    for (const { stem } of stems(4, 'multiplication')) assert.match(stem, /\d{3} × \d{2}/, `4.º: ${stem}`);
+    for (const { stem } of stems(5, 'multiplication')) assert.match(stem, /\d\.\d/, `5.º decimal: ${stem}`);
+    for (const { stem } of stems(6, 'multiplication')) assert.match(stem, /\d\.\d/, `6.º decimal: ${stem}`);
+    for (const { stem } of stems(5, 'place_value')) assert.match(stem, /\d{3} \d{3} \d{3}/, `5.º 9 cifras: ${stem}`);
   });
 
   test('cada reactivo tiene 4 opciones, una correcta y distractores etiquetados', () => {
@@ -194,7 +216,8 @@ describe('generador de reactivos', () => {
   test(`genera ${QUESTIONS_PER_SKILL_AND_GRADE} reactivos por habilidad y grado con varias semillas`, () => {
     for (const seed of [1, 2, 3, 42, 2026]) {
       const bank = generateQuestionBank(createRng(seed));
-      assert.equal(bank.length, 6 * 5 * QUESTIONS_PER_SKILL_AND_GRADE);
+      assert.equal(bank.length, (6 * 5 - 3) * QUESTIONS_PER_SKILL_AND_GRADE);
+      assert.ok(bank.every((q) => isSkillInGrade(q.skill, q.grade)));
     }
   });
 });

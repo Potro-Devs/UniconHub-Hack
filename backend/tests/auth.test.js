@@ -205,6 +205,14 @@ describe('auth API', () => {
       const me = await api.call('GET', '/api/v1/auth/me', { token: body.data.token });
       assert.equal(me.body.data.role, 'student');
       assert.equal(me.body.data.student.id, fx.ids.sofia);
+      // Con sesión, el grupo incluye su código y el nombre del docente (para "Mis clases").
+      assert.deepEqual(me.body.data.group, {
+        id: fx.ids.group, name: '3.º A', grade: 3, section: 'A', schoolYear: '2026-2027',
+        joinCode: 'MAPA3A', teacherName: 'Mtra. Prueba',
+      });
+      // El acceso público por código nunca muestra el nombre del docente.
+      const join = await api.call('POST', '/api/v1/auth/student-join', { body: { joinCode: 'MAPA3A' } });
+      assert.equal(join.body.data.group.teacherName, undefined);
     });
 
     test('no permite elegir un alumno de otro grupo o dado de baja', async () => {
