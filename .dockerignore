@@ -1,21 +1,30 @@
 # Nunca enviar secretos, bases locales ni dependencias del host al contexto de build.
-.env
-.env.*
-!.env.example
+# Ojo: en .dockerignore un patrón sin "**/" solo aplica en la raíz; por eso todo lo que
+# puede aparecer en subcarpetas (backend/, frontend/) usa "**/".
+
+# Variables de entorno en cualquier carpeta (backend/.env, frontend/.env.local, ...).
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencias y builds del host.
 **/node_modules
 **/dist
-# Solo las carpetas de la base SQLite local (SQLITE_DB_PATH=./data/axi.db se resuelve desde backend/).
+
+# Base SQLite local (SQLITE_DB_PATH=./data/axi.db se resuelve desde backend/).
 # No usar **/data: excluiría frontend/src/shared/data/, que es código fuente.
 backend/data
 data
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
-*.log
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+**/*.sqlite3
+
+# Otros archivos que no forman parte de la imagen.
+**/*.log
+**/coverage
 .git
 .claude
-coverage
 backend/tests
 frontend/tests
