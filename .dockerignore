@@ -4,7 +4,10 @@
 !.env.example
 **/node_modules
 **/dist
-**/data
+# Solo las carpetas de la base SQLite local (SQLITE_DB_PATH=./data/axi.db se resuelve desde backend/).
+# No usar **/data: excluiría frontend/src/shared/data/, que es código fuente.
+backend/data
+data
 *.db
 *.db-shm
 *.db-wal
