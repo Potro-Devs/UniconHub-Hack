@@ -6,7 +6,9 @@ import { DomainError } from '../../shared/errors/DomainError.js';
 import { classifyResponse, paperCapturedTargetState } from '../diagnostics/diagnostics.domain.js';
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-const isPositiveInt = (v) => Number.isInteger(v) && v > 0;
+const isPositiveInt = (v) => Number.isSafeInteger(v) && v > 0;
+/** Clave de reactivo: entero en forma canónica ("12", no "012", "1.0" ni " 1 "), para que no se pisen. */
+const QUESTION_KEY = /^[1-9][0-9]*$/;
 
 /**
  * Valida el cuerpo de `POST /paper/assignments/:id/capture/:studentId`.
@@ -28,7 +30,7 @@ export function parsePaperCaptureInput(body) {
   const answers = {};
   for (const [key, value] of Object.entries(body.answers)) {
     const questionId = Number(key);
-    if (!isPositiveInt(questionId)) throw invalid('Hay un reactivo no válido en la hoja.', 'answers');
+    if (!QUESTION_KEY.test(key) || !isPositiveInt(questionId)) throw invalid('Hay un reactivo no válido en la hoja.', 'answers');
     if (value !== null && !isPositiveInt(value)) throw invalid('Hay una opción no válida en la hoja.', 'answers');
     answers[questionId] = value;
   }
