@@ -38,6 +38,7 @@ Los endpoints protegidos esperan `Authorization: Bearer <token>`. El token (JWT 
 
 - `StudentCard`: `{ id, displayName: "Sofía R.", initials, avatarColor, avatarId }`. Solo el primer nombre y la inicial del apellido, sin el folio interno.
 - `group`: `{ id, name: "3.º A", grade, section, schoolYear }`.
+- En `GET /me` del alumno, `group` además incluye `joinCode` y `teacherName` (nombre del docente del grupo, para "Mis clases"). Solo con sesión: `student-join` es público y nunca los devuelve. En el MVP cada alumno tiene un solo grupo; no hay clases por materia.
 - `joinCode` acepta minúsculas y espacios (`" mapa 3a "` → `MAPA3A`).
 - Con correo inexistente o contraseña incorrecta, la respuesta es idéntica (mismo código, mensaje y tiempo de respuesta).
 - Los accesos rápidos están activos fuera de producción. En producción solo se activan con `ENABLE_QUICK_LOGIN=true`.
