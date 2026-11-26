@@ -135,7 +135,7 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
 
 ## Paper Mode (`/api/v1/paper`)
 
-> **Estado:** `capture-status` y `capture` implementados. `pdf` y `hints-pdf` responden `501 NOT_IMPLEMENTED` hasta implementarse. El corte de dominio se comparte con pantalla en `diagnostics/diagnostics.mastery.js` (`closeSkillSessions`).
+> **Estado:** los 4 endpoints están implementados. El corte de dominio se comparte con pantalla en `diagnostics/diagnostics.mastery.js` (`closeSkillSessions`).
 
 Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna respuesta incluye nombres ni `internal_folio`: el frontend cruza `studentId` con `GET /groups/:groupId/students`.
 
@@ -148,7 +148,7 @@ Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna re
 
 - **Autorización:** igual que `assessments`. Docente: solo asignaciones de sus grupos. Director: solo lectura de su escuela; `POST` → 403. Asignación inexistente **o ajena** → 404 con el mismo cuerpo. Una asignación `screen` → 409 `NOT_PAPER_ASSIGNMENT`.
 - **PDF de la hoja (`pdf`):** tamaño Carta, blanco y negro, alto contraste. **Genérica**: sin nombre, folio ni datos prellenados del alumno; solo líneas en blanco para "Nombre" y "Fecha". Reactivos en orden `position`, opciones con su `label` (A, B, C…) para marcar. Nunca indica la opción correcta. Puede reutilizar el estilo de `assessments.pdf.js`.
-- **PDF de pistas (`hints-pdf`):** Carta, B/N, una tarjeta recortable por reactivo con sus 3 niveles de pista (AGENTS.md §4.6), identificada por número de reactivo. Ninguna tarjeta muestra la respuesta correcta.
+- **PDF de pistas (`hints-pdf`):** Carta, B/N. Una fila por reactivo con **3 tarjetas recortables, una por nivel** (AGENTS.md §4.6: qué observar, un paso, un ejemplo parecido), para entregar una pista a la vez. Cada tarjeta lleva el número de reactivo y el nivel. No incluye opciones ni la respuesta correcta. Archivo `pistas-<id>.pdf`; la hoja se descarga como `hoja-<id>.pdf`. La hoja usa solo las opciones públicas (sin `is_correct` ni `error_tag`).
 - `CaptureStatus`: `{ assignmentId, total, captured, pending, targets: [{ studentId, status, isScreenLocked }] }`. `total` / `captured` / `pending` salen de `summarizeCaptureStatus`. `targets` va en el orden de la lista del grupo (apellidos, nombres).
 - **Captura (`POST`)**, una hoja por alumno:
   - `answers`: objeto `{ [questionId]: optionId | null }`. `null` o un reactivo ausente se registran como `unanswered`. Un `questionId` que no es de la prueba → 400 `UNKNOWN_QUESTION`; un `optionId` que no es de ese reactivo → 400 `UNKNOWN_OPTION` (ambos lanzados por el dominio).
@@ -187,7 +187,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Groups (`/api/v1/groups`):** ver la sección anterior.
 - **Curriculum (`/api/v1/curriculum`):** ver la sección anterior.
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
-- **Paper Mode (`/api/v1/paper`):** ver la sección anterior (`capture-status` y `capture` listos; los PDF responden 501).
+- **Paper Mode (`/api/v1/paper`):** ver la sección anterior (completo).
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
 - **Analytics (`/api/v1/analytics`):** `GET /school` y `GET /school/export.pdf` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
