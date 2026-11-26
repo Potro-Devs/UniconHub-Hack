@@ -196,6 +196,29 @@ Después de la práctica, registra cuántos de tres reactivos resolvió cada alu
 
 El selector **Español / Náhuatl / Maya** está disponible desde el acceso y en los espacios de alumno, docente y dirección. Guarda únicamente la preferencia de idioma en este dispositivo. La cobertura es parcial: traduce algunos controles y elementos de navegación, conserva el español como apoyo y usa español cuando falta una traducción. No traduce reactivos, opciones ni pistas. Las traducciones preliminares de náhuatl central y maya yucateco están por validar con hablantes de la comunidad.
 
+## Despliegue con Docker
+
+Un solo contenedor sirve la API (`/api/v1`) y el frontend compilado en el mismo origen. La base SQLite vive en el volumen `axi-data`, así que los datos sobreviven a reinicios y actualizaciones de la imagen.
+
+```bash
+# Linux/macOS (o Git Bash en Windows)
+JWT_SECRET=$(openssl rand -hex 32) docker compose up --build -d
+```
+
+Abre http://localhost:3000. El servidor **no arranca** sin un `JWT_SECRET` de al menos 32 caracteres que no sea un valor de ejemplo.
+
+| Variable | Valor en `docker-compose.yml` | Para qué sirve |
+| --- | --- | --- |
+| `JWT_SECRET` | obligatoria | Firma las sesiones. Guárdala: si cambia, todas las sesiones se cierran. |
+| `SEED_DEMO` | `true` | Carga los datos ficticios de demo al arrancar. No borra lo que ya existe. |
+| `ENABLE_QUICK_LOGIN` | `true` | Muestra los botones "Entrar como Docente / Directivo / Alumno". |
+| `PORT` | `3000` | Puerto publicado en el equipo. |
+| `CORS_ORIGIN` | `http://localhost:3000` | Origen permitido si la API se usa desde otro dominio. |
+
+- **Con una escuela real:** usa `SEED_DEMO=false` y `ENABLE_QUICK_LOGIN=false`. Los datos demo son ficticios y los accesos rápidos no piden contraseña.
+- **Empezar de cero:** `docker compose down -v` borra el volumen, **con todos sus datos**.
+- **Respaldo:** detén el contenedor antes de copiar (SQLite usa modo WAL y una copia en caliente puede quedar incompleta): `docker compose stop && docker compose cp axi:/data/axi.db ./respaldo-axi.db && docker compose start`.
+
 ## Estructura del repositorio
 
 ```text

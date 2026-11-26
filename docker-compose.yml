@@ -1,0 +1,22 @@
+# Demo en un contenedor: http://localhost:3000
+#   JWT_SECRET=$(openssl rand -hex 32) docker compose up --build
+# La base queda en el volumen `axi-data`. Para empezar de cero: docker compose down -v
+services:
+  axi:
+    build: .
+    image: axi:latest
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Obligatorio: al menos 32 caracteres y no un valor de ejemplo (el servidor no arranca sin él).
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET (p. ej. openssl rand -hex 32)}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      # Demo: datos ficticios y botones "Entrar como...". Desactívalos con una escuela real.
+      SEED_DEMO: ${SEED_DEMO:-true}
+      ENABLE_QUICK_LOGIN: ${ENABLE_QUICK_LOGIN:-true}
+    volumes:
+      - axi-data:/data
+    restart: unless-stopped
+
+volumes:
+  axi-data:
