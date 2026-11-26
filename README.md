@@ -161,6 +161,10 @@ Después de entrar como alumno, abre **Juegos** o **Explorar juegos** en el inic
 
 Los juegos son práctica libre: **no modifican evaluaciones, dominio ni historial**, y su avance solo permanece mientras la pantalla está abierta. No tienen cronómetros, vidas ni rankings. Funcionan por toque o teclado, sin exigir arrastrar. Las animaciones respetan el control de movimiento y la preferencia del sistema. El material de ejemplo está **por validar con docente de primaria**.
 
+### Progreso y logros del alumno
+
+`GET /api/v1/diagnostics/students/:studentId/progress` (solo el propio alumno) devuelve su dominio por habilidad, con porcentaje y etiqueta (p. ej. "63.83 % · Logrado") y tendencia, junto con sus logros redactados para él ("Subiste de nivel", "Mejoraste"). Incluye las habilidades de su grado y las que ya tienen historial de grados anteriores. Los niveles se calculan en el servidor con la misma regla que ve el docente en el perfil. Nunca compara con otros alumnos ni expone el folio interno. Las pantallas "Mi progreso" y "Mis logros" todavía muestran datos de ejemplo; su conexión a esta API está en curso.
+
 ### Acompañamiento docente: qué hago mañana y antes/después
 
 - **Inicio del docente:** la tarjeta **Qué hago mañana** muestra la habilidad prioritaria del grupo, el error típico con más alumnos y la actividad del catálogo para atenderlo (duración, organización y materiales).
