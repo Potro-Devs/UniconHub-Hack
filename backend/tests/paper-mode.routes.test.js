@@ -23,7 +23,7 @@ describe('paper-mode routes (esqueleto)', () => {
   });
   after(() => server.close());
 
-  // `capture-status` ya está implementado: ver paper-mode.capture-status.test.js.
+  // `capture-status` y `capture` ya están implementados: ver paper-mode.capture-status.test.js y paper-mode.capture.test.js.
   const reads = ['/pdf', '/hints-pdf'].map((p) => `/api/v1/paper/assignments/1${p}`);
   const capture = '/api/v1/paper/assignments/1/capture/1';
 
@@ -49,7 +49,5 @@ describe('paper-mode routes (esqueleto)', () => {
         assert.equal(res.body.error.code, 'NOT_IMPLEMENTED');
       }
     }
-    const res = await server.call('POST', capture, { token: teacher, body: {} });
-    assert.equal(res.status, 501);
   });
 });

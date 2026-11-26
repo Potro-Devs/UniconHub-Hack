@@ -5,6 +5,36 @@
 import { DomainError } from '../../shared/errors/DomainError.js';
 import { classifyResponse, paperCapturedTargetState } from '../diagnostics/diagnostics.domain.js';
 
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const isPositiveInt = (v) => Number.isInteger(v) && v > 0;
+
+/**
+ * Valida el cuerpo de `POST /paper/assignments/:id/capture/:studentId`.
+ * `answers` es `{ [questionId]: optionId | null }`; con `absent: true` puede omitirse.
+ *
+ * @returns {{ answers: Record<number, number | null>, absent: boolean }}
+ */
+export function parsePaperCaptureInput(body) {
+  const invalid = (message, field) => new DomainError('VALIDATION_ERROR', message, { field });
+  if (!isPlainObject(body)) throw invalid('Envía las respuestas de la hoja.', 'body');
+
+  if (body.absent !== undefined && typeof body.absent !== 'boolean') {
+    throw invalid('Indica si el alumno faltó con sí o no.', 'absent');
+  }
+  const absent = body.absent === true;
+  if (absent) return { answers: {}, absent };
+
+  if (!isPlainObject(body.answers)) throw invalid('Envía las respuestas de la hoja.', 'answers');
+  const answers = {};
+  for (const [key, value] of Object.entries(body.answers)) {
+    const questionId = Number(key);
+    if (!isPositiveInt(questionId)) throw invalid('Hay un reactivo no válido en la hoja.', 'answers');
+    if (value !== null && !isPositiveInt(value)) throw invalid('Hay una opción no válida en la hoja.', 'answers');
+    answers[questionId] = value;
+  }
+  return { answers, absent };
+}
+
 /**
  * Convierte la captura de una hoja en respuestas clasificadas.
  * En papel no se registra el uso de tarjetas de pistas, así que `max_hint_level_used = 0`.

@@ -135,7 +135,7 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
 
 ## Paper Mode (`/api/v1/paper`)
 
-> **Estado:** `capture-status` implementado. `pdf`, `hints-pdf` y `capture` responden `501 NOT_IMPLEMENTED` hasta implementarse. La lógica pura ya existe en `paper-mode.domain.js` (`buildPaperCapture`, `summarizeCaptureStatus`). Cada endpoint se puede implementar por separado (ruta → service → repository → prueba).
+> **Estado:** `capture-status` y `capture` implementados. `pdf` y `hints-pdf` responden `501 NOT_IMPLEMENTED` hasta implementarse. El corte de dominio se comparte con pantalla en `diagnostics/diagnostics.mastery.js` (`closeSkillSessions`).
 
 Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna respuesta incluye nombres ni `internal_folio`: el frontend cruza `studentId` con `GET /groups/:groupId/students`.
 
@@ -187,7 +187,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Groups (`/api/v1/groups`):** ver la sección anterior.
 - **Curriculum (`/api/v1/curriculum`):** ver la sección anterior.
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
-- **Paper Mode (`/api/v1/paper`):** ver la sección anterior (`capture-status` listo; el resto responde 501).
+- **Paper Mode (`/api/v1/paper`):** ver la sección anterior (`capture-status` y `capture` listos; los PDF responden 501).
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
 - **Analytics (`/api/v1/analytics`):** `GET /school` y `GET /school/export.pdf` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).

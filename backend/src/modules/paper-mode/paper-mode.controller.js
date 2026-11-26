@@ -17,6 +17,7 @@ export function createPaperModeController(service) {
     exportSheetPdf: notImplemented('La hoja en PDF'),
     exportHintsPdf: notImplemented('Las tarjetas de pistas en PDF'),
     getCaptureStatus: (req, res) => sendData(res, service.getCaptureStatus(req.auth, req.params.assignmentId)),
-    captureStudent: notImplemented('La captura en papel'),
+    captureStudent: (req, res) =>
+      sendData(res, service.captureStudent(req.auth, req.params.assignmentId, req.params.studentId, req.body)),
   };
 }
