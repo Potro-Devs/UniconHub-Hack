@@ -54,47 +54,50 @@ export const HISTORY = Object.freeze({ secondGradeCount: 40, firstGradeCount: 30
 
 /**
  * Puntajes fijos de la alumna 0 (Sofía), que tiene historial de 1.º y 2.º.
- * Coinciden con el perfil de ejemplo del frontend.
+ * Coinciden con el perfil de ejemplo del frontend. Solo se registran las habilidades del
+ * programa de cada grado (sin fracciones en 1.º y 2.º ni multiplicación en 1.º).
  */
 export const FEATURED_STUDENT = Object.freeze({
   current: { place_value: 71, problem_solving: 63, multiplication: 58, fractions: 36, reading_comprehension: 63 },
-  secondGrade: { place_value: 55, problem_solving: 44, multiplication: 50, fractions: 30, reading_comprehension: 60 },
-  firstGrade: { place_value: 48, problem_solving: 35, multiplication: 40, fractions: 25, reading_comprehension: 52 },
+  secondGrade: { place_value: 55, problem_solving: 44, multiplication: 50, reading_comprehension: 60 },
+  firstGrade: { place_value: 48, problem_solving: 35, reading_comprehension: 52 },
 });
 
 const SABERES = 'saberes_pensamiento_cientifico';
 const LENGUAJES = 'lenguajes';
 
 /**
- * Temario base por grado: un contenido por habilidad clave (título, PDA).
+ * Temario base por grado: un contenido por habilidad clave (título, PDA). `null` = la habilidad
+ * no forma parte del programa de ese grado (ver `SKILL_GRADE_RANGE`). Los títulos siguen el
+ * nombre más cercano del Programa Sintético (Plan 2022); los PDA son paráfrasis por validar con docentes.
  */
 export const CURRICULUM_BY_SKILL = Object.freeze({
   place_value: [
     ['Estudio de los números hasta 100', 'Cuenta, lee, escribe y ordena números hasta 100 e identifica decenas y unidades.'],
-    ['Estudio de los números hasta 1 000', 'Lee, escribe y ordena números hasta 1 000 usando centenas, decenas y unidades.'],
-    ['Estudio de los números hasta 10 000', 'Compone y descompone números hasta 10 000 según el valor de cada cifra.'],
-    ['Estudio de los números hasta 100 000', 'Lee, escribe y compara números de cinco cifras y explica el valor de cada una.'],
-    ['Números de hasta seis cifras', 'Lee, escribe y compara números de hasta seis cifras usando el valor posicional.'],
-    ['Números de más de seis cifras', 'Usa el valor posicional para leer, escribir y comparar números de hasta siete cifras.'],
+    ['Estudio de los números hasta 1 000', 'Lee, escribe y ordena números menores que 1 000 usando centenas, decenas y unidades.'],
+    ['Estudio de los números hasta 9 999', 'Compone y descompone números de hasta cuatro cifras según el valor de cada cifra.'],
+    ['Estudio de los números de hasta cinco cifras', 'Lee, escribe y compara números de cinco cifras y explica el valor de cada una.'],
+    ['Estudio de los números de hasta nueve cifras', 'Lee, escribe y compara números de hasta nueve cifras usando el valor posicional.'],
+    ['Estudio de los números de más de nueve cifras', 'Usa el valor posicional para leer, escribir y comparar números de más de nueve cifras.'],
   ],
   multiplication: [
-    ['Juntar grupos iguales', 'Resuelve problemas de juntar grupos iguales con material concreto.'],
-    ['Multiplicación como suma repetida', 'Resuelve problemas de multiplicación sencillos usando sumas repetidas.'],
-    ['Multiplicación y división, su relación como operaciones inversas', 'Resuelve problemas de multiplicación hasta 10 × 10 y de reparto en partes iguales.'],
-    ['Multiplicación de dos cifras por una', 'Multiplica números de dos cifras por una cifra usando descomposición y el algoritmo convencional.'],
-    ['Multiplicación de dos cifras por dos', 'Multiplica números de dos cifras por dos cifras y explica los productos parciales.'],
-    ['Multiplicación con números de tres cifras', 'Multiplica números de tres cifras por dos cifras y estima el resultado.'],
+    null,
+    ['Construcción de la noción de multiplicación', 'Resuelve problemas de grupos iguales con factores hasta 10 usando sumas iteradas y arreglos.'],
+    ['Multiplicación y división, su relación como operaciones inversas', 'Resuelve problemas de multiplicación con el repertorio de una cifra y de reparto en partes iguales.'],
+    ['Multiplicación de hasta tres cifras por dos', 'Multiplica números de hasta tres cifras por dos cifras y explica los productos parciales.'],
+    ['Multiplicación de números decimales por naturales', 'Resuelve problemas que implican multiplicar un número decimal por un número natural.'],
+    ['División de números decimales entre naturales', 'Resuelve problemas de reparto que implican dividir un número decimal entre un número natural.'],
   ],
   fractions: [
-    ['Medios, tercios y cuartos', 'Reconoce medios, tercios y cuartos al partir objetos en partes iguales.'],
-    ['Fracciones de un entero', 'Expresa con fracciones partes de un entero dividido en 2, 3 o 4 partes iguales.'],
-    ['Estudio de los números: fracciones', 'Usa medios, cuartos y octavos para expresar partes de un todo y compararlas.'],
-    ['Fracciones equivalentes', 'Identifica y construye fracciones equivalentes multiplicando numerador y denominador.'],
-    ['Suma de fracciones con igual denominador', 'Resuelve problemas de suma de fracciones con el mismo denominador.'],
-    ['Suma de fracciones con distinto denominador', 'Suma fracciones cuando un denominador es múltiplo del otro.'],
+    null,
+    null,
+    ['Estudio de los números: fracciones', 'Identifica la unidad de referencia en cuartos y octavos con material concreto y tiras (los medios se trabajan con material concreto).'],
+    ['Fracciones equivalentes', 'Identifica y construye fracciones equivalentes con tercios, quintos y sextos.'],
+    ['Suma de fracciones con distinto denominador (múltiplos)', 'Suma fracciones cuando un denominador es múltiplo del otro usando equivalencias.'],
+    ['Suma de fracciones con distinto denominador', 'Suma fracciones con denominadores distintos buscando un denominador común.'],
   ],
   problem_solving: [
-    ['Problemas de suma y resta hasta 20', 'Resuelve problemas de agregar y quitar con números hasta 20.'],
+    ['Construcción de la noción de suma y resta', 'Resuelve problemas de agregar y quitar con números hasta 20.'],
     ['Problemas de suma y resta hasta 100', 'Resuelve problemas de suma y resta con números hasta 100 e identifica los datos útiles.'],
     ['Suma y resta, su relación como operaciones inversas', 'Resuelve problemas de suma y resta con números hasta 1 000.'],
     ['Problemas de suma y resta hasta 10 000', 'Resuelve problemas de suma y resta con números de cuatro cifras y descarta datos innecesarios.'],
@@ -102,12 +105,12 @@ export const CURRICULUM_BY_SKILL = Object.freeze({
     ['Problemas de varios pasos con dinero', 'Resuelve problemas de varios pasos con dinero y comprueba si el resultado es razonable.'],
   ],
   reading_comprehension: [
-    ['Lectura de cuentos breves', 'Lee cuentos breves e identifica a los personajes y lo que hacen.'],
-    ['Comprensión de textos narrativos', 'Identifica lo que sucede en un texto narrativo y responde preguntas sobre él.'],
-    ['Comprensión de textos informativos y narrativos', 'Lee textos breves, identifica la idea principal y responde preguntas sobre lo que leyó.'],
-    ['Lectura de textos informativos', 'Identifica la idea principal y las ideas de apoyo de un texto informativo.'],
-    ['Lectura de textos expositivos', 'Distingue información explícita e implícita en textos expositivos.'],
-    ['Lectura crítica de textos', 'Infiere información y explica el significado de palabras por su contexto.'],
+    ['Lectura compartida en voz alta', 'La docente lee en voz alta un cuento breve; el alumno identifica a los personajes y lo que hacen.'],
+    ['Lectura compartida en voz alta', 'La docente lee en voz alta un texto narrativo; el alumno comenta lo que sucede y responde preguntas sobre él.'],
+    ['Comprensión y producción de textos expositivos', 'Lee textos breves, identifica la idea más relevante y responde preguntas sobre lo que leyó.'],
+    ['Comprensión y producción de resúmenes', 'Identifica la idea principal y las ideas de apoyo de un texto expositivo.'],
+    ['Comprensión y producción de textos informativos', 'Distingue la información principal y la de apoyo en textos informativos.'],
+    ['Comprensión y producción de textos informativos', 'Infiere información y explica el significado de palabras por su contexto en textos informativos.'],
   ],
 });
 
@@ -145,7 +148,7 @@ export const ACTIVITIES = Object.freeze([
     description: 'Canten el valor de una cifra («vale 40 000») y marquen la tarjeta donde esa cifra ocupa ese lugar.',
   },
   {
-    skill: 'multiplication', gradeMin: 1, gradeMax: 3, title: 'Arreglos rectangulares', minutes: 15, grouping: 'En parejas',
+    skill: 'multiplication', gradeMin: 2, gradeMax: 3, title: 'Arreglos rectangulares', minutes: 15, grouping: 'En parejas',
     materials: 'Fichas o semillas', errorTag: 'adds_instead_of_multiplying',
     description: 'Formen filas y columnas con fichas para representar multiplicaciones y cuenten el total de dos formas.',
   },
@@ -155,7 +158,7 @@ export const ACTIVITIES = Object.freeze([
     description: 'Dibujen la multiplicación como un rectángulo dividido en decenas y unidades y sumen las áreas parciales.',
   },
   {
-    skill: 'fractions', gradeMin: 1, gradeMax: 3, title: 'Tiras de fracciones', minutes: 20, grouping: 'En parejas',
+    skill: 'fractions', gradeMin: 3, gradeMax: 3, title: 'Tiras de fracciones', minutes: 20, grouping: 'En parejas',
     materials: 'Tiras de papel y colores', errorTag: 'inverts_fraction',
     description: 'Doblen tiras de papel en 2, 4 y 8 partes iguales, pinten una parte de cada tira y comparen los tamaños.',
   },
