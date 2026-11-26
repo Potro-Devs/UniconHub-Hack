@@ -31,8 +31,9 @@ function createFixtures() {
   const sofia = student('Sofía', 'AXI-AAAAAAAA');
   const mateo = student('Mateo', 'AXI-BBBBBBBB');
   const ana = student('Ana', 'AXI-CCCCCCCC');
+  const leo = student('Leo', 'AXI-EEEEEEEE');
   const lucia = student('Lucía', 'AXI-DDDDDDDD');
-  for (const s of [sofia, mateo, ana, lucia]) {
+  for (const s of [sofia, mateo, ana, leo, lucia]) {
     db.prepare("INSERT INTO group_enrollments (group_id, student_id, status) VALUES (?, ?, 'active')").run(groupA, s);
   }
 
@@ -64,14 +65,14 @@ function createFixtures() {
   }
   const target = (a, s, locked) =>
     db.prepare("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', ?)").run(a, s, locked);
-  for (const s of [sofia, mateo, ana]) target(paper, s, 1);
+  for (const s of [sofia, mateo, ana, leo]) target(paper, s, 1);
   target(screen, sofia, 0);
   target(closed, sofia, 1);
 
   const staff = (sub, role) => tokenFor({ sub: String(sub), role, schoolId: school });
   return {
     db,
-    ids: { paper, screen, closed, sofia, mateo, ana, lucia, fractions, multiplication },
+    ids: { paper, screen, closed, sofia, mateo, ana, leo, lucia, fractions, multiplication },
     questions,
     tokens: {
       teacherA: staff(teacherA, 'teacher'),
@@ -141,7 +142,7 @@ describe('POST /paper/assignments/:id/capture/:studentId', () => {
   test('el avance de captura refleja la hoja capturada', async () => {
     const res = await server.call('GET', `/api/v1/paper/assignments/${ids.paper}/capture-status`, { token: tokens.teacherA });
     assert.equal(res.status, 200);
-    assert.deepEqual([res.body.data.total, res.body.data.captured, res.body.data.pending], [3, 1, 2]);
+    assert.deepEqual([res.body.data.total, res.body.data.captured, res.body.data.pending], [4, 1, 3]);
   });
 
   test('recapturar → 409 ALREADY_CAPTURED sin duplicar respuestas', async () => {
@@ -190,6 +191,57 @@ describe('POST /paper/assignments/:id/capture/:studentId', () => {
     }
     assert.equal(responsesOf(ids.paper, ids.mateo), 0);
     assert.equal(targetOf(ids.paper, ids.mateo).status, 'pending');
+  });
+
+  test('acierto con tarjeta de pista = "Logrado con apoyo", separado del autónomo en respuesta y corte', async () => {
+    const [f1, f2, f3] = questions;
+    // Fracciones: f1 correcta sin tarjetas, f2 correcta con tarjeta 2, f3 incorrecta con tarjeta 1.
+    const body = {
+      answers: { [f1.id]: f1.correct, [f2.id]: f2.correct, [f3.id]: f3.wrong },
+      hintLevels: { [f1.id]: 0, [f2.id]: 2, [f3.id]: 1 },
+    };
+    const res = await server.call('POST', capturePath(ids.paper, ids.leo), { token: tokens.teacherA, body });
+    assert.equal(res.status, 200);
+    const { summary } = res.body.data;
+    assert.deepEqual(
+      [summary.correctAutonomous, summary.achievedWithSupport, summary.incorrect, summary.unanswered],
+      [1, 1, 1, 2],
+    );
+    const fractions = res.body.data.skills.find((s) => s.code === 'fractions');
+    assert.deepEqual([fractions.correctAutonomous, fractions.achievedWithSupport, fractions.masteryRecorded], [1, 1, true]);
+
+    const saved = Object.fromEntries(
+      db.prepare(`SELECT r.question_id, r.outcome_status, r.max_hint_level_used FROM student_responses r
+        JOIN assignment_targets t ON t.id = r.assignment_target_id WHERE t.assignment_id = ? AND t.student_id = ?`)
+        .all(ids.paper, ids.leo).map((r) => [r.question_id, [r.outcome_status, r.max_hint_level_used]]),
+    );
+    assert.deepEqual(saved[f1.id], ['correct_autonomous', 0]);
+    assert.deepEqual(saved[f2.id], ['achieved_with_support', 2]);
+    assert.deepEqual(saved[f3.id], ['incorrect', 1]);
+
+    // El corte inmutable guarda el apoyo aparte de la autonomía (AGENTS.md §4.2).
+    const cut = db.prepare('SELECT autonomous_percentage, supported_percentage FROM skill_mastery_history WHERE student_id = ? AND skill_id = ?')
+      .get(ids.leo, ids.fractions);
+    assert.ok(cut.supported_percentage > 0, JSON.stringify(cut));
+    assert.ok(cut.autonomous_percentage < 100, JSON.stringify(cut));
+  });
+
+  test('hintLevels inválidos → 400 sin guardar nada', async () => {
+    const [f1] = questions;
+    const cases = [
+      [{ answers: {}, hintLevels: { [f1.id]: 4 } }, 'VALIDATION_ERROR'],
+      [{ answers: {}, hintLevels: { [f1.id]: 1.5 } }, 'VALIDATION_ERROR'],
+      [{ answers: {}, hintLevels: { [f1.id]: '2' } }, 'VALIDATION_ERROR'],
+      [{ answers: {}, hintLevels: { '01': 1 } }, 'VALIDATION_ERROR'],
+      [{ answers: {}, hintLevels: [] }, 'VALIDATION_ERROR'],
+      [{ answers: {}, hintLevels: { 999999: 1 } }, 'UNKNOWN_QUESTION'],
+    ];
+    for (const [body, code] of cases) {
+      const res = await server.call('POST', capturePath(ids.paper, ids.mateo), { token: tokens.teacherA, body });
+      assert.equal(res.status, 400, JSON.stringify(body));
+      assert.equal(res.body.error.code, code, JSON.stringify(body));
+    }
+    assert.equal(responsesOf(ids.paper, ids.mateo), 0);
   });
 
   test('alumno sin la prueba asignada → 404 STUDENT_NOT_FOUND', async () => {

@@ -8,7 +8,11 @@ const rejects = (body) =>
 
 describe('parsePaperCaptureInput', () => {
   test('acepta claves enteras canónicas y opciones enteras o null', () => {
-    assert.deepEqual(parsePaperCaptureInput({ answers: { 12: 5, 7: null } }), { answers: { 12: 5, 7: null }, absent: false });
+    assert.deepEqual(parsePaperCaptureInput({ answers: { 12: 5, 7: null } }), { answers: { 12: 5, 7: null }, hintLevels: {}, absent: false });
+    assert.deepEqual(
+      parsePaperCaptureInput({ answers: { 12: 5 }, hintLevels: { 12: 3, 7: 0 } }),
+      { answers: { 12: 5 }, hintLevels: { 12: 3, 7: 0 }, absent: false },
+    );
   });
 
   test('rechaza claves no canónicas que podrían pisar a otra ("01" vs "1")', () => {
@@ -21,7 +25,7 @@ describe('parsePaperCaptureInput', () => {
   });
 
   test('absent: true no exige respuestas', () => {
-    assert.deepEqual(parsePaperCaptureInput({ absent: true }), { answers: {}, absent: true });
+    assert.deepEqual(parsePaperCaptureInput({ absent: true }), { answers: {}, hintLevels: {}, absent: true });
   });
 });
 
