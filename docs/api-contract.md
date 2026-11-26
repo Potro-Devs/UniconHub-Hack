@@ -38,6 +38,7 @@ Los endpoints protegidos esperan `Authorization: Bearer <token>`. El token (JWT 
 
 - `StudentCard`: `{ id, displayName: "Sofía R.", initials, avatarColor, avatarId }`. Solo el primer nombre y la inicial del apellido, sin el folio interno.
 - `group`: `{ id, name: "3.º A", grade, section, schoolYear }`.
+- En `GET /me` del alumno, `group` además incluye `joinCode` y `teacherName` (nombre del docente del grupo, para "Mis clases"). Solo con sesión: `student-join` es público y nunca los devuelve. En el MVP cada alumno tiene un solo grupo; no hay clases por materia.
 - `joinCode` acepta minúsculas y espacios (`" mapa 3a "` → `MAPA3A`).
 - Con correo inexistente o contraseña incorrecta, la respuesta es idéntica (mismo código, mensaje y tiempo de respuesta).
 - Los accesos rápidos están activos fuera de producción. En producción solo se activan con `ENABLE_QUICK_LOGIN=true`.
@@ -144,7 +145,7 @@ Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna re
 | `GET /assignments/:assignmentId/pdf` | teacher, director | — | `application/pdf` (hoja genérica) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/hints-pdf` | teacher, director | — | `application/pdf` (tarjetas de pistas) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/capture-status` | teacher, director | — | `CaptureStatus` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
-| `POST /assignments/:assignmentId/capture/:studentId` | teacher | `{ answers, absent? }` | `CaptureResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `STUDENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` / `ALREADY_CAPTURED`, 422 `ASSIGNMENT_CLOSED` |
+| `POST /assignments/:assignmentId/capture/:studentId` | teacher | `{ answers, hintLevels?, absent? }` | `CaptureResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `STUDENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` / `ALREADY_CAPTURED`, 422 `ASSIGNMENT_CLOSED` |
 
 - **Autorización:** igual que `assessments`. Docente: solo asignaciones de sus grupos. Director: solo lectura de su escuela; `POST` → 403. Asignación inexistente **o ajena** → 404 con el mismo cuerpo. Una asignación `screen` → 409 `NOT_PAPER_ASSIGNMENT`.
 - **PDF de la hoja (`pdf`):** tamaño Carta, blanco y negro, alto contraste. **Genérica**: sin nombre, folio ni datos prellenados del alumno; solo líneas en blanco para "Nombre" y "Fecha". Reactivos en orden `position`, opciones con su `label` (A, B, C…) para marcar. Nunca indica la opción correcta. Puede reutilizar el estilo de `assessments.pdf.js`.
@@ -152,10 +153,11 @@ Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna re
 - `CaptureStatus`: `{ assignmentId, total, captured, pending, targets: [{ studentId, status, isScreenLocked }] }`. `total` / `captured` / `pending` salen de `summarizeCaptureStatus`. `targets` va en el orden de la lista del grupo (apellidos, nombres).
 - **Captura (`POST`)**, una hoja por alumno:
   - `answers`: objeto `{ [questionId]: optionId | null }`. `null` o un reactivo ausente se registran como `unanswered`. Un `questionId` que no es de la prueba → 400 `UNKNOWN_QUESTION`; un `optionId` que no es de ese reactivo → 400 `UNKNOWN_OPTION` (ambos lanzados por el dominio).
+  - `hintLevels` (opcional): objeto `{ [questionId]: 0..3 }` con la tarjeta de pista más alta que usó el alumno en ese reactivo (las de `hints-pdf`). Un reactivo ausente cuenta como nivel 0. Mismas reglas de clave que `answers`; un nivel fuera de 0..3 o que no es entero → 400 `VALIDATION_ERROR`, y un reactivo que no es de la prueba → 400 `UNKNOWN_QUESTION`.
   - `absent: true`: el alumno faltó. No se guardan respuestas y el destinatario sigue `pending` (bloqueado), así que se puede capturar después. Responde 200 con `captured: false`.
   - El alumno debe ser destinatario de la asignación; si no → 404 `STUDENT_NOT_FOUND`.
   - Ya capturado (`completed_paper`) → 409 `ALREADY_CAPTURED`. Corregir una captura queda fuera del MVP.
-  - En papel no se registra el uso de tarjetas de pistas: `maxHintLevelUsed = 0`, así que nunca hay `achieved_with_support`.
+  - **Apoyo (AGENTS.md §4.2):** un acierto con nivel ≥ 1 es `achieved_with_support` ("Logrado con apoyo"), nunca `correct_autonomous`, y se guarda con su `max_hint_level_used`. El corte separa `autonomous_percentage` de `supported_percentage`, igual que en pantalla. El cliente de captura debe preguntar por reactivo si se usó una tarjeta y cuál.
   - **Transaccional:** en una sola transacción guarda `student_responses` (con `source = 'paper'`), pasa el destinatario a `status = 'completed_paper'` con `is_screen_locked = 1` y `completed_at`, y genera el corte en `skill_mastery_history` con la misma regla que `diagnostics/complete` (solo habilidades con al menos 3 reactivos contestados). Reutiliza esa lógica en vez de duplicarla.
 - `CaptureResult`: `{ assignmentId, studentId, captured, status, completedAt, summary, skills }` con `summary` y `skills` en el mismo formato que `CompletionResult` de diagnostics. No incluye `celebrations`, porque el alumno no está frente a la pantalla. Con `absent: true`: `{ assignmentId, studentId, captured: false, status: "pending" }`.
 
@@ -166,12 +168,16 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 | Método y ruta | Roles | Cuerpo | Respuesta `data` | Errores |
 | --- | --- | --- | --- | --- |
 | `GET /students/:studentId/assignments` | student | — | `[StudentAssignment]` (más recientes primero) · `meta: { count }` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
+| `GET /students/:studentId/progress` | student | — | `StudentProgress` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
 | `GET /assignments/:assignmentId/start` | student | — | `{ assignment, questions: [StartQuestion] }` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED`, 422 `ASSIGNMENT_CLOSED` |
 | `POST /assignments/:assignmentId/questions/:questionId/hints` | student | `{ level }` (`1..3`) | `{ questionId, level, hint, remainingHints }` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `QUESTION_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED` / `ALREADY_ANSWERED`, 422 `ASSIGNMENT_CLOSED` / `INVALID_HINT_SEQUENCE` |
 | `POST /assignments/:assignmentId/answer` | student | `{ questionId, selectedOptionId }` | `AnswerResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED` / `ALREADY_ANSWERED`, 422 `ASSIGNMENT_CLOSED` |
 | `POST /assignments/:assignmentId/complete` | student | — | `CompletionResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `SCREEN_LOCKED` / `ALREADY_COMPLETED`, 422 `ASSIGNMENT_CLOSED` / `NOTHING_ANSWERED` |
 
 - `StudentAssignment`: `{ id, title, modality, assignmentStatus, status, isScreenLocked, createdAt, startedAt, completedAt, questionCount, answeredCount, skills: [{ code, name, questionCount }] }`. `answeredCount` excluye reactivos marcados como `unanswered`.
+- `StudentProgress` (progreso propio, para "Mi progreso" y "Mis logros"): `{ grade, skills: [StudentSkillProgress], achievements: [Achievement] }`. Nunca incluye datos de otros alumnos ni comparaciones entre ellos (AGENTS.md §1.5). Los niveles se calculan en el servidor; el frontend solo los muestra.
+  - `StudentSkillProgress`: mismo formato que `skills` del perfil en analytics (`{ code, name, masteryPercentage, level, label, autonomousPercentage, supportedPercentage, recordedAt, grade, autonomyTrend }`) + `sessionCount`. Incluye las habilidades del programa del grado del alumno y, además, cualquiera con historial (p. ej. de un grado anterior), en el orden del catálogo. Sin cortes: `masteryPercentage: null`, `label: "Sin evaluar"`, `sessionCount: 0`. El historial se limita a la escuela del alumno.
+  - `Achievement`: `{ id, code, size, title, description, skillCode, skillName, awardedAt }`, del más reciente al más antiguo (máximo 50). `code`: `block_completed` ("Prueba terminada"), `level_up` ("Subiste de nivel"), `improved_vs_previous` ("Mejoraste"), `reached_mastered` ("Llegaste a Dominado"). `title` y `description` vienen redactados para el alumno.
 - `StartQuestion`: `{ id, position, skill: { code, name }, stem, hints: [...], options: [{ id, label, text }], answered, selectedOptionId, maxHintLevelUsed }`. Al abrir por primera vez (`pending`), pasa a `in_progress` con `startedAt`. Inicialmente `hints` es `[]`; solo incluye las pistas ya solicitadas en el servidor al reanudar.
 - **Pistas controladas en servidor (`hints`):** el alumno pide las pistas en orden estricto (`1 → 2 → 3`). Pedir un nivel distinto a `nivelActual + 1` responde `422 INVALID_HINT_SEQUENCE`.
 - `AnswerResult`: `{ questionId, selectedOptionId, maxHintLevelUsed, feedback, answeredCount, questionCount }`. Nunca expone si la respuesta fue correcta (`isCorrect` ni `outcomeStatus`); el servidor ignora cualquier `maxHintLevelUsed` enviado por el cliente y usa el registrado al pedir pistas. `feedback` es siempre `"Respuesta guardada."`.

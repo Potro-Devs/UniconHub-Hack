@@ -74,6 +74,8 @@ El backend usa `node:sqlite` (sin dependencias extra) con `foreign_keys = ON`, `
 ```bash
 npm run seed         # carga los datos demo si la base aún no los tiene
 npm run seed:reset   # borra la base y la vuelve a crear (detén antes el backend)
+# Si tu base se sembró antes de alinear el banco a los grados (reactivos de fracciones en 1.º y 2.º),
+# ejecuta seed:reset: el historial es inmutable y no se migra. `npm run seed` lo avisa.
 ```
 
 El seed es reproducible (semilla fija) y carga:
@@ -83,8 +85,8 @@ El seed es reproducible (semilla fija) y carga:
 - **Importar alumnos desde Excel o CSV:** en el detalle del grupo, *Importar desde Excel o CSV* lee un `.xlsx` o `.csv` (apellido paterno, apellido materno, nombre(s); con o sin encabezados), llena la lista automáticamente y la docente la revisa y guarda.
 - **6 grupos más del ciclo actual** (1.º A, 2.º A, 3.º B, 4.º A, 5.º A y 6.º A) con otros docentes ficticios (`docente.1a@axi.demo`… misma contraseña) y diagnósticos variados, para que el panel tenga promedios que comparar. En una base ya sembrada, `npm run seed` los agrega sin borrar nada.
 - **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
-- **Temario 1.º–6.º** con las 5 habilidades clave y el avance del temario de 3.º A.
-- **120 reactivos** (4 por habilidad y grado), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas.
+- **Temario 1.º–6.º** con 27 contenidos clave (solo las habilidades del programa de cada grado) y el avance del temario de 3.º A.
+- **108 reactivos** (4 por habilidad y grado, solo en las habilidades del programa de cada grado: fracciones desde 3.º y multiplicación desde 2.º), cada uno con 3 distractores etiquetados por error típico y 3 pistas graduadas. Los niveles se acercan al Programa Sintético del Plan 2022 (p. ej. 4.º multiplica hasta 3 × 2 cifras; 5.º y 6.º usan decimales) y están **por validar con docentes**. Pendiente: problemas con decimales y porcentajes en 5.º y 6.º.
 - Diagnósticos en pantalla ya contestados para 4 habilidades. **Fracciones** está asignada **en papel**, pendiente de captura y con la pantalla bloqueada.
 - Historial de dominio de 3 ciclos y catálogo de 10 actividades sugeridas.
 
@@ -171,6 +173,10 @@ En papel no se registra el uso de las tarjetas de pistas, así que no hay "Logra
 Después de entrar como alumno, abre **Juegos** o **Explorar juegos** en el inicio. La sección incluye tres juegos manipulables: pintar fracciones, formar grupos iguales y construir números por valor posicional. Cada partida contiene tres retos, materiales adaptados al grado del grupo y pistas graduadas. Se puede ajustar una construcción y volver a comprobarla sin penalización.
 
 Los juegos son práctica libre: **no modifican evaluaciones, dominio ni historial**, y su avance solo permanece mientras la pantalla está abierta. No tienen cronómetros, vidas ni rankings. Funcionan por toque o teclado, sin exigir arrastrar. Las animaciones respetan el control de movimiento y la preferencia del sistema. El material de ejemplo está **por validar con docente de primaria**.
+
+### Progreso y logros del alumno
+
+`GET /api/v1/diagnostics/students/:studentId/progress` (solo el propio alumno) devuelve su dominio por habilidad, con porcentaje y etiqueta (p. ej. "63.83 % · Logrado") y tendencia, junto con sus logros redactados para él ("Subiste de nivel", "Mejoraste"). Incluye las habilidades de su grado y las que ya tienen historial de grados anteriores. Los niveles se calculan en el servidor con la misma regla que ve el docente en el perfil. Nunca compara con otros alumnos ni expone el folio interno. Las pantallas "Mi progreso" y "Mis logros" todavía muestran datos de ejemplo; su conexión a esta API está en curso.
 
 ### Acompañamiento docente: qué hago mañana y antes/después
 

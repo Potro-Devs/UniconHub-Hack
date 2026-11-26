@@ -1,6 +1,7 @@
 /**
  * Seed demo de Axi: escuela, docente, grupo de 3.º A con 45 alumnos ficticios, historial de
- * 1.º y 2.º, temario 1.º–6.º, banco de reactivos de las 5 habilidades y actividades sugeridas.
+ * 1.º y 2.º, temario 1.º–6.º y banco de reactivos solo con las habilidades del programa de cada
+ * grado (`SKILL_GRADE_RANGE`), y actividades sugeridas.
  *
  * Uso:
  *   npm run seed         → carga los datos si la base aún no los tiene (o agrega lo que falte, p. ej. el director)
@@ -12,7 +13,7 @@ import bcrypt from 'bcryptjs';
 import { closeDatabase, getDatabase, withTransaction } from '../config/database.js';
 import { env } from '../config/env.js';
 import { computeWeightedMastery, getMasteryLevel } from '../modules/analytics/analytics.domain.js';
-import { phaseForGrade } from '../modules/curriculum/curriculum.domain.js';
+import { isSkillInGrade, phaseForGrade } from '../modules/curriculum/curriculum.domain.js';
 import { evaluateAchievements } from '../modules/diagnostics/diagnostics.domain.js';
 import { AVATAR_PALETTE, buildInitials, generateInternalFolio } from '../modules/groups/groups.domain.js';
 import { runMigrations } from './migrate.js';
@@ -62,21 +63,31 @@ export function isSeeded(db) {
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
   if (isSeeded(db)) {
     // Base ya sembrada: agrega lo que falte (director, grupos del ciclo, práctica abierta y cuestionarios) sin borrar nada.
+    const outdated = hasOutdatedQuestionBank(db) ? { outdatedBank: true } : {};
     const directorAdded = ensureDemoDirector(db);
     const schoolGroupsAdded = withTransaction(db, () => insertSchoolGroups(db));
     const practice = withTransaction(db, () => insertOpenPractice(db)) ? { practiceAdded: true } : {};
     const quizSeed = withTransaction(db, () => seedDemoQuizzes(db));
     if (quizSeed.seeded) {
       return { seeded: true, reason: 'added_missing_quizzes', directorAdded, schoolGroupsAdded,
-        counts: { quizzes: quizSeed.count }, ...practice };
+        counts: { quizzes: quizSeed.count }, ...practice, ...outdated };
     }
-    return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded, ...practice };
+    return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded, ...practice, ...outdated };
   }
 
   const rng = createRng(seed);
   const bank = generateQuestionBank(rng);
   const passwordHash = bcrypt.hashSync(DEMO.teacher.password, 10);
   return withTransaction(db, () => insertDemo(db, rng, bank, passwordHash));
+}
+
+/**
+ * ¿La base se sembró con el banco anterior (reactivos de habilidades fuera de su grado)?
+ * Esos reactivos y su historial no se migran: hay que recrear la base con `npm run seed:reset`.
+ */
+export function hasOutdatedQuestionBank(db) {
+  return db.prepare('SELECT q.grade, s.code FROM questions q JOIN skills s ON s.id = q.skill_id GROUP BY q.grade, s.code')
+    .all().some((row) => !isSkillInGrade(row.code, row.grade));
 }
 
 /**
@@ -127,6 +138,7 @@ function insertDemo(db, rng, bank, passwordHash) {
   for (let grade = 1; grade <= 6; grade += 1) {
     let order = 1;
     for (const { code } of SKILLS) {
+      if (!isSkillInGrade(code, grade) || !CURRICULUM_BY_SKILL[code][grade - 1]) continue;
       const [title, pda] = CURRICULUM_BY_SKILL[code][grade - 1];
       contentIds[`${grade}:${code}`] = insertContent(grade, formativeFieldFor(code), title, pda, skillIds[code], order++);
     }
@@ -242,11 +254,11 @@ function insertDemo(db, rng, bank, passwordHash) {
 
   for (const s of students) {
     for (const { code } of SKILLS) {
-      if (s.index < HISTORY.firstGradeCount) {
+      if (s.index < HISTORY.firstGradeCount && isSkillInGrade(code, 1)) {
         const pct = s.scores.firstGrade[code];
         addCut(s, code, 1, null, pct, round2(Math.min(100 - pct, rng.next() * 15)), DATES.firstGradeCut);
       }
-      if (s.index < HISTORY.secondGradeCount) {
+      if (s.index < HISTORY.secondGradeCount && isSkillInGrade(code, 2)) {
         const pct = s.scores.secondGrade[code];
         addCut(s, code, 2, null, pct, round2(Math.min(100 - pct, rng.next() * 15)), DATES.secondGradeCut);
       }
@@ -388,6 +400,10 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     runMigrations(db);
     const result = runSeed(db);
     if (result.practiceAdded) console.log('Se agregó la práctica abierta en pantalla para 3.º A (Multiplicación).');
+    if (result.outdatedBank) {
+      console.warn('Aviso: esta base tiene el banco de reactivos anterior (habilidades fuera de su grado). '
+        + 'Detén el backend y ejecuta `npm run seed:reset` para recrearla con los reactivos alineados al programa.');
+    }
     if (!result.seeded || result.reason === 'added_missing_quizzes') {
       if (result.counts?.quizzes) console.log(`Cuestionarios demo agregados a la base existente: ${result.counts.quizzes}`);
       if (result.schoolGroupsAdded) {
