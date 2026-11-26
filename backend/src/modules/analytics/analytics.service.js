@@ -6,9 +6,9 @@ import { computeCoverage, CURRICULUM_REVIEW_NOTICE, isSkillInGrade, skillGradesL
 import { buildStudentSkills, summarizeGroupSkills, countStudentsNeedingSupport,
   findWeakestSkill, selectRecommendedActivity, toHistoryDto, parseAnalyticsSelection,
   selectAnalyticsStudents, summarizeGroupEvidence, summarizeAutonomyProgress, buildNextStep } from './analytics.domain.js';
-import { renderAnalyticsPdf, renderAnalyticsXlsx } from './analytics.export.js';
+import { renderAnalyticsPdf, renderAnalyticsXlsx, renderSchoolPdf } from './analytics.export.js';
 import { buildSchoolPriorities, currentSchoolYear, mapSkillsToFields, mergeTypicalErrors, summarizeFields,
-  summarizeSchool, summarizeSchoolGroup, summarizeSkills, summarizeTeachers } from './analytics.school.domain.js';
+  summarizeSchool, summarizeSchoolGroup, summarizeSkills, summarizeTeachers, nextCteSession } from './analytics.school.domain.js';
 
 const groupDto = (group) => ({ id: group.id, grade: group.grade, section: group.section, schoolYear: group.school_year });
 const studentDto = (student) => ({ id: student.id, name: `${student.first_names} ${student.last_names}`,
@@ -17,7 +17,10 @@ const errorDtos = (rows) => rows.map((row) => ({ skillCode: row.skill_code,
   errorTag: row.error_tag, explanation: row.explanation, count: row.count, studentCount: row.student_count }));
 const meta = { contentReview: CURRICULUM_REVIEW_NOTICE };
 
-export function createAnalyticsService({ repository, groupsRepository, curriculumRepository }) {
+/** Fecha de hoy (`AAAA-MM-DD`) en la zona horaria de las escuelas (Ciudad de México). */
+const todayInMexico = (now) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(now);
+
+export function createAnalyticsService({ repository, groupsRepository, curriculumRepository, now = () => new Date() }) {
   const { findReadableGroup } = createGroupAccess(groupsRepository);
   const service = {
     getGroup(auth, groupId, query = {}) {
@@ -103,9 +106,16 @@ export function createAnalyticsService({ repository, groupsRepository, curriculu
         skills,
         groups,
         teachers: summarizeTeachers(currentGroups.map((g, i) => ({ teacherId: g.teacher_id, group: groups[i] }))),
+        cte: schoolYear ? nextCteSession(todayInMexico(now()), schoolYear) : null,
         priorities: buildSchoolPriorities(groups, skills),
         typicalErrors: mergeTypicalErrors(errorsPerGroup, skillRows),
       }, meta: { ...meta, source: 'SEP, Plan de Estudio 2022 (campos formativos)' } };
+    },
+    /** Panel de la escuela en PDF Carta B/N (solo agregados; sin datos de alumnos). */
+    async exportSchool(auth) {
+      const { data } = service.getSchool(auth);
+      return { buffer: await renderSchoolPdf(data), filename: `panel-escuela-${data.school.schoolYear ?? 'ciclo'}.pdf`,
+        contentType: 'application/pdf' };
     },
     async exportGroup(auth, groupId, query, format) {
       const { data } = service.getGroup(auth, groupId, query);

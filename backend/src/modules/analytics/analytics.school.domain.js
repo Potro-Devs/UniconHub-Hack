@@ -165,9 +165,21 @@ export function mergeTypicalErrors(perGroup, skillRows, limit = 5) {
     .map(({ groups, ...e }) => ({ ...e, groupCount: groups.size, skillName: skillName[e.skillCode] ?? e.skillCode }));
 }
 
+/** Máximo de prioridades del mes: pocas y accionables para la sesión del CTE. */
+export const MAX_PRIORITIES = 3;
+
+/** "3.º A", "3.º A y 5.º A", "1.º A, 2.º A, 3.º A y 2 más" (títulos cortos aunque haya muchos grupos). */
+const listNames = (groups, max = 3) => {
+  const names = groups.map((g) => g.name);
+  if (names.length <= 1) return names.join('');
+  if (names.length > max) return `${names.slice(0, max).join(', ')} y ${names.length - max} más`;
+  return `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
+};
+
 /**
- * Prioridades para decidir, ordenadas por tipo. Lenguaje no punitivo: describe la situación
- * y sugiere una acción, sin calificar a docentes ni alumnos.
+ * Prioridades del mes, resumidas (título corto, un dato y una acción) y ordenadas por tipo:
+ * diagnóstico pendiente → habilidad con menor dominio → grupos por acompañar → temario.
+ * Lenguaje no punitivo: describe la situación sin calificar a docentes ni alumnos.
  */
 export function buildSchoolPriorities(groups, skills) {
   const priorities = [];
@@ -175,9 +187,9 @@ export function buildSchoolPriorities(groups, skills) {
   const lowEvidence = groups.filter((g) => g.studentCount > 0 && g.evidencePercentage < MIN_EVIDENCE_PERCENTAGE);
   if (lowEvidence.length) {
     priorities.push({ type: 'evidence', groupIds: lowEvidence.map((g) => g.id),
-      title: `Completar el diagnóstico en ${lowEvidence.map((g) => g.name).join(', ')}`,
-      detail: `Menos de ${MIN_EVIDENCE_PERCENTAGE}% de sus alumnos tiene diagnóstico; sus resultados aún no son representativos.`,
-      action: 'Acordar con cada docente una fecha para aplicar la evaluación en pantalla o en papel.' });
+      title: `Completar el diagnóstico de ${listNames(lowEvidence)}`,
+      detail: `Menos de ${MIN_EVIDENCE_PERCENTAGE}% de sus alumnos tiene diagnóstico.`,
+      action: 'Acordar fecha de aplicación con cada docente.' });
   }
 
   const evaluatedSkills = skills.filter((s) => s.average != null);
@@ -190,37 +202,96 @@ export function buildSchoolPriorities(groups, skills) {
       return s?.average != null && s.average < ACHIEVED_MIN;
     });
     priorities.push({ type: 'skill', skillCode: schoolPriority.code, groupIds: affected.map((g) => g.id),
-      title: `${schoolPriority.name}: la habilidad con menor dominio en la escuela`
-        + (schoolPriority.grades ? ` (se trabaja de ${schoolPriority.grades})` : ''),
-      detail: `Promedio ${schoolPriority.average}% · ${schoolPriority.label}. `
-        + `${plural(schoolPriority.needsSupportCount, 'alumno necesita', 'alumnos necesitan')} apoyo`
-        + (affected.length
-          ? `; ${affected.length} de ${plural(teaching.length, 'grupo', 'grupos')} que la trabajan ${affected.length === 1 ? 'está' : 'están'} por debajo de ${ACHIEVED_MIN}%.`
-          : '.'),
-      action: 'Proponerla como tema del próximo Consejo Técnico Escolar y compartir estrategias entre docentes.' });
+      title: `Reforzar ${schoolPriority.name}` + (schoolPriority.grades ? ` (${schoolPriority.grades})` : ''),
+      detail: `${schoolPriority.average}% · ${schoolPriority.label}`
+        + (affected.length ? ` · ${affected.length} de ${plural(teaching.length, 'grupo', 'grupos')} por debajo de ${ACHIEVED_MIN}%.` : '.'),
+      action: 'Tema sugerido para el CTE: compartir estrategias.' });
   }
 
   // Por umbral y en orden de grado: no es una comparación entre docentes ni un ranking.
   const support = groups.filter((g) => g.studentCount > 0 && g.evidencePercentage >= MIN_EVIDENCE_PERCENTAGE
     && g.needsSupportPercentage >= GROUP_SUPPORT_PERCENTAGE)
     .sort((a, b) => a.grade - b.grade || a.section.localeCompare(b.section));
-  for (const g of support) {
-    priorities.push({ type: 'group_support', groupIds: [g.id],
-      title: `Acompañar a ${g.name}: más alumnos por apoyar`,
-      detail: `${g.needsSupportCount} de ${g.studentCount} alumnos (${g.needsSupportPercentage}%) necesitan apoyo en al menos una habilidad`
-        + (g.prioritySkill ? `; prioridad: ${g.prioritySkill.name} (${g.prioritySkill.average}%).` : '.'),
-      action: 'Ofrecer acompañamiento al grupo: revisar juntos el mapa del grupo y la actividad sugerida.' });
+  if (support.length) {
+    priorities.push({ type: 'group_support', groupIds: support.map((g) => g.id),
+      title: `Acompañar a ${listNames(support)}`,
+      detail: `${GROUP_SUPPORT_PERCENTAGE}% o más de sus alumnos necesita apoyo en alguna habilidad.`,
+      action: 'Revisar con su docente el mapa del grupo.' });
   }
 
   const lowCoverage = groups.filter((g) => g.coveragePercentage < MIN_COVERAGE_PERCENTAGE);
   if (lowCoverage.length) {
     priorities.push({ type: 'coverage', groupIds: lowCoverage.map((g) => g.id),
-      title: `Revisar el avance del temario en ${lowCoverage.map((g) => g.name).join(', ')}`,
-      detail: `Menos de ${MIN_COVERAGE_PERCENTAGE}% de los contenidos del grado está marcado como visto.`,
-      action: 'Confirmar si el registro del temario está al día o si se requiere ajustar la planeación.' });
+      title: `Revisar el temario de ${listNames(lowCoverage)}`,
+      detail: `Menos de ${MIN_COVERAGE_PERCENTAGE}% de los contenidos está marcado como visto.`,
+      action: 'Confirmar si el registro está al día.' });
   }
 
-  return priorities;
+  return priorities.slice(0, MAX_PRIORITIES);
+}
+
+// ───────────────────────── Consejo Técnico Escolar ─────────────────────────
+
+/**
+ * Sesiones ordinarias del CTE por ciclo escolar, cargadas a mano. 2026-2027: tomadas de notas de
+ * prensa sobre el calendario escolar SEP (por verificar en el acuerdo publicado en el DOF). Son el
+ * último viernes del mes, sin sesión en diciembre ni en abril.
+ */
+export const CTE_SESSIONS = Object.freeze({
+  '2026-2027': Object.freeze(['2026-09-25', '2026-10-30', '2026-11-27', '2027-01-29', '2027-02-26',
+    '2027-03-26', '2027-05-28', '2027-06-25']),
+});
+
+/**
+ * Meses que la estimación salta: vacaciones de invierno (diciembre) y de verano (julio y agosto).
+ * Abril sí se estima: en 2026-2027 no hubo sesión por Semana Santa, pero esa fecha cambia cada año;
+ * por eso la estimación siempre se marca para confirmar con el calendario oficial.
+ */
+const NO_CTE_MONTHS = [6, 7, 11];
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre',
+  'octubre', 'noviembre', 'diciembre'];
+const pad = (n) => String(n).padStart(2, '0');
+const toIso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const parseIso = (iso) => { const [y, m, d] = iso.split('-').map(Number); return { y, m: m - 1, d }; };
+const dayNumber = (iso) => { const { y, m, d } = parseIso(iso); return Date.UTC(y, m, d) / 86400000; };
+
+/** Último viernes del mes (`monthIndex` 0–11) como `AAAA-MM-DD`. */
+export function lastFridayOfMonth(year, monthIndex) {
+  const last = new Date(Date.UTC(year, monthIndex + 1, 0));
+  const back = (last.getUTCDay() - 5 + 7) % 7;
+  return toIso(year, monthIndex, last.getUTCDate() - back);
+}
+
+/** "viernes 27 de noviembre de 2026". */
+export function formatCteDate(iso) {
+  const { y, m, d } = parseIso(iso);
+  return `viernes ${d} de ${MONTHS[m]} de ${y}`;
+}
+
+/**
+ * Próxima sesión del CTE en o después de `todayIso`. Usa el calendario oficial del ciclo si está
+ * cargado; si no, estima con la regla del último viernes del mes (`source: 'rule'`, por confirmar).
+ */
+export function nextCteSession(todayIso, schoolYear) {
+  const today = dayNumber(todayIso);
+  const official = (CTE_SESSIONS[schoolYear] ?? []).find((iso) => dayNumber(iso) >= today);
+  let date = official;
+  let source = 'calendar';
+  if (!date) {
+    // Estimación: último viernes del mes, saltando meses de vacaciones sin CTE ordinario.
+    source = 'rule';
+    let { y, m } = parseIso(todayIso);
+    for (;;) {
+      if (!NO_CTE_MONTHS.includes(m)) {
+        date = lastFridayOfMonth(y, m);
+        if (dayNumber(date) >= today) break;
+      }
+      m += 1;
+      if (m === 12) { m = 0; y += 1; }
+    }
+  }
+  const { y, m } = parseIso(date);
+  return { date, label: formatCteDate(date), month: `${MONTHS[m]} ${y}`, daysUntil: dayNumber(date) - today, source };
 }
 
 /**

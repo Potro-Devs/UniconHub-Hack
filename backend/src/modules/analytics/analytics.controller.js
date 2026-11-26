@@ -21,6 +21,15 @@ export function createAnalyticsController(service) {
       const { data, meta } = service.getSchool(req.auth);
       return sendData(res, data, { meta });
     },
+    async exportSchool(req, res, next) {
+      try {
+        const { buffer, filename, contentType } = await service.exportSchool(req.auth);
+        res.set('Content-Type', contentType);
+        res.set('Content-Disposition', `attachment; filename="${filename}"`);
+        res.set('Cache-Control', 'no-store');
+        res.send(buffer);
+      } catch (error) { next(error); }
+    },
     getStudent(req, res) {
       const { data, meta } = service.getStudent(req.auth, req.params.groupId, req.params.studentId);
       return sendData(res, data, { meta });

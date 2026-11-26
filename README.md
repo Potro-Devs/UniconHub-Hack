@@ -81,7 +81,8 @@ npm run seed:reset   # borra la base y la vuelve a crear (detén antes el backen
 El seed es reproducible (semilla fija) y carga:
 
 - **Escuela demo** y la **docente** `docente@axi.demo` / contraseña `AxiDemo2026`.
-- **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (botón *Entrar como Directivo*). Su menú tiene **Panel de la escuela** (indicadores generales, campos formativos de la SEP, habilidades, prioridades, errores típicos y resumen por grupo, solo con promedios) y **Docentes** (avance del diagnóstico por docente), ambos con datos reales; **Promover grupos** y **Traslados** siguen siendo vistas de ejemplo (Roadmap). Cada grupo se evalúa solo en las habilidades de su grado (fracciones desde 3.º, multiplicación desde 2.º).
+- **Director demo** `direccion@axi.demo` / contraseña `AxiDemo2026` (botón *Entrar como Directivo*). Su menú tiene **Panel de la escuela** (pestañas Resumen, Campos formativos, Habilidades, Grupos y Errores típicos; prioridades del mes y fecha del próximo Consejo Técnico según el calendario SEP; **Exportar PDF** tamaño Carta en blanco y negro; solo promedios) y **Docentes** (avance del diagnóstico por docente), ambos con datos reales; **Promover grupos** y **Traslados** siguen siendo vistas de ejemplo (Roadmap). Cada grupo se evalúa solo en las habilidades de su grado (fracciones desde 3.º, multiplicación desde 2.º).
+- **Importar alumnos desde Excel o CSV:** en el detalle del grupo, *Importar desde Excel o CSV* lee un `.xlsx` o `.csv` (apellido paterno, apellido materno, nombre(s); con o sin encabezados), llena la lista automáticamente y la docente la revisa y guarda.
 - **6 grupos más del ciclo actual** (1.º A, 2.º A, 3.º B, 4.º A, 5.º A y 6.º A) con otros docentes ficticios (`docente.1a@axi.demo`… misma contraseña) y diagnósticos variados, para que el panel tenga promedios que comparar. En una base ya sembrada, `npm run seed` los agrega sin borrar nada.
 - **Grupo 3.º A (ciclo 2026-2027)**, código de acceso `MAPA3A`, con **45 alumnos ficticios**. 40 de ellos vienen de 2.º A y 30 de 1.º A; *Sofía* tiene historial de los 2 grados anteriores.
 - **Temario 1.º–6.º** con 27 contenidos clave (solo las habilidades del programa de cada grado) y el avance del temario de 3.º A.
@@ -129,7 +130,7 @@ npm run dev
     }
     ```
 
-> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. Diagnósticos y modo papel conservan sus integraciones pendientes; completar Analytics no implica completar esos módulos.
+> **Estado actual del sistema:** Auth, grupos, temario, asignaciones y Analytics usan la API (ver `docs/api-contract.md`). El mapa y el perfil individual consultan SQLite con el grupo activo y muestran cortes reales del historial; distinguen dominio autónomo y “Logrado con apoyo”. Carga los datos ficticios de demostración con `npm run seed`. **El ejercicio del alumno usa datos reales:** el inicio del alumno lista sus pruebas (`/api/v1/diagnostics`), y al contestar una en pantalla (pistas pedidas al servidor, retroalimentación neutra) se registra el corte de dominio y el mapa del docente cambia. El seed incluye una **práctica abierta de Multiplicación para 3.º A** para recorrer ese ciclo (en una base ya sembrada, `npm run seed` la agrega). Siguen con datos de ejemplo: temario y asignación desde la interfaz, captura en papel, *Mis clases* y *Logros*.
 >
 > La sesión se guarda en `sessionStorage`: se cierra al cerrar la pestaña, pensado para computadoras compartidas en el salón.
 
@@ -188,6 +189,14 @@ En los datos demo, Fracciones aún no tiene errores registrados hasta capturar l
   ```
 
 ---
+
+### Aprendemos en equipo e idiomas
+
+Entra como docente y abre **En equipo**. Elige una habilidad para ver los equipos formados automáticamente con los resultados del grupo. Revisa la propuesta y usa **Guardar equipos y preparar material**. Si necesitas modificarla, abre **Ajustar equipos**. Cada compañero guía acompaña hasta dos compañeros; quienes necesitan atención docente quedan en su mesa. Las tarjetas de equipo se descargan como PDF Carta en blanco y negro, con pasos, pistas y espacios para responder, sin nombres. La guía docente privada puede incluir los nombres de quienes reciben atención docente; consérvala dentro de la escuela.
+
+Después de la práctica, registra cuántos de tres reactivos resolvió cada alumno sin ayuda. Esta demostración orienta futuros equipos y **no cambia el dominio ni el historial oficial**. Los materiales están **por validar con docente de primaria**.
+
+El selector **Español / Náhuatl / Maya** está disponible desde el acceso y en los espacios de alumno, docente y dirección. Guarda únicamente la preferencia de idioma en este dispositivo. La cobertura es parcial: traduce algunos controles y elementos de navegación, conserva el español como apoyo y usa español cuando falta una traducción. No traduce reactivos, opciones ni pistas. Las traducciones preliminares de náhuatl central y maya yucateco están por validar con hablantes de la comunidad.
 
 ## Estructura del repositorio
 

@@ -34,6 +34,7 @@ import {
 import { generateQuestionBank } from './seed/questions.generator.js';
 import { insertSchoolGroups } from './seed/schoolGroups.js';
 import { seedDemoQuizzes } from './seed/quizzes.seed.js';
+import { insertOpenPractice } from './seed/practice.seed.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
 export { DEMO };
@@ -61,16 +62,17 @@ export function isSeeded(db) {
  */
 export function runSeed(db, { seed = DEFAULT_SEED } = {}) {
   if (isSeeded(db)) {
-    // Base ya sembrada: agrega lo que falte (director, grupos del ciclo y cuestionarios) sin borrar nada.
+    // Base ya sembrada: agrega lo que falte (director, grupos del ciclo, práctica abierta y cuestionarios) sin borrar nada.
     const outdated = hasOutdatedQuestionBank(db) ? { outdatedBank: true } : {};
     const directorAdded = ensureDemoDirector(db);
     const schoolGroupsAdded = withTransaction(db, () => insertSchoolGroups(db));
+    const practice = withTransaction(db, () => insertOpenPractice(db)) ? { practiceAdded: true } : {};
     const quizSeed = withTransaction(db, () => seedDemoQuizzes(db));
     if (quizSeed.seeded) {
       return { seeded: true, reason: 'added_missing_quizzes', directorAdded, schoolGroupsAdded,
-        counts: { quizzes: quizSeed.count }, ...outdated };
+        counts: { quizzes: quizSeed.count }, ...practice, ...outdated };
     }
-    return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded, ...outdated };
+    return { seeded: false, reason: 'already_seeded', directorAdded, schoolGroupsAdded, ...practice, ...outdated };
   }
 
   const rng = createRng(seed);
@@ -348,6 +350,9 @@ function insertDemo(db, rng, bank, passwordHash) {
     run("INSERT INTO assignment_targets (assignment_id, student_id, status, is_screen_locked) VALUES (?, ?, 'pending', 1)", paperId, s.id);
   }
 
+  // Práctica abierta en pantalla (Multiplicación, 3.º A): el alumno demo la puede contestar.
+  insertOpenPractice(db);
+
   // Otros grupos del ciclo actual (otros docentes) para el panel de Dirección
   const schoolGroupsAdded = insertSchoolGroups(db);
   // Cuestionarios de muestra (propios, de colegas de la escuela y precargados por Axi)
@@ -394,6 +399,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const db = getDatabase();
     runMigrations(db);
     const result = runSeed(db);
+    if (result.practiceAdded) console.log('Se agregó la práctica abierta en pantalla para 3.º A (Multiplicación).');
     if (result.outdatedBank) {
       console.warn('Aviso: esta base tiene el banco de reactivos anterior (habilidades fuera de su grado). '
         + 'Detén el backend y ejecuta `npm run seed:reset` para recrearla con los reactivos alineados al programa.');

@@ -1,4 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { LanguageProvider } from '@/shared/i18n/LanguageContext';
+import { TutoringScreen } from '@/features/tutoring/TutoringScreen';
 import { LoginScreen } from '@/features/auth/LoginScreen';
 import { ContentDetailScreen } from '@/features/curriculum/ContentDetailScreen';
 import { CurriculumScreen } from '@/features/curriculum/CurriculumScreen';
@@ -19,7 +21,7 @@ import { TransfersScreen } from '@/features/school-admin/TransfersScreen';
 import { StudentAchievementsScreen } from '@/features/student-portal/StudentAchievementsScreen';
 import { StudentClassesScreen } from '@/features/student-portal/StudentClassesScreen';
 import { StudentCodeScreen } from '@/features/student-portal/StudentCodeScreen';
-import { StudentExerciseScreen } from '@/features/student-portal/StudentExerciseScreen';
+import { StudentAssignmentScreen } from '@/features/student-portal/StudentAssignmentScreen';
 import { StudentHomeScreen } from '@/features/student-portal/StudentHomeScreen';
 import { StudentLayout } from '@/features/student-portal/StudentLayout';
 import { StudentNameScreen } from '@/features/student-portal/StudentNameScreen';
@@ -50,6 +52,7 @@ function StaffShell() {
  */
 export function App() {
   return (
+    <LanguageProvider>
     <SessionProvider>
       <AppUiProvider>
         <BrowserRouter>
@@ -67,6 +70,7 @@ export function App() {
                 {/* Área docente. El director solo tiene su panel: cualquier otra ruta lo regresa ahí. */}
                 <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
                 <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
+                <Route path="/docente/tutores" element={<TutoringScreen />} />
                 <Route path="/docente/mapa" element={<GroupMapScreen />} />
                 <Route path="/docente/perfil" element={<StudentProfileScreen />} />
                 <Route path="/docente/perfil/:studentId" element={<StudentProfileScreen />} />
@@ -98,7 +102,9 @@ export function App() {
               <Route path="codigo" element={<StudentCodeScreen />} />
               <Route path="nombre" element={<StudentNameScreen />} />
               <Route element={<RequireRole roles={['student']} redirectTo="/login" />}>
-                <Route path="ejercicio" element={<StudentExerciseScreen />} />
+                {/* Ejercicio con datos reales; sin id vuelve al inicio, donde se elige la actividad. */}
+                <Route path="ejercicio" element={<Navigate to="/alumno/inicio" replace />} />
+                <Route path="ejercicio/:assignmentId" element={<StudentAssignmentScreen />} />
                 <Route path="resumen" element={<StudentSummaryScreen />} />
               </Route>
             </Route>
@@ -125,6 +131,7 @@ export function App() {
         </BrowserRouter>
       </AppUiProvider>
     </SessionProvider>
+    </LanguageProvider>
   );
 }
 

@@ -55,6 +55,7 @@ Todos los endpoints exigen sesión.
 | `GET /:groupId/students` | teacher, director | — | `[Student]` (solo inscritos activos) · `meta: { count }` | 400, 401, 403, 404 |
 | `POST /:groupId/students` | teacher | `{ firstNames, lastNames }` | `Student` (201) | 400, 401, 403, 404 |
 | `POST /:groupId/students/bulk` | teacher | `{ text }` (un alumno por línea) | `{ created: [Student] }` (201) · `meta: { createdCount }` | 400 (`details.invalidLines` si hay líneas inválidas), 401, 403, 404 |
+| `POST /:groupId/students/import-preview` | teacher | `{ fileName, contentBase64 }` (`.xlsx` o `.csv`, máx. 60 KB) | `{ text, studentCount, invalidRows: [{ row, text }], headerDetected }`: lista "Apellidos, Nombres" lista para `POST /bulk`. **No guarda alumnos.** Columnas: apellido paterno, apellido materno, nombre(s); con encabezados se ubican por nombre; CSV con `,` `;` o tabulador, UTF-8 o Latin-1. | 400 (formato, archivo dañado o vacío, más de 60 alumnos), 401, 403, 404 |
 | `PATCH /students/:studentId/avatar` | teacher, student | `{ avatarId?, avatarColor? }` (al menos uno) | `Student` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
 
 - `Group`: `{ id, name: "3.º A", grade, section, schoolYear, phase, joinCode, teacherId, studentCount }`. `phase` se calcula del grado (3: 1.º–2.º, 4: 3.º–4.º, 5: 5.º–6.º); `studentCount` cuenta inscripciones activas.
@@ -162,7 +163,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
 - **Paper Mode (`/api/v1/paper`):** `GET /assignments/:assignmentId/pdf`, `GET /assignments/:assignmentId/hints-pdf`, `GET /assignments/:assignmentId/capture-status`, `POST /assignments/:assignmentId/capture/:studentId`
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
-- **Analytics (`/api/v1/analytics`):** `GET /school` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
+- **Analytics (`/api/v1/analytics`):** `GET /school` y `GET /school/export.pdf` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).
 - **Interventions (`/api/v1/interventions`):** ciclo actividad aplicada → nueva prueba (ver contrato al final).
 
@@ -188,13 +189,20 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
   - `skills`: `{ code, name, average, level, label, evaluatedCount, needsSupportCount, grades }` de toda la escuela (`grades`: "3.º a 6.º").
   - `teachers`: `{ name, groups: ["3.º A"], studentCount, evaluatedStudentCount, needsSupportCount, evidencePercentage }` (sin correos).
   - `groups`: `{ id, name, grade, section, schoolYear, teacherName, studentCount, evaluatedStudentCount, evidencePercentage, needsSupportCount, needsSupportPercentage, fields, skills, prioritySkill, coveragePercentage }`.
-  - `priorities`: `{ type, title, detail, action, groupIds, skillCode? }` con `type` ∈ `evidence` (< 50 % con diagnóstico),
-    `skill` (habilidad con menor dominio de la escuela), `group_support` (hasta 3 grupos con más alumnos que necesitan apoyo),
-    `coverage` (< 25 % del temario visto).
+  - `priorities`: prioridades del mes, máximo 3 y resumidas: `{ type, title, detail, action, groupIds, skillCode? }`.
+    Orden por `type`: `evidence` (< 50 % con diagnóstico), `skill` (habilidad con menor dominio de la escuela),
+    `group_support` (grupos con ≥ 50 % de alumnos que necesitan apoyo, en un solo elemento), `coverage` (< 25 % del temario visto).
+  - `cte`: próxima sesión ordinaria del Consejo Técnico Escolar `{ date, label, month, daysUntil, source }`.
+    `source: 'calendar'` usa fechas cargadas a mano (`CTE_SESSIONS`; 2026-2027 tomadas de notas de prensa sobre el calendario SEP,
+    por verificar en el DOF: último viernes del mes, sin diciembre ni abril);
+    `source: 'rule'` estima el último viernes del mes (sin diciembre, julio ni agosto) cuando el ciclo no está cargado. `null` si no hay ciclo.
   - `typicalErrors`: hasta 5 `{ skillCode, skillName, errorTag, explanation, studentCount, groupCount }`;
     `studentCount` son alumnos distintos por habilidad y etiqueta. No se reportan etiquetas con menos de 3 alumnos.
   - Nota: la interfaz del director solo usa este endpoint, pero la API conserva su lectura de
     `/groups`, `/analytics/groups/*`, `/curriculum`, `/assessments` e `/interventions` de su escuela (pendiente de restringir).
+- `GET /school/export.pdf` (**solo director**): el panel en PDF Carta, blanco y negro (`application/pdf`,
+  `panel-escuela-<ciclo>.pdf`): indicadores, próximo CTE, prioridades del mes, campos formativos, habilidades,
+  resumen por grupo, errores típicos y metodología. Solo agregados; sin datos de alumnos.
 - `GET /groups/:groupId`: `{ data: { group, skills, students, summary }, meta }`.
 - `GET /groups/:groupId/students/:studentId`: `{ data: { group, student, skills, history, recommendedActivity, typicalErrors }, meta }`.
 - `group`: `{ id, grade, section, schoolYear }`.
@@ -245,9 +253,12 @@ El perfil exige matrícula activa en el grupo: alumno inexistente o ajeno respon
 - `typicalErrors`: `[{ skillCode, errorTag, explanation, count, studentCount }]`
   (`count` respuestas, `studentCount` alumnos distintos), respuestas
   incorrectas reales de aplicaciones terminadas del grupo actual, alumnos
-  activos y escuela autorizada; el perfil filtra además al alumno. Orden:
-  frecuencia descendente, habilidad, etiqueta y explicación. Las respuestas
-  de sesiones en progreso no se cuentan.
+  activos y escuela autorizada; el perfil filtra además al alumno. Una fila por
+  `(skillCode, errorTag)`: `explanation` es una explicación representativa
+  (puede variar por reactivo) y cada alumno cuenta una sola vez. Orden: más
+  alumnos distintos, luego más respuestas, habilidad y etiqueta. Las respuestas
+  de sesiones en progreso no se cuentan. `nextStep.error` y la actividad
+  sugerida usan el mismo error: el de más alumnos de la habilidad prioritaria.
 - `history`: `[{ id, skillCode, skillName, grade, schoolYear, sessionIndex,
   sessionPercentage, autonomousPercentage, supportedPercentage,
   masteryPercentage, level, label, recordedAt }]`. Incluye cortes de grados
@@ -388,11 +399,77 @@ durationMinutes, grouping }, skillCode, skillName, targetErrorTag,
 errorExplanation, outcome }`. `outcome` es `{ status, baselineCount,
 reevaluatedCount, overcameCount, stillWithErrorCount, awaitingCount }`:
 
-- `baselineCount`: alumnos que mostraron `targetErrorTag` (o cualquier respuesta
-  incorrecta de la habilidad si la actividad no tiene etiqueta) hasta `appliedAt`.
-- `reevaluatedCount`: de ellos, quienes contestaron reactivos de la habilidad
-  después de `appliedAt`; `stillWithErrorCount` volvió a mostrar el error y
-  `overcameCount` ya no. `awaitingCount` aún no presenta nueva prueba y no se
-  cuenta como avance ni como pendiente de mejora.
+- Antes y después se comparan por **prueba completa** (destinatario terminado), no por
+  respuesta: una prueba es "antes" si empezó antes de registrar la actividad y "después"
+  si empezó después, así una prueba en curso nunca se parte. Solo cuentan pruebas con
+  reactivos de la habilidad que permitían mostrar `targetErrorTag` (misma regla en ambos lados).
+- `baselineCount`: alumnos cuya prueba "antes" más reciente mostró `targetErrorTag` (o
+  cualquier respuesta incorrecta de la habilidad si la actividad no tiene etiqueta).
+- `reevaluatedCount`: de ellos, quienes tienen una prueba "después"; se usa la más
+  reciente: `stillWithErrorCount` volvió a mostrar el error en ella y `overcameCount`
+  ya no. `awaitingCount` aún no presenta nueva prueba y no se cuenta como avance ni
+  como pendiente de mejora.
 - `status`: `awaiting_retest` si nadie del grupo base ha sido reevaluado;
   `measured` en otro caso.
+
+## Aprendemos en equipo (`/api/v1/tutoring`)
+
+La interfaz usa «compañero guía» y «equipos». Los nombres de rutas y campos (`tutor`, `tutee`) se conservan para mantener la compatibilidad de la API.
+
+Requiere sesión. El docente consulta y modifica únicamente sus grupos; dirección
+consulta los de su escuela. Sin sesión: 401; alumno: 403; dirección al escribir:
+403; grupo ajeno o inexistente: 404 `GROUP_NOT_FOUND`. Solo se incluyen alumnos
+con matrícula activa. Las respuestas no exponen folios internos.
+
+| Método y ruta | `data` |
+| --- | --- |
+| `GET /groups/:groupId/proposal?skillCode=multiplication` | `{ group, skill, skills, maxPerTutor, pairs, teacherTable, availableTutors, tutors }` |
+| `GET /groups/:groupId/sessions` | `{ group, sessions, network }` |
+| `POST /groups/:groupId/sessions` | Sesión guardada, con sus parejas (201) |
+| `PATCH /groups/:groupId/pairs/:pairId/demonstration` | `{ id, demonstration, demonstratedAt }` |
+| `GET /groups/:groupId/sessions/:sessionId/cards.pdf` | Tarjetas para repartir, `application/pdf` |
+| `GET /groups/:groupId/sessions/:sessionId/key.pdf` | Clave y mesa docente, `application/pdf` |
+
+La propuesta usa la habilidad solicitada o prioriza una con tutores disponibles
+y más alumnos por acompañar. Puede enseñar quien tiene dominio autónomo
+`mastered` o una última demostración de 3/3 en esa habilidad. Reciben tutoría
+quienes están en `needs_support` o `in_progress` y aún no demostraron 3/3.
+Se prefiere un tutor que haya mostrado antes el mismo error típico; cada tutor
+acompaña como máximo a dos alumnos y el resto queda en la mesa docente. Esta
+propuesta es privada para el personal escolar y no constituye un ranking.
+
+`POST` acepta exactamente `{ skillCode, note?, pairs: [{ tutorId, tuteeId }] }`.
+`tutorId` es un entero positivo o `null` (mesa docente); `tuteeId`, entero positivo.
+Admite entre 1 y 80 parejas y una nota de hasta 300 caracteres. Rechaza
+autoparejas, tutorados repetidos, un alumno como tutor y tutorado en la misma
+sesión o más de dos compañeros por tutor. Cuerpo inválido: 400
+`VALIDATION_ERROR`; alumno inactivo o ajeno al grupo: 404 `STUDENT_NOT_FOUND`;
+tutor sin evidencia suficiente: 422 `TUTOR_NOT_READY`. La creación es atómica.
+
+`PATCH` acepta exactamente `{ correct: 0 | 1 | 2 | 3 }`, los aciertos sin ayuda
+en tres reactivos. `demonstration` contiene `{ code, label, correct, total: 3 }`:
+3/3 es `ready_to_teach` ("Ya puede enseñarlo"), 2/3 es `progressing` ("Va
+avanzando") y 0–1/3 es `keep_practicing` ("Seguimos practicando juntos").
+Se puede corregir una captura; la demostración de la sesión más reciente determina
+si puede enseñar, aunque se corrija una sesión anterior después. Una pareja ajena al
+grupo o con tutorado retirado responde 404
+`PAIR_NOT_FOUND`. Estas capturas nunca modifican `skill_mastery_history`,
+respuestas de evaluaciones ni logros oficiales.
+Para imprimir cualquiera de los PDF o registrar una demostración se necesitan
+al menos cuatro reactivos de la habilidad en el grado del grupo: uno de práctica y
+tres distintos para la demostración. Si no
+hay suficientes, responde 422 `INSUFFICIENT_DEMONSTRATION_QUESTIONS` y no guarda
+aciertos ni habilita nuevos tutores.
+
+`network` incluye cantidades por habilidad, errores trabajados y alumnos que
+pueden enseñar, sin comparar posiciones. Las consultas agregan
+`meta.contentReview`: guiones y frases por validar con docente de primaria.
+El idioma de la interfaz es una preferencia local del dispositivo. No se almacena
+la lengua del alumno en este servicio ni se usa para formar equipos.
+
+Los PDF son Carta, blanco y negro, con `Content-Disposition: attachment` y
+`Cache-Control: no-store`. Las tarjetas contienen práctica, tres pistas y
+demostración; no imprimen la clave ni nombres de alumnos. La guía docente privada
+puede mostrar los nombres de estudiantes asignados a la mesa docente; ningún PDF
+incluye folios internos. Una sesión inexistente o de otro grupo responde 404
+`SESSION_NOT_FOUND`.
