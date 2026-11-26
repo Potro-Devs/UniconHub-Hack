@@ -164,7 +164,8 @@ describe('assessments API', () => {
       assert.deepEqual(Object.keys(first).sort(), ['contentId', 'difficulty', 'grade', 'hints', 'id', 'options', 'skill', 'stem'].sort());
       assert.equal(first.hints.length, 3);
       assert.deepEqual(first.skill, { code: 'fractions', name: 'Fracciones' });
-      assert.deepEqual(first.options, [
+      assert.ok(first.options.every((o) => Number.isInteger(o.id) && o.id > 0), 'cada opción trae su id');
+      assert.deepEqual(first.options.map(({ id, ...rest }) => rest), [
         { label: 'A', text: 'Opción correcta', isCorrect: true, errorTag: null, errorExplanation: null },
         { label: 'B', text: 'Distractor', isCorrect: false, errorTag: 'test_error', errorExplanation: 'Explicación de prueba' },
       ]);

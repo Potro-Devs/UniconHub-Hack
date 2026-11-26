@@ -374,7 +374,9 @@ export function toQuestionDto(row, options) {
     stem: row.stem,
     difficulty: row.difficulty,
     hints: [row.hint_1, row.hint_2, row.hint_3],
+    // `id` permite capturar respuestas en papel (`POST /paper/.../capture`), que se envían por id de opción.
     options: options.map((o) => ({
+      id: o.id,
       label: o.label,
       text: o.text,
       isCorrect: o.is_correct === 1,
