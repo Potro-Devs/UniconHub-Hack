@@ -23,7 +23,8 @@ describe('paper-mode routes (esqueleto)', () => {
   });
   after(() => server.close());
 
-  const reads = ['/pdf', '/hints-pdf', '/capture-status'].map((p) => `/api/v1/paper/assignments/1${p}`);
+  // `capture-status` ya está implementado: ver paper-mode.capture-status.test.js.
+  const reads = ['/pdf', '/hints-pdf'].map((p) => `/api/v1/paper/assignments/1${p}`);
   const capture = '/api/v1/paper/assignments/1/capture/1';
 
   test('sin sesión → 401', async () => {
