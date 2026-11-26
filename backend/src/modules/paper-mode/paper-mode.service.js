@@ -6,6 +6,7 @@
  */
 import { DomainError } from '../../shared/errors/DomainError.js';
 import { HttpError } from '../../shared/errors/HttpError.js';
+import { ROLES } from '../auth/auth.domain.js';
 import { toTargetDto } from '../assessments/assessments.domain.js';
 import { renderQuizPdf } from '../assessments/assessments.pdf.js';
 import { scoreSession } from '../diagnostics/diagnostics.domain.js';
@@ -132,6 +133,8 @@ export function createPaperModeService({
      * en pantalla). Sin logros: el alumno no está frente a la pantalla.
      */
     captureStudent(auth, assignmentId, studentId, body) {
+      // Defensa en profundidad: la ruta ya exige docente, pero el servicio no depende de ello.
+      if (auth?.role !== ROLES.TEACHER) throw new HttpError(403, 'FORBIDDEN', 'No tienes permiso para esta acción.');
       const { assignment, group } = findReadablePaperAssignment(auth, assignmentId);
       const sId = parsePositiveId(studentId, 'id del alumno');
       const target = repository.findTarget(assignment.id, sId);
@@ -140,14 +143,14 @@ export function createPaperModeService({
       if (target.status === 'completed_paper') throw ALREADY_CAPTURED();
 
       const input = parsePaperCaptureInput(body);
+      if (input.absent) {
+        return { assignmentId: assignment.id, studentId: sId, captured: false, status: target.status };
+      }
+
       const questionRows = diagnosticsRepository.listQuestionsOfAssignment(assignment.id);
       const options = groupBy(repository.listOptionsOfAssignment(assignment.id), 'question_id');
       const questions = questionRows.map((q) => ({ id: q.id, options: options.get(q.id) ?? [] }));
       const { responses, targetState } = buildPaperCapture({ questions, ...input });
-
-      if (input.absent) {
-        return { assignmentId: assignment.id, studentId: sId, captured: false, status: target.status };
-      }
 
       return transaction(() => {
         for (const r of responses) {
