@@ -12,6 +12,7 @@ export function createDiagnosticsController(service) {
       const assignments = service.listStudentAssignments(req.auth, req.params.studentId);
       sendData(res, assignments, { meta: { count: assignments.length } });
     },
+    getStudentProgress: (req, res) => sendData(res, service.getStudentProgress(req.auth, req.params.studentId)),
     startAssignment: (req, res) => sendData(res, service.startAssignment(req.auth, req.params.assignmentId)),
     requestHint: (req, res) =>
       sendData(res, service.requestHint(req.auth, req.params.assignmentId, req.params.questionId, req.body)),
