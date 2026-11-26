@@ -13,6 +13,7 @@ import {
   parseLoginInput,
   parseStudentId,
   toGroupSummary,
+  toStudentGroupDto,
   toStaffProfile,
   toStudentCard,
 } from './auth.domain.js';
@@ -124,7 +125,8 @@ export function createAuthService({ repository, config }) {
         const group = repository.findGroupById(claims.groupId);
         const student = group && repository.findActiveStudent(group.id, id);
         if (!student) throw new HttpError(401, 'SESSION_INVALID', 'Tu sesión ya no es válida. Vuelve a entrar.');
-        return { role: ROLES.STUDENT, student: toStudentCard(student), group: toGroupSummary(group) };
+        const teacher = repository.findStaffById(group.teacher_id);
+        return { role: ROLES.STUDENT, student: toStudentCard(student), group: toStudentGroupDto(group, teacher) };
       }
       const user = repository.findStaffById(id);
       if (!user) throw new HttpError(401, 'SESSION_INVALID', 'Tu sesión ya no es válida. Vuelve a entrar.');

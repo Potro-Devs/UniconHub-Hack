@@ -52,7 +52,7 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
 - **Motor de evaluación (Alumno):** Un reactivo a la vez, opciones táctiles grandes, hasta 3 pistas por reactivo, retroalimentación neutra y diferenciación entre acierto autónomo y **"Logrado con apoyo"**.
 - **Modo Papel:** PDF genérico B/N tamaño Carta (sin datos prellenados del alumno), PDF de tarjetas de pistas, captura rápida móvil alumno × reactivo sin scroll horizontal y bloqueo automático de pantalla al asignar/capturar en papel.
 - **Analítica docente:** Mapa del grupo (`alumno × habilidad`), habilidad más débil, conteo de alumnos en apoyo, cobertura de temario, actividad sugerida y perfil individual con historial multigrado.
-- **Datos Seed:** Docente demo, escuela demo, grupo de **45 alumnos ficticios** con distribución realista, al menos un alumno con historial de **2 grados anteriores**, reactivos calibrados para 1.º a 6.º en las 5 habilidades y catálogo de actividades.
+- **Datos Seed:** Docente demo, escuela demo, grupo de **45 alumnos ficticios** con distribución realista, al menos un alumno con historial de **2 grados anteriores**, reactivos calibrados para 1.º a 6.º en las habilidades que corresponden a cada grado (fracciones desde 3.º, multiplicación desde 2.º) y catálogo de actividades.
 
 ### Puntos de Extensión (Roadmap futuro — no sobre-ingenierizar en MVP)
 - Rol Administrativo/Director (alta de docentes, promoción masiva de ciclos, traslados entre escuelas por código o QR).

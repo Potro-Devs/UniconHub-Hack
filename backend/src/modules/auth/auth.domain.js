@@ -93,3 +93,11 @@ export function toGroupSummary(group) {
     schoolYear: group.school_year,
   };
 }
+
+/**
+ * Grupo del alumno con sesión (`GET /me`): agrega su código y el nombre del docente.
+ * Nunca se usa en `student-join`, que es público y solo debe mostrar el grupo.
+ */
+export function toStudentGroupDto(group, teacher) {
+  return { ...toGroupSummary(group), joinCode: group.join_code, teacherName: teacher?.full_name ?? null };
+}
