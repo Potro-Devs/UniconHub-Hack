@@ -9,6 +9,8 @@ import { DomainError } from '../../shared/errors/DomainError.js';
 import { HttpError } from '../../shared/errors/HttpError.js';
 import { buildNextMasteryCut, getMasteryLevel } from '../analytics/analytics.domain.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
+import { buildStudentSkills } from '../analytics/analytics.domain.js';
+import { isSkillInGrade } from '../curriculum/curriculum.domain.js';
 import {
   ANSWER_SAVED_FEEDBACK,
   CELEBRATION_SIZES,
@@ -21,11 +23,16 @@ import {
   parseAnswerInput,
   parseHintRequestInput,
   scoreSession,
+  selectStudentProgressSkills,
+  toAchievementDto,
   toStartQuestionDto,
   toStudentAssignmentDto,
 } from './diagnostics.domain.js';
 
-const STUDENT_NOT_FOUND = () => new HttpError(404, 'STUDENT_NOT_FOUND', 'No encontramos a ese alumno.');
+/** Logros más recientes que se devuelven en el progreso del alumno. */
+const MAX_PROGRESS_ACHIEVEMENTS = 50;
+
+const STUDENT_NOT_FOUND =() => new HttpError(404, 'STUDENT_NOT_FOUND', 'No encontramos a ese alumno.');
 const ASSIGNMENT_NOT_FOUND = () => new HttpError(404, 'ASSIGNMENT_NOT_FOUND', 'No encontramos esa prueba.');
 const QUESTION_NOT_FOUND = () => new HttpError(404, 'QUESTION_NOT_FOUND', 'No encontramos ese reactivo en la prueba.');
 
@@ -76,6 +83,30 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
       return repository
         .listAssignmentsForStudent(id, groupId)
         .map((row) => toStudentAssignmentDto(row, skills.get(row.id) ?? []));
+    },
+
+    /**
+     * Progreso propio del alumno: dominio por habilidad (con su tendencia) y sus logros.
+     * Los niveles se calculan aquí, no en el cliente. Nunca incluye a otros alumnos.
+     */
+    getStudentProgress(auth, studentId) {
+      const id = parsePositiveId(studentId, 'id del alumno');
+      const group = groupsRepository.findGroupOfSchool(Number(auth.groupId), Number(auth.schoolId));
+      if (Number(auth.sub) !== id || !group || !requireActiveStudent(auth)) throw STUDENT_NOT_FOUND();
+
+      const history = repository.listStudentMasteryHistory(id, group.school_id);
+      const skills = selectStudentProgressSkills(repository.listSkills(), history, (code) =>
+        isSkillInGrade(code, group.grade),
+      );
+      const sessions = groupBy(history, 'skill_id');
+      return {
+        grade: group.grade,
+        skills: buildStudentSkills(skills, history).map((skill, i) => ({
+          ...skill,
+          sessionCount: sessions.get(skills[i].id)?.length ?? 0,
+        })),
+        achievements: repository.listStudentAchievements(id, MAX_PROGRESS_ACHIEVEMENTS).map(toAchievementDto),
+      };
     },
 
     startAssignment(auth, assignmentId) {

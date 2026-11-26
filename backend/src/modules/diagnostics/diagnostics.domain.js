@@ -269,3 +269,46 @@ export function toStartQuestionDto(q, options, response, hintLevel = 0) {
   };
 }
 
+
+// ───────── Progreso propio del alumno (portal) ─────────
+
+/** Textos de cada logro para el alumno. Celebran su propio avance; nunca lo comparan con otros. */
+const ACHIEVEMENT_COPY = Object.freeze({
+  block_completed: { title: 'Prueba terminada', describe: (a) => `Terminaste ${a.assignment_title ? `"${a.assignment_title}"` : 'una prueba'}.` },
+  level_up: { title: 'Subiste de nivel', describe: (a) => `Avanzaste un nivel en ${a.skill_name}.` },
+  improved_vs_previous: { title: 'Mejoraste', describe: (a) => `Superaste tu resultado anterior en ${a.skill_name}.` },
+  reached_mastered: { title: 'Llegaste a Dominado', describe: (a) => `Ya dominas ${a.skill_name}.` },
+});
+
+/**
+ * @param {{ id: number, achievement_code: string, size: string, awarded_at: string,
+ *   skill_code: string | null, skill_name: string | null, assignment_title: string | null }} row
+ */
+export function toAchievementDto(row) {
+  const copy = ACHIEVEMENT_COPY[row.achievement_code];
+  const hasSkill = row.skill_name != null;
+  return {
+    id: row.id,
+    code: row.achievement_code,
+    size: row.size,
+    title: copy?.title ?? 'Logro',
+    // Un logro de habilidad cuya habilidad ya no existe se muestra sin descripción.
+    description: copy && (hasSkill || row.achievement_code === 'block_completed') ? copy.describe(row) : null,
+    skillCode: row.skill_code,
+    skillName: row.skill_name,
+    awardedAt: row.awarded_at,
+  };
+}
+
+/**
+ * Habilidades que se muestran al alumno: las del programa de su grado y, además, cualquiera en
+ * la que ya tenga historial (p. ej. de un grado anterior). Conserva el orden de `skills`.
+ *
+ * @param {Array<{ id: number, code: string }>} skills
+ * @param {Array<{ skill_id: number }>} history
+ * @param {(code: string) => boolean} inGrade
+ */
+export function selectStudentProgressSkills(skills, history, inGrade) {
+  const withHistory = new Set(history.map((cut) => cut.skill_id));
+  return skills.filter((s) => inGrade(s.code) || withHistory.has(s.id));
+}

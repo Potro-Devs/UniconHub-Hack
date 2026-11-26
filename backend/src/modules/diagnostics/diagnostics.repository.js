@@ -109,6 +109,25 @@ export function createDiagnosticsRepository(db) {
     insertAchievement: db.prepare(`
       INSERT INTO student_achievements (student_id, achievement_code, size, skill_id, assignment_id)
       VALUES (?, ?, ?, ?, ?)`),
+    skills: db.prepare('SELECT id, code, name FROM skills ORDER BY id'),
+    // Historial propio del alumno en su escuela (incluye cortes de grados anteriores).
+    studentMasteryHistory: db.prepare(`
+      SELECT h.id, h.skill_id, h.grade, h.session_index, h.session_percentage, h.autonomous_percentage,
+             h.supported_percentage, h.mastery_percentage, h.mastery_level, h.recorded_at
+      FROM skill_mastery_history h
+      JOIN students s ON s.id = h.student_id
+      LEFT JOIN assignments a ON a.id = h.assignment_id LEFT JOIN groups g ON g.id = a.group_id
+      WHERE h.student_id = ? AND s.school_id = ? AND (h.assignment_id IS NULL OR g.school_id = ?)
+      ORDER BY h.skill_id, h.session_index, h.id`),
+    studentAchievements: db.prepare(`
+      SELECT sa.id, sa.achievement_code, sa.size, sa.awarded_at,
+             sk.code AS skill_code, sk.name AS skill_name, a.title AS assignment_title
+      FROM student_achievements sa
+      LEFT JOIN skills sk ON sk.id = sa.skill_id
+      LEFT JOIN assignments a ON a.id = sa.assignment_id
+      WHERE sa.student_id = ?
+      ORDER BY sa.awarded_at DESC, sa.id DESC
+      LIMIT ?`),
   };
 
   return {
@@ -157,5 +176,9 @@ export function createDiagnosticsRepository(db) {
       ),
     insertAchievement: ({ studentId, code, size, skillId, assignmentId }) =>
       statements.insertAchievement.run(studentId, code, size, skillId, assignmentId),
+    listSkills: () => statements.skills.all(),
+    listStudentMasteryHistory: (studentId, schoolId) =>
+      statements.studentMasteryHistory.all(studentId, schoolId, schoolId),
+    listStudentAchievements: (studentId, limit) => statements.studentAchievements.all(studentId, limit),
   };
 }
