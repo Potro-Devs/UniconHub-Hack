@@ -95,7 +95,7 @@ export function createDiagnosticsRepository(db) {
     insertResponse: db.prepare(`
       INSERT INTO student_responses
         (assignment_target_id, question_id, selected_option_id, outcome_status, max_hint_level_used, error_tag, source)
-      VALUES (?, ?, ?, ?, ?, ?, 'screen')`),
+      VALUES (?, ?, ?, ?, ?, ?, ?)`),
     masteryCuts: db.prepare(`
       SELECT session_index, session_percentage, mastery_percentage
       FROM skill_mastery_history
@@ -151,7 +151,7 @@ export function createDiagnosticsRepository(db) {
       statements.questionInAssignment.get(assignmentId, questionId) ?? null,
     findOptionOfQuestion: (questionId, optionId) => statements.optionOfQuestion.get(questionId, optionId) ?? null,
     findResponse: (targetId, questionId) => statements.findResponse.get(targetId, questionId) ?? null,
-    insertResponse: ({ targetId, questionId, selectedOptionId, outcomeStatus, maxHintLevelUsed, errorTag }) =>
+    insertResponse: ({ targetId, questionId, selectedOptionId, outcomeStatus, maxHintLevelUsed, errorTag, source = 'screen' }) =>
       statements.insertResponse.run(
         targetId,
         questionId,
@@ -159,6 +159,7 @@ export function createDiagnosticsRepository(db) {
         outcomeStatus,
         maxHintLevelUsed,
         errorTag,
+        source,
       ),
     listMasteryCuts: (studentId, skillId) => statements.masteryCuts.all(studentId, skillId),
     insertMasteryCut: ({ studentId, skillId, assignmentId, grade, cut }) =>
