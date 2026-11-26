@@ -6,7 +6,7 @@
 
 const QUESTION_COLUMNS = `q.id, q.grade, q.content_id, q.stem, q.hint_1, q.hint_2, q.hint_3, q.difficulty,
   s.code AS skill_code, s.name AS skill_name`;
-const OPTION_COLUMNS = 'o.question_id, o.label, o.text, o.is_correct, o.error_tag, o.error_explanation';
+const OPTION_COLUMNS = 'o.id, o.question_id, o.label, o.text, o.is_correct, o.error_tag, o.error_explanation';
 // `(? IS NULL OR ...)` permite que cada filtro sea opcional con la misma sentencia preparada.
 const BANK_FILTER = '(?1 IS NULL OR q.grade = ?1) AND (?2 IS NULL OR s.code = ?2)';
 const ASSIGNMENT_COLUMNS = 'a.id, a.group_id, a.created_by, a.title, a.modality, a.status, a.created_at';
