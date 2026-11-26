@@ -4,6 +4,7 @@ import { after, before, describe, test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { openDatabase } from '../src/config/database.js';
 import { runMigrations } from '../src/db/migrate.js';
+import { renderQuizPdf } from '../src/modules/assessments/assessments.pdf.js';
 import { configWith, silentLogger, startServer, tokenFor } from './helpers.js';
 
 /**
@@ -111,7 +112,8 @@ describe('PDF de Modo Papel', () => {
     assert.match(res.buffer.toString('latin1'), /\/MediaBox \[0 0 612 792\]/); // Carta
 
     const text = pdfText(res.buffer);
-    for (const s of ['Enunciado 1', 'Enunciado 2', 'Opcion buena 1', 'Opcion distractor 2', 'Nombre:', '3.º A']) {
+    for (const s of ['Enunciado 1', 'Enunciado 2', 'Opcion buena 1', 'Opcion distractor 2', 'Nombre:', '3.º A',
+      'Apoyo durante la prueba', 'Sin tarjetas de pistas', 'Usó tarjetas de pistas']) {
       assert.ok(text.includes(asPdf(s)), `falta "${s}"`);
     }
     for (const s of ['Sofia', 'Ramirez', 'AXI-ZZZZZZZZ', 'etiqueta_error', 'Explicacion interna', 'Observa la figura 1']) {
@@ -133,10 +135,18 @@ describe('PDF de Modo Papel', () => {
     }
     for (const s of ['Pista 1', 'Pista 2', 'Pista 3']) assert.ok(text.includes(asPdf(s)), `falta "${s}"`);
     // Indica a la docente anotar la tarjeta usada, para capturarla como "Logrado con apoyo".
-    assert.ok(text.includes(asPdf('Logrado con apoyo')), 'falta la indicación de anotar la tarjeta usada');
+    assert.ok(text.includes(asPdf('Logrado con apoyo')), 'falta la indicación de marcar el apoyo');
+    assert.ok(text.includes(asPdf('marca "Usó tarjetas de pistas"')), 'falta remitir a la casilla de la hoja');
     for (const s of ['Opcion buena 1', 'Opcion distractor 1', 'Sofia', 'AXI-ZZZZZZZZ', 'etiqueta_error']) {
       assert.ok(!text.includes(asPdf(s)), `no debe aparecer "${s}"`);
     }
+  });
+
+  test('los cuestionarios del banco no llevan la casilla de apoyo', async () => {
+    const quiz = { title: 'Q', grade: 3, skill: { name: 'Fracciones' }, questions: [] };
+    const text = pdfText(await renderQuizPdf(quiz));
+    assert.ok(text.includes(asPdf('Nombre:')));
+    assert.ok(!text.includes(asPdf('Apoyo durante la prueba')));
   });
 
   test('director de la escuela puede descargar ambos', async () => {

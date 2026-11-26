@@ -96,7 +96,7 @@ export function createPaperModeService({
             options: (options.get(q.id) ?? []).map((o) => ({ label: o.label, text: o.text })),
           })),
         },
-        { groupLabel },
+        { groupLabel, supportField: true },
       );
       return pdfFile(buffer, 'hoja', assignment.id);
     },
