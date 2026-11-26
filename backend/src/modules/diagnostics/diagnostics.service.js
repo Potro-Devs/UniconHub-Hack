@@ -7,7 +7,6 @@
  */
 import { DomainError } from '../../shared/errors/DomainError.js';
 import { HttpError } from '../../shared/errors/HttpError.js';
-import { buildNextMasteryCut, getMasteryLevel } from '../analytics/analytics.domain.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import { buildStudentSkills } from '../analytics/analytics.domain.js';
 import { isSkillInGrade } from '../curriculum/curriculum.domain.js';
@@ -17,9 +16,7 @@ import {
   MAX_HINT_LEVEL,
   OUTCOME_STATUSES,
   assertCanAnswerOnScreen,
-  canRecordMasteryCut,
   classifyResponse,
-  evaluateAchievements,
   parseAnswerInput,
   parseHintRequestInput,
   scoreSession,
@@ -28,6 +25,7 @@ import {
   toStartQuestionDto,
   toStudentAssignmentDto,
 } from './diagnostics.domain.js';
+import { closeSkillSessions } from './diagnostics.mastery.js';
 
 /** Logros más recientes que se devuelven en el progreso del alumno. */
 const MAX_PROGRESS_ACHIEVEMENTS = 50;
@@ -263,20 +261,6 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
         }
 
         const allResponses = repository.listResponsesOfTarget(target.target_id);
-        const responseByQuestion = new Map(allResponses.map((r) => [r.question_id, r]));
-
-        const skillGroups = new Map();
-        for (const q of questionRows) {
-          if (!skillGroups.has(q.skill_id)) {
-            skillGroups.set(q.skill_id, {
-              skillId: q.skill_id,
-              code: q.skill_code,
-              name: q.skill_name,
-              responses: [],
-            });
-          }
-          skillGroups.get(q.skill_id).responses.push(responseByQuestion.get(q.id));
-        }
 
         repository.insertAchievement({
           studentId,
@@ -285,72 +269,20 @@ export function createDiagnosticsService({ repository, groupsRepository, transac
           skillId: null,
           assignmentId: target.assignment_id,
         });
-        const celebrations = [{ code: 'block_completed', size: CELEBRATION_SIZES.SMALL, skillCode: null, skillName: null }];
-        const skills = [];
-
-        for (const sg of skillGroups.values()) {
-          const session = scoreSession(sg.responses);
-          const previousCuts = repository.listMasteryCuts(studentId, sg.skillId);
-          const previousPercentage = previousCuts.length
-            ? previousCuts[previousCuts.length - 1].mastery_percentage
-            : null;
-
-          let masteryRecorded = false;
-          let masteryPercentage = previousPercentage;
-          let message = null;
-
-          if (canRecordMasteryCut(sg.responses)) {
-            const cut = buildNextMasteryCut(previousCuts, session);
-            repository.insertMasteryCut({
-              studentId,
-              skillId: sg.skillId,
-              assignmentId: target.assignment_id,
-              grade: target.grade,
-              cut,
-            });
-            const outcome = evaluateAchievements({
-              blockCompleted: false,
-              previousPercentage,
-              currentPercentage: cut.mastery_percentage,
-            });
-            for (const c of outcome.celebrations) {
-              repository.insertAchievement({
-                studentId,
-                code: c.code,
-                size: c.size,
-                skillId: sg.skillId,
-                assignmentId: target.assignment_id,
-              });
-              celebrations.push({
-                code: c.code,
-                size: c.size,
-                skillCode: sg.code,
-                skillName: sg.name,
-              });
-            }
-            masteryRecorded = true;
-            masteryPercentage = cut.mastery_percentage;
-            message = outcome.message;
-          }
-
-          const level = masteryPercentage == null ? null : getMasteryLevel(masteryPercentage);
-          skills.push({
-            code: sg.code,
-            name: sg.name,
-            total: session.total,
-            correctAutonomous: session.correctAutonomous,
-            achievedWithSupport: session.achievedWithSupport,
-            incorrect: session.incorrect,
-            unanswered: session.unanswered,
-            autonomousPercentage: session.autonomousPercentage,
-            supportedPercentage: session.supportedPercentage,
-            masteryRecorded,
-            masteryPercentage,
-            masteryLevel: level?.code ?? null,
-            masteryLabel: level?.label ?? null,
-            message,
-          });
-        }
+        const closed = closeSkillSessions({
+          repository,
+          studentId,
+          assignmentId: target.assignment_id,
+          grade: target.grade,
+          questionRows,
+          responses: allResponses,
+          recordAchievements: true,
+        });
+        const skills = closed.skills;
+        const celebrations = [
+          { code: 'block_completed', size: CELEBRATION_SIZES.SMALL, skillCode: null, skillName: null },
+          ...closed.celebrations,
+        ];
 
         const { changes } = repository.markTargetCompletedScreen(target.target_id);
         if (changes === 0) {

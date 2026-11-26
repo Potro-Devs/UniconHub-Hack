@@ -6,6 +6,8 @@ import { HttpError } from '../errors/HttpError.js';
  */
 const DOMAIN_ERROR_STATUS = Object.freeze({
   VALIDATION_ERROR: 400,
+  UNKNOWN_QUESTION: 400,
+  UNKNOWN_OPTION: 400,
   SCREEN_LOCKED: 409,
   ALREADY_COMPLETED: 409,
   GROUP_HAS_HISTORY: 409,

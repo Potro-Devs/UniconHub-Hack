@@ -136,7 +136,7 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
 
 ## Paper Mode (`/api/v1/paper`)
 
-> **Estado:** `capture-status` implementado. `pdf`, `hints-pdf` y `capture` responden `501 NOT_IMPLEMENTED` hasta implementarse. La lógica pura ya existe en `paper-mode.domain.js` (`buildPaperCapture`, `summarizeCaptureStatus`). Cada endpoint se puede implementar por separado (ruta → service → repository → prueba).
+> **Estado:** los 4 endpoints están implementados. El corte de dominio se comparte con pantalla en `diagnostics/diagnostics.mastery.js` (`closeSkillSessions`).
 
 Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna respuesta incluye nombres ni `internal_folio`: el frontend cruza `studentId` con `GET /groups/:groupId/students`.
 
@@ -145,18 +145,20 @@ Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna re
 | `GET /assignments/:assignmentId/pdf` | teacher, director | — | `application/pdf` (hoja genérica) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/hints-pdf` | teacher, director | — | `application/pdf` (tarjetas de pistas) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/capture-status` | teacher, director | — | `CaptureStatus` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
-| `POST /assignments/:assignmentId/capture/:studentId` | teacher | `{ answers, absent? }` | `CaptureResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `STUDENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` / `ALREADY_CAPTURED`, 422 `ASSIGNMENT_CLOSED` |
+| `POST /assignments/:assignmentId/capture/:studentId` | teacher | `{ answers, supportUsed?, hintLevels?, absent? }` | `CaptureResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `STUDENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` / `ALREADY_CAPTURED`, 422 `ASSIGNMENT_CLOSED` |
 
 - **Autorización:** igual que `assessments`. Docente: solo asignaciones de sus grupos. Director: solo lectura de su escuela; `POST` → 403. Asignación inexistente **o ajena** → 404 con el mismo cuerpo. Una asignación `screen` → 409 `NOT_PAPER_ASSIGNMENT`.
-- **PDF de la hoja (`pdf`):** tamaño Carta, blanco y negro, alto contraste. **Genérica**: sin nombre, folio ni datos prellenados del alumno; solo líneas en blanco para "Nombre" y "Fecha". Reactivos en orden `position`, opciones con su `label` (A, B, C…) para marcar. Nunca indica la opción correcta. Puede reutilizar el estilo de `assessments.pdf.js`.
-- **PDF de pistas (`hints-pdf`):** Carta, B/N, una tarjeta recortable por reactivo con sus 3 niveles de pista (AGENTS.md §4.6), identificada por número de reactivo. Ninguna tarjeta muestra la respuesta correcta.
+- **PDF de la hoja (`pdf`):** tamaño Carta, blanco y negro, alto contraste. **Genérica**: sin nombre, folio ni datos prellenados del alumno; solo líneas en blanco para "Nombre" y "Fecha". Reactivos en orden `position`, opciones con su `label` (A, B, C…) para marcar. Nunca indica la opción correcta. Puede reutilizar el estilo de `assessments.pdf.js`. El encabezado incluye la casilla **"Apoyo durante la prueba (lo marca el docente): ○ Sin tarjetas de pistas ○ Usó tarjetas de pistas"**, que se captura como `supportUsed`. Los cuestionarios del banco (`/assessments/quizzes/:id/pdf`) no la llevan.
+- **PDF de pistas (`hints-pdf`):** Carta, B/N. Una fila por reactivo con **3 tarjetas recortables, una por nivel** (AGENTS.md §4.6: qué observar, un paso, un ejemplo parecido), para entregar una pista a la vez. Cada tarjeta lleva el número de reactivo y el nivel. No incluye opciones ni la respuesta correcta. Archivo `pistas-<id>.pdf`; la hoja se descarga como `hoja-<id>.pdf`. La hoja usa solo las opciones públicas (sin `is_correct` ni `error_tag`).
 - `CaptureStatus`: `{ assignmentId, total, captured, pending, targets: [{ studentId, status, isScreenLocked }] }`. `total` / `captured` / `pending` salen de `summarizeCaptureStatus`. `targets` va en el orden de la lista del grupo (apellidos, nombres).
 - **Captura (`POST`)**, una hoja por alumno:
   - `answers`: objeto `{ [questionId]: optionId | null }`. `null` o un reactivo ausente se registran como `unanswered`. Un `questionId` que no es de la prueba → 400 `UNKNOWN_QUESTION`; un `optionId` que no es de ese reactivo → 400 `UNKNOWN_OPTION` (ambos lanzados por el dominio).
+  - `supportUsed` (opcional, `true`/`false`): la casilla general de la hoja. Con `true`, cada reactivo **contestado** sin nivel explícito se registra con nivel 1 ("recibió al menos una tarjeta"), así que todos sus aciertos cuentan como "Logrado con apoyo". Es conservador a propósito: si usó una tarjeta en un solo reactivo, la autonomía de la hoja queda subestimada, nunca inflada. Los reactivos sin contestar quedan en nivel 0. Otro tipo → 400 `VALIDATION_ERROR`.
+  - `hintLevels` (opcional): objeto `{ [questionId]: 0..3 }` con la tarjeta de pista más alta que usó el alumno en ese reactivo (las de `hints-pdf`). Un reactivo ausente cuenta como nivel 0. Mismas reglas de clave que `answers`; un nivel fuera de 0..3 o que no es entero → 400 `VALIDATION_ERROR`, y un reactivo que no es de la prueba → 400 `UNKNOWN_QUESTION`. Opcional y más preciso que `supportUsed`: un nivel explícito (incluido 0) tiene prioridad sobre la casilla general.
   - `absent: true`: el alumno faltó. No se guardan respuestas y el destinatario sigue `pending` (bloqueado), así que se puede capturar después. Responde 200 con `captured: false`.
   - El alumno debe ser destinatario de la asignación; si no → 404 `STUDENT_NOT_FOUND`.
   - Ya capturado (`completed_paper`) → 409 `ALREADY_CAPTURED`. Corregir una captura queda fuera del MVP.
-  - En papel no se registra el uso de tarjetas de pistas: `maxHintLevelUsed = 0`, así que nunca hay `achieved_with_support`.
+  - **Apoyo (AGENTS.md §4.2):** un acierto con nivel ≥ 1 es `achieved_with_support` ("Logrado con apoyo"), nunca `correct_autonomous`, y se guarda con su `max_hint_level_used`. El corte separa `autonomous_percentage` de `supported_percentage`, igual que en pantalla. Captura rápida debe mostrar la casilla general (como en la hoja); el detalle por reactivo es opcional.
   - **Transaccional:** en una sola transacción guarda `student_responses` (con `source = 'paper'`), pasa el destinatario a `status = 'completed_paper'` con `is_screen_locked = 1` y `completed_at`, y genera el corte en `skill_mastery_history` con la misma regla que `diagnostics/complete` (solo habilidades con al menos 3 reactivos contestados). Reutiliza esa lógica en vez de duplicarla.
 - `CaptureResult`: `{ assignmentId, studentId, captured, status, completedAt, summary, skills }` con `summary` y `skills` en el mismo formato que `CompletionResult` de diagnostics. No incluye `celebrations`, porque el alumno no está frente a la pantalla. Con `absent: true`: `{ assignmentId, studentId, captured: false, status: "pending" }`.
 
@@ -192,7 +194,7 @@ Todos los endpoints exigen sesión de **alumno** (`role === 'student'`). **Docen
 - **Groups (`/api/v1/groups`):** ver la sección anterior.
 - **Curriculum (`/api/v1/curriculum`):** ver la sección anterior.
 - **Assessments (`/api/v1/assessments`):** ver la sección anterior.
-- **Paper Mode (`/api/v1/paper`):** ver la sección anterior (`capture-status` listo; el resto responde 501).
+- **Paper Mode (`/api/v1/paper`):** ver la sección anterior (completo).
 - **Diagnostics (`/api/v1/diagnostics`):** ver la sección anterior.
 - **Analytics (`/api/v1/analytics`):** `GET /school` y `GET /school/export.pdf` (solo director), `GET /groups/:groupId`, `GET /groups/:groupId/students/:studentId` (ver contrato siguiente).
 - **Games (`/api/v1/games`):** catálogo y práctica manipulativa del alumno (ver contrato al final).

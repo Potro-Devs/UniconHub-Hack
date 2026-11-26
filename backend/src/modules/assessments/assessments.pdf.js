@@ -31,7 +31,7 @@ function measureQuestionHeight(doc, question, boxWidth) {
   return 9 + promptHeight + 6 + answerHeight + 9;
 }
 
-function drawHeader(doc, quiz, groupLabel) {
+function drawHeader(doc, quiz, groupLabel, supportField = false) {
   const startY = PAGE_MARGIN;
   doc.font('Helvetica-Bold').fontSize(15).fillColor('black').text('Axi · Hoja de evaluación', PAGE_MARGIN, startY, {
     width: CONTENT_WIDTH - 130,
@@ -65,7 +65,19 @@ function drawHeader(doc, quiz, groupLabel) {
   doc.font('Helvetica').fontSize(9.5).text('Nombre: ____________________________________________', PAGE_MARGIN, metaY);
   doc.text('Fecha: ________________', PAGE_MARGIN + 370, metaY);
 
-  const instrY = metaY + 18;
+  let instrY = metaY + 18;
+  if (supportField) {
+    // Casilla general de apoyo (Modo Papel). La marca el docente; tono neutro, sin castigo.
+    const rowY = metaY + 17;
+    doc.font('Helvetica-Bold').fontSize(9).text('Apoyo durante la prueba', PAGE_MARGIN, rowY, { lineBreak: false });
+    doc.font('Helvetica').fontSize(8.5).text('(lo marca el docente):', PAGE_MARGIN + 112, rowY + 0.5, { lineBreak: false });
+    const choices = [{ x: PAGE_MARGIN + 215, label: 'Sin tarjetas de pistas' }, { x: PAGE_MARGIN + 345, label: 'Usó tarjetas de pistas' }];
+    for (const { x, label } of choices) {
+      doc.lineWidth(1).strokeColor('black').circle(x, rowY + 4.5, 5).stroke();
+      doc.font('Helvetica').fontSize(9).text(label, x + 9, rowY, { lineBreak: false });
+    }
+    instrY = rowY + 18;
+  }
   const instrText =
     'Lee con calma cada pregunta y responde sin prisa. No hay tiempo límite. En opción múltiple o verdadero/falso rellena un solo círculo.';
   doc.font('Helvetica').fontSize(8.5);
@@ -139,10 +151,10 @@ function drawQuestionCard(doc, question) {
  * Genera el buffer PDF Carta blanco y negro de un cuestionario (sin respuestas).
  *
  * @param {object} quiz DTO de detalle del cuestionario.
- * @param {{ groupLabel?: string | null }} [options]
+ * @param {{ groupLabel?: string | null, supportField?: boolean }} [options] `supportField` agrega la casilla general de apoyo (Modo Papel).
  * @returns {Promise<Buffer>}
  */
-export function renderQuizPdf(quiz, { groupLabel = null } = {}) {
+export function renderQuizPdf(quiz, { groupLabel = null, supportField = false } = {}) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'LETTER',
@@ -160,7 +172,7 @@ export function renderQuizPdf(quiz, { groupLabel = null } = {}) {
     doc.on('error', reject);
 
     try {
-      drawHeader(doc, quiz, groupLabel);
+      drawHeader(doc, quiz, groupLabel, supportField);
 
       for (const question of quiz.questions) {
         const needed = measureQuestionHeight(doc, question, CONTENT_WIDTH);

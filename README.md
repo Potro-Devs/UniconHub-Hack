@@ -157,6 +157,17 @@ Abre http://localhost:3000, entra como docente y selecciona **Mapa del grupo**. 
 
 Este despliegue es local y necesita mantener el servidor activo. Para producción define `NODE_ENV=production`, un `JWT_SECRET` propio de al menos 32 caracteres y una ruta persistente `SQLITE_DB_PATH`; los accesos rápidos se desactivan por defecto. El catálogo y la alineación de los ejemplos están **por validar con docente de primaria**.
 
+### Modo Papel: imprimir, aplicar y capturar
+
+Para grupos sin dispositivos para todos. El flujo completo vive en `/api/v1/paper` (contrato en [docs/api-contract.md](docs/api-contract.md)):
+
+1. **Asignar en papel** (`POST /assessments/groups/:groupId/assignments` con `modality: "paper"`): cada alumno queda con la pantalla bloqueada para esa prueba, así no puede contestarla también en pantalla.
+2. **Imprimir** la hoja genérica (`GET /assignments/:id/pdf`) y las tarjetas de pistas (`GET /assignments/:id/hints-pdf`). Las dos son tamaño Carta, en blanco y negro, sin datos del alumno ni respuestas. Las tarjetas traen una pista por nivel, para recortarlas y entregar una a la vez.
+3. **Capturar** hoja por hoja (`POST /assignments/:id/capture/:studentId` con `{ answers, supportUsed }` o `{ absent: true }` si faltó). `supportUsed` es la casilla **"Apoyo durante la prueba"** del encabezado de la hoja; si se quiere más detalle, `hintLevels` indica por reactivo la tarjeta más alta que usó (0 a 3). Cada captura guarda las respuestas y el error típico de cada distractor, y actualiza el dominio por habilidad con la misma regla que en pantalla. El resultado aparece en el **Mapa del grupo**.
+4. **Avance** (`GET /assignments/:id/capture-status`): cuántas hojas van capturadas y cuántas faltan.
+
+Si la docente marca **"Usó tarjetas de pistas"** en la hoja, todos los aciertos de esa hoja cuentan como **"Logrado con apoyo"**, separados del dominio autónomo, igual que en pantalla. Es una regla conservadora: si el alumno usó una tarjeta en un solo reactivo, la autonomía de esa hoja queda subestimada, nunca inflada. Las tarjetas recortables recuerdan marcar la casilla. La prueba en papel de los datos demo es *Fracciones · prueba 1* de 3.º A (45 alumnos). Las pantallas de impresión y Captura rápida todavía muestran datos de ejemplo; su conexión a esta API está en curso.
+
 ### Juegos de práctica del alumno
 
 Después de entrar como alumno, abre **Juegos** o **Explorar juegos** en el inicio. La sección incluye tres juegos manipulables: pintar fracciones, formar grupos iguales y construir números por valor posicional. Cada partida contiene tres retos, materiales adaptados al grado del grupo y pistas graduadas. Se puede ajustar una construcción y volver a comprobarla sin penalización.
