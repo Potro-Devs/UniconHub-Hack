@@ -104,6 +104,22 @@ describe('navegación', () => {
     assert.equal(safeReturnPath('https://otro.sitio', teacher), '/docente/grupos');
     assert.equal(safeReturnPath(undefined, student), '/alumno/inicio');
   });
+
+  test('safeReturnPath: docente y alumno exigen el segmento completo y rechazan rutas raras', () => {
+    const teacher = toSession(teacherData);
+    const student = toSession(studentData);
+    for (const ok of ['/docente', '/docente/', '/docente/grupos/12', '/docente/papel/3/captura']) {
+      assert.equal(safeReturnPath(ok, teacher), ok, ok);
+    }
+    for (const bad of ['/docenteX', '/docentes/mapa', '/docente/../direccion/panel', '/docente/./mapa',
+      '/docente//mapa', '/docente/..', '/docente\\..\\direccion']) {
+      assert.equal(safeReturnPath(bad, teacher), '/docente/grupos', bad);
+    }
+    assert.equal(safeReturnPath('/alumno/ejercicio/5', student), '/alumno/ejercicio/5');
+    for (const bad of ['/alumnoX', '/alumno/../docente/mapa', '/alumno//logros']) {
+      assert.equal(safeReturnPath(bad, student), '/alumno/inicio', bad);
+    }
+  });
 });
 
 describe('utilidades', () => {

@@ -1,18 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { PROMO_GROUPS } from '@/shared/data/seedData';
 import { useAppUi } from '@/shared/state/AppUiContext';
-import { useSession } from '@/shared/state/SessionContext';
 
 /**
  * Pantalla 15 (Roadmap): Promoción masiva de grupos conservando el historial diagnóstico.
  */
 export function PromoteGroupsScreen() {
-  const navigate = useNavigate();
   const { promoSel, setPromoSel, promoted, setPromoted, say } = useAppUi();
-  const { session } = useSession();
-  const isTeacher = session?.role === 'teacher';
 
   const selectedList = PROMO_GROUPS.filter((p) => promoSel[p.id]);
   const promoG = selectedList.length;
@@ -157,24 +152,6 @@ export function PromoteGroupsScreen() {
               El docente nuevo abriría el perfil y vería diagnóstico e historial. Vista de ejemplo: no se guardó ningún cambio.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-              {isTeacher && (
-              <button
-                type="button"
-                onClick={() => navigate('/docente/perfil/0')}
-                style={{
-                  border: 0,
-                  background: COLORS.ink,
-                  color: '#fff',
-                  borderRadius: '12px',
-                  padding: '11px 14px',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Ver un perfil como docente de 4.º
-              </button>
-              )}
               <button
                 type="button"
                 onClick={() => setPromoted(false)}

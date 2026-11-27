@@ -74,15 +74,25 @@ export function homePathFor(session) {
 }
 
 /**
+ * ¿La ruta está dentro de un área? Exige el segmento completo ('/docente' o '/docente/...', no
+ * '/docenteX') y rechaza segmentos vacíos, '.' o '..' y barras invertidas, igual de estricto que Dirección.
+ */
+function isInArea(path, area) {
+  if (path !== area && !path.startsWith(`${area}/`)) return false;
+  if (path.includes('\\')) return false;
+  return path.slice(1).split('/').every((segment, index, all) =>
+    (segment !== '' || index === all.length - 1) && segment !== '.' && segment !== '..');
+}
+
+/**
  * Ruta a la que volver después del login, solo si corresponde al rol (evita redirecciones raras).
  */
 export function safeReturnPath(from, session) {
   if (typeof from !== 'string' || !from.startsWith('/')) return homePathFor(session);
-  const studentArea = from.startsWith('/alumno');
-  // Dirección solo vuelve a sus pantallas; el docente, solo al área docente.
+  // Dirección solo vuelve a sus pantallas exactas; docente y alumno, solo a su área.
   if (session?.role === 'director') return DIRECTOR_PATHS.includes(from) ? from : homePathFor(session);
-  if (session?.role === 'teacher' && from.startsWith('/docente')) return from;
-  if (session?.role === 'student' && studentArea) return from;
+  if (session?.role === 'teacher' && isInArea(from, '/docente')) return from;
+  if (session?.role === 'student' && isInArea(from, '/alumno')) return from;
   return homePathFor(session);
 }
 

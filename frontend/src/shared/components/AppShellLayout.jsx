@@ -220,7 +220,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', papel: 'paper', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', papel: 'paper', tutores: 'tutors', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
                 </button>
               );
             })}
@@ -366,7 +366,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', papel: 'paper', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', papel: 'paper', tutores: 'tutors', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
                 </button>
               );
             })}

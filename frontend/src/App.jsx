@@ -67,7 +67,7 @@ export function App() {
               }
             >
               <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
-                {/* Área docente. El director solo tiene su panel: cualquier otra ruta lo regresa ahí. */}
+                {/* Área docente. El director no entra aquí: cualquier ruta de docente lo regresa a su panel. */}
                 <Route path="/docente/grupos" element={<TeacherGroupsScreen />} />
                 <Route path="/docente/grupos/:groupId" element={<GroupDetailScreen />} />
                 <Route path="/docente/tutores" element={<TutoringScreen />} />
