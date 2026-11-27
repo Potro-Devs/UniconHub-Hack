@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
-import { BiText, LanguageSwitch } from '@/shared/i18n/LanguageContext';
+import { BiText, LanguageNotice, LanguageSwitch } from '@/shared/i18n/LanguageContext';
 import { InterfaceIcon } from '@/shared/components/InterfaceIcon';
 import { MotionToggle } from '@/shared/components/MotionToggle';
 import { Toast } from '@/shared/components/Toast';
@@ -38,7 +38,7 @@ export function StudentShellLayout() {
         <button type="button" className="quiet-button" onClick={leave}><BiText k="common.exit">Salir</BiText></button>
       </div>
     </header>
-    <div className="student-utility"><span>{session?.group?.name || 'Mi espacio para aprender'}</span><MotionToggle /></div>
+    <div className="student-utility"><span>{session?.group?.name || 'Mi espacio para aprender'}</span><LanguageNotice /><MotionToggle /></div>
     <main id="student-content" className="student-content" tabIndex={-1}><Outlet /></main>
     <footer className="student-footer">Un paso a la vez. A tu ritmo.</footer>
     <Toast message={toast} />

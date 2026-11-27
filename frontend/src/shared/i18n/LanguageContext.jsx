@@ -38,6 +38,13 @@ export function BiText({ k, children, compact = false }) {
   return <span className="bi-text"><span lang={lang}>{text}</span><small lang="es-MX">{es}</small></span>;
 }
 
+/** Aviso discreto visible cuando hay una lengua indígena activa (en celular no hay tooltips). */
+export function LanguageNotice({ className = '' }) {
+  const { lang } = useLanguage();
+  if (lang === DEFAULT_LANGUAGE) return null;
+  return <p className={`lang-note${className ? ` ${className}` : ''}`} role="status">Traducción parcial en revisión</p>;
+}
+
 /** Botón de idioma (Español, Náhuatl, Maya): muestra el actual; un select nativo invisible abre el menú, también en celular. */
 export function LanguageSwitch() {
   const { lang, setLang } = useLanguage();
@@ -49,7 +56,7 @@ export function LanguageSwitch() {
     <span className="lang-switch__short" aria-hidden="true">{current.short}</span>
     <span className="lang-switch__caret" aria-hidden="true">▾</span>
     <select aria-label={`Idioma${note}`} value={lang} onChange={(event) => setLang(event.target.value)}>
-      {LANGUAGES.map((language) => <option key={language.code} value={language.code} lang={language.code === 'es' ? 'es-MX' : language.code}>{language.name} ({language.native})</option>)}
+      {LANGUAGES.map((language) => <option key={language.code} value={language.code} lang={language.code === 'es' ? 'es-MX' : language.code}>{language.name === language.native ? language.name : `${language.name} (${language.native})`}</option>)}
     </select>
   </label>;
 }

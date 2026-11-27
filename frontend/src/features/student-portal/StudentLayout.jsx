@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
-import { LanguageSwitch } from '@/shared/i18n/LanguageContext';
+import { LanguageNotice, LanguageSwitch } from '@/shared/i18n/LanguageContext';
 import { MotionToggle } from '@/shared/components/MotionToggle';
 import { Toast } from '@/shared/components/Toast';
 import { useAppUi } from '@/shared/state/AppUiContext';
@@ -22,6 +22,7 @@ export function StudentLayout() {
       <MotionToggle />
       {!joining && <button type="button" className="quiet-button" aria-pressed={sound} onClick={() => setSound((value) => !value)}>{sound ? 'Sonido: sí' : 'Sonido: no'}</button>}
     </header>
+    <LanguageNotice className="lang-note--activity" />
     <main id="activity-content" className="activity-content" tabIndex={-1}><Outlet /></main>
     <Toast message={toast} />
   </div>;

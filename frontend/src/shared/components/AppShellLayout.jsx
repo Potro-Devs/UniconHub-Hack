@@ -10,7 +10,7 @@ import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { initialsOf } from '@/shared/state/session';
 import { useSession } from '@/shared/state/SessionContext';
-import { BiText, LanguageSwitch } from '@/shared/i18n/LanguageContext';
+import { BiText, LanguageNotice, LanguageSwitch } from '@/shared/i18n/LanguageContext';
 import { Toast } from './Toast';
 
 const DOCENTE_NAV = [
@@ -54,7 +54,7 @@ const headerChip = {
 };
 
 /** Grupo activo en el encabezado: selector con 2+, texto con 1, `Sin grupo` con 0. */
-function ActiveGroupSwitcher() {
+function ActiveGroupSwitcher({ wide }) {
   const navigate = useNavigate();
   const { status, groups, activeGroup, setActiveGroupId } = useTeacherGroups();
 
@@ -78,7 +78,8 @@ function ActiveGroupSwitcher() {
     return (
       <div style={headerChip}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {activeGroup.name} <span style={{ fontWeight: 400, color: COLORS.muted }}>· Ciclo {year}</span>
+          {activeGroup.name}
+          {wide && <span style={{ fontWeight: 400, color: COLORS.muted }}> · Ciclo {year}</span>}
         </span>
       </div>
     );
@@ -297,7 +298,7 @@ export function AppShellLayout() {
                 {!isDirector && <span style={{ fontWeight: 400, color: COLORS.muted }}>· Vista previa</span>}
               </div>
             ) : (
-              <ActiveGroupSwitcher />
+              <ActiveGroupSwitcher wide={wide} />
             )}
           </div>
 
@@ -341,6 +342,7 @@ export function AppShellLayout() {
             )}
           </div>
         </header>
+        <LanguageNotice className="lang-note--bar" />
 
         <main id="teacher-content" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           <div
