@@ -18,10 +18,10 @@ export function StudentLayout() {
     <header className="activity-header">
       <button type="button" className="brand-link" onClick={() => navigate(session?.role === 'student' ? '/alumno/inicio' : '/login')}><Mascot size={46} color={axiColor} /><span className="font-display">{APP_NAME}</span></button>
       {!joining && <button type="button" className="quiet-button" onClick={() => navigate('/alumno/inicio')}>Volver a inicio</button>}
+      <LanguageSwitch />
       <MotionToggle />
       {!joining && <button type="button" className="quiet-button" aria-pressed={sound} onClick={() => setSound((value) => !value)}>{sound ? 'Sonido: sí' : 'Sonido: no'}</button>}
     </header>
-    <div className="language-toolbar language-toolbar--activity"><LanguageSwitch /></div>
     <main id="activity-content" className="activity-content" tabIndex={-1}><Outlet /></main>
     <Toast message={toast} />
   </div>;

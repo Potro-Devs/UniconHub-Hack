@@ -38,15 +38,18 @@ export function BiText({ k, children, compact = false }) {
   return <span className="bi-text"><span lang={lang}>{text}</span><small lang="es-MX">{es}</small></span>;
 }
 
-/** Selector de idioma: Español, Náhuatl, Maya. */
-export function LanguageSwitch({ note = true }) {
+/** Botón de idioma (Español, Náhuatl, Maya): muestra el actual; un select nativo invisible abre el menú, también en celular. */
+export function LanguageSwitch() {
   const { lang, setLang } = useLanguage();
-  const current = LANGUAGES.find((language) => language.code === lang);
-  return <span className="lang-switch-wrap">
-    <span className="lang-switch" role="group" aria-label={`Idioma: ${current?.name ?? 'Español'}`}>
-      {LANGUAGES.map((language) => <button key={language.code} type="button" lang={language.code === 'es' ? 'es-MX' : language.code}
-        aria-label={language.name} aria-pressed={lang === language.code} title={`${language.name} (${language.native})`} onClick={() => setLang(language.code)}>{language.short}</button>)}
-    </span>
-    {note && lang !== DEFAULT_LANGUAGE && <span className="lang-note">Traducción parcial en revisión</span>}
-  </span>;
+  const current = LANGUAGES.find((language) => language.code === lang) ?? LANGUAGES[0];
+  const note = lang !== DEFAULT_LANGUAGE ? ' · Traducción parcial en revisión' : '';
+  return <label className="lang-switch" title={`Idioma: ${current.name}${note}`}>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3" /></svg>
+    <span className="lang-switch__name" aria-hidden="true">{current.name}</span>
+    <span className="lang-switch__short" aria-hidden="true">{current.short}</span>
+    <span className="lang-switch__caret" aria-hidden="true">▾</span>
+    <select aria-label={`Idioma${note}`} value={lang} onChange={(event) => setLang(event.target.value)}>
+      {LANGUAGES.map((language) => <option key={language.code} value={language.code} lang={language.code === 'es' ? 'es-MX' : language.code}>{language.name} ({language.native})</option>)}
+    </select>
+  </label>;
 }

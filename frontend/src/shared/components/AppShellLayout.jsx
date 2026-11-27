@@ -302,6 +302,7 @@ export function AppShellLayout() {
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ marginRight: wide ? '14px' : '4px' }}><LanguageSwitch /></span>
             {wide && <div style={{ fontSize: '14px', color: COLORS.muted }}>{userName}</div>}
             <div
               style={{
@@ -340,8 +341,6 @@ export function AppShellLayout() {
             )}
           </div>
         </header>
-
-        <div className="language-toolbar"><LanguageSwitch /></div>
 
         <main id="teacher-content" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           <div
