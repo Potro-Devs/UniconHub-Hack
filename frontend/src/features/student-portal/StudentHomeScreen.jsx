@@ -26,7 +26,7 @@ export function StudentHomeScreen() {
     <header className="kid-greeting"><div><p className="kid-eyebrow">TU ESPACIO PARA DESCUBRIR</p><h1>¡<BiText k="common.hello">Hola</BiText>, {pickFirstName(session?.student?.displayName, 'amiga o amigo')}!</h1><p>Hoy puedes aprender algo nuevo. A tu ritmo.</p></div><span className="kid-sun" aria-hidden="true">✦</span></header>
     <section className="kid-mission" aria-labelledby="kid-mission-title" aria-busy={loading}>
       <div className="kid-mission-copy">
-        <span className="kid-tag">{loading ? 'UN MOMENTO' : next ? 'TU SIGUIENTE AVENTURA' : '¡LO HICISTE!'}</span>
+        <span className="kid-tag">{loading ? 'UN MOMENTO' : next ? 'TU SIGUIENTE AVENTURA' : assignments.status === 'ready' && completed.length > 0 ? '¡LO HICISTE!' : 'A TU RITMO'}</span>
         <h2 id="kid-mission-title">{loading ? 'Buscando tus actividades…' : next ? next.title : 'Un paso más en tu camino'}</h2>
         {assignments.status === 'error'
           ? <p role="alert">No pudimos cargar tus actividades. <button type="button" className="kid-button kid-button-small" onClick={assignments.retry}>Intentar de nuevo</button></p>

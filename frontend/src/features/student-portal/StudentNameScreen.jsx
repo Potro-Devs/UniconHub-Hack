@@ -30,7 +30,7 @@ export function StudentNameScreen() {
     setPendingId(student.id);
     try {
       signIn(await authApi.selectStudent(joinCode, student.id));
-      resetStudentSession(0);
+      resetStudentSession();
       navigate('/alumno/inicio', { replace: true });
     } catch (err) {
       setError(errorMessageOf(err));

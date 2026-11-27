@@ -10,7 +10,8 @@ import { LearningGameScreen } from '@/features/learning-games/LearningGameScreen
 import { CreateGroupScreen } from '@/features/groups/CreateGroupScreen';
 import { GroupDetailScreen } from '@/features/groups/GroupDetailScreen';
 import { TeacherGroupsProvider } from '@/features/groups/TeacherGroupsContext';
-import { HintCardsScreen } from '@/features/paper-mode/HintCardsScreen';
+import { PaperAssignmentsScreen } from '@/features/paper-mode/PaperAssignmentsScreen';
+import { PaperAssignmentScreen } from '@/features/paper-mode/PaperAssignmentScreen';
 import { QuickCaptureScreen } from '@/features/paper-mode/QuickCaptureScreen';
 import { QuizzesBuilderScreen } from '@/features/assessments/QuizzesBuilderScreen';
 import { PromoteGroupsScreen } from '@/features/school-admin/PromoteGroupsScreen';
@@ -78,9 +79,12 @@ export function App() {
                 <Route path="/docente/temario" element={<CurriculumScreen />} />
                 <Route path="/docente/temario/:contentId" element={<ContentDetailScreen />} />
                 <Route path="/docente/cuestionarios" element={<QuizzesBuilderScreen />} />
-                <Route path="/docente/hoja" element={<Navigate to="/docente/cuestionarios" replace />} />
-                <Route path="/docente/pistas" element={<HintCardsScreen />} />
-                <Route path="/docente/captura" element={<QuickCaptureScreen />} />
+                <Route path="/docente/papel" element={<PaperAssignmentsScreen />} />
+                <Route path="/docente/papel/:assignmentId" element={<PaperAssignmentScreen />} />
+                <Route path="/docente/papel/:assignmentId/captura" element={<QuickCaptureScreen />} />
+                <Route path="/docente/hoja" element={<Navigate to="/docente/papel" replace />} />
+                <Route path="/docente/pistas" element={<Navigate to="/docente/papel" replace />} />
+                <Route path="/docente/captura" element={<Navigate to="/docente/papel" replace />} />
               </Route>
 
               <Route element={<RequireRole roles={['director']} redirectTo="/login" />}>
@@ -105,7 +109,6 @@ export function App() {
                 {/* Ejercicio con datos reales; sin id vuelve al inicio, donde se elige la actividad. */}
                 <Route path="ejercicio" element={<Navigate to="/alumno/inicio" replace />} />
                 <Route path="ejercicio/:assignmentId" element={<StudentAssignmentScreen />} />
-                <Route path="resumen" element={<StudentSummaryScreen />} />
               </Route>
             </Route>
 
@@ -119,6 +122,7 @@ export function App() {
               <Route path="/alumno/inicio" element={<StudentHomeScreen />} />
               <Route path="/alumno/clases" element={<StudentClassesScreen />} />
               <Route path="/alumno/logros" element={<StudentAchievementsScreen />} />
+              <Route path="/alumno/resumen" element={<StudentSummaryScreen />} />
               <Route path="/alumno/juegos" element={<GamesCatalogScreen />} />
               <Route path="/alumno/juegos/:gameCode" element={<LearningGameScreen />} />
             </Route>

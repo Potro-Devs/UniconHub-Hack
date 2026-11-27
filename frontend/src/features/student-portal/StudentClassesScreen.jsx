@@ -1,141 +1,41 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
-import { STUDENT_CLASSES } from '@/shared/data/seedData';
-import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
-import { useAppUi } from '@/shared/state/AppUiContext';
-import { getQuizItems } from './studentPortalStats';
+import { apiClient, errorMessageOf } from '@/shared/api/client';
+import { alertBox, buttonStyle, mutedText } from '@/shared/styles/ui';
+import { useSession } from '@/shared/state/SessionContext';
+import { studentCard } from './StudentProgressState';
 
-/**
- * Pantalla "Mis clases" del alumno: grupos en los que la escuela lo inscribió.
- */
+/** Un único grupo real. /me completa docente y código desde el primer acceso rápido. */
 export function StudentClassesScreen() {
-  const navigate = useNavigate();
-  const { narrow } = useBreakpoint();
-  const { completedQuizzes } = useAppUi();
-
-  const quizItems = getQuizItems(completedQuizzes);
-
-  return (
-    <div className="kid-page kid-collection" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <h1
-          className="font-display"
-          style={{ margin: 0, fontWeight: 800, fontSize: narrow ? '26px' : '32px', lineHeight: 1.12 }}
-        >
-          Mis clases
-        </h1>
-        <p style={{ margin: '4px 0 0', fontSize: '15px', color: COLORS.muted, lineHeight: 1.45 }}>
-          Estos son los grupos en los que tu escuela te inscribió. Si te falta una clase, avísale a tu maestra o maestro.
-        </p>
-      </div>
-
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <h2 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '21px' }}>
-          Tus clases inscritas ({STUDENT_CLASSES.length})
-        </h2>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: narrow ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '12px',
-          }}
-        >
-          {STUDENT_CLASSES.map((cls) => {
-            const pendingInClass = quizItems.filter(
-              (q) => q.classId === cls.id && q.resolvedStatus === 'pending_screen',
-            ).length;
-            const showQuizzesBtn = pendingInClass > 0 || cls.ctaType === 'quizzes';
-
-            return (
-              <article
-                key={cls.id}
-                className="axi-card-hover kid-collection-card"
-                style={{
-                  background: '#fff',
-                  borderRadius: '20px',
-                  border: `1px solid ${COLORS.border}`,
-                  padding: '18px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '999px',
-                      background: COLORS.primarySoftBg,
-                      color: COLORS.primarySoftFg,
-                      fontSize: '16px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {cls.gradeLabel}
-                  </span>
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '999px',
-                      background: COLORS.surfaceSubtle,
-                      border: `1px solid ${COLORS.border}`,
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: COLORS.muted,
-                    }}
-                  >
-                    Código {cls.code}
-                  </span>
-                </div>
-
-                <h3 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '20px', lineHeight: 1.2 }}>
-                  {cls.name}
-                </h3>
-
-                <div style={{ fontSize: '16px', color: COLORS.muted, lineHeight: 1.4 }}>
-                  {cls.teacherLine}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    color: pendingInClass > 0 ? COLORS.primaryText : COLORS.muted,
-                  }}
-                >
-                  {pendingInClass > 0
-                    ? `${pendingInClass} ${pendingInClass === 1 ? 'cuestionario pendiente' : 'cuestionarios pendientes'}`
-                    : 'Sin cuestionarios pendientes por ahora'}
-                </div>
-
-                {showQuizzesBtn && (
-                  <div style={{ marginTop: 'auto', paddingTop: '6px' }}>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/alumno/inicio')}
-                      style={{
-                        width: '100%',
-                        minHeight: '44px',
-                        padding: '0 14px',
-                        borderRadius: '12px',
-                        border: `1px solid ${COLORS.border}`,
-                        background: COLORS.surfaceSubtle,
-                        color: COLORS.primaryText,
-                        fontWeight: 700,
-                        fontSize: '16px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Ver cuestionarios →
-                    </button>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      </section>
-    </div>
-  );
+  const { session } = useSession();
+  const studentId = session?.student?.id;
+  const token = session?.token;
+  const key = `${studentId ?? ''}:${token ?? ''}`;
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState({ key: null, status: 'loading', group: null, error: null });
+  useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+    setState({ key, status: 'loading', group: null, error: null });
+    apiClient.get('/auth/me', { signal: controller.signal })
+      .then((profile) => { if (!cancelled) setState({ key, status: 'ready', group: profile.student?.id === studentId ? profile.group : null, error: null }); })
+      .catch((error) => { if (!cancelled && error?.name !== 'AbortError') setState({ key, status: 'error', group: null, error }); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key, studentId, attempt]);
+  const current = state.key === key ? state : { status: 'loading', group: null };
+  const group = current.group;
+  return <div className="kid-page kid-collection student-real-data">
+    <header><h1>Mis clases</h1><p style={mutedText}>Este es tu grupo. Tu docente te acompaña en las actividades.</p></header>
+    {current.status === 'loading' && <p role="status" style={mutedText}>Buscando tu grupo…</p>}
+    {current.status === 'error' && <div role="alert" style={alertBox}><p style={{ margin: 0 }}>{errorMessageOf(current.error)}</p><button type="button" style={buttonStyle('secondary')} onClick={() => setAttempt((value) => value + 1)}>Volver a intentar</button></div>}
+    {current.status === 'ready' && (group ? <article style={{ ...studentCard, maxWidth: '620px' }}>
+      <span style={{ color: COLORS.primaryText, fontWeight: 700 }}>{group.grade}.º grado</span>
+      <h2>{group.name}</h2>
+      <p style={{ ...mutedText, margin: 0 }}>Docente: <strong>{group.teacherName || 'Docente por confirmar'}</strong></p>
+      <p style={{ ...mutedText, margin: 0 }}>Código del grupo: <strong style={{ color: COLORS.ink, letterSpacing: '.12em' }}>{group.joinCode || 'Por confirmar'}</strong></p>
+      {group.schoolYear && <p style={{ ...mutedText, margin: 0 }}>Ciclo {group.schoolYear}</p>}
+      <Link to="/alumno/inicio" style={buttonStyle('primary')}>Ver mis actividades</Link>
+    </article> : <section style={studentCard}><h2>Tu grupo no está disponible</h2><p style={mutedText}>Pide a tu docente que revise tu acceso al grupo.</p></section>)}
+  </div>;
 }

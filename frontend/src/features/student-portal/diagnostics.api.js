@@ -7,6 +7,8 @@ import { apiClient } from '@/shared/api/client';
 const assignmentPath = (id) => `/diagnostics/assignments/${encodeURIComponent(id)}`;
 
 export const diagnosticsApi = {
+  progress: (studentId, options) =>
+    apiClient.get(`/diagnostics/students/${encodeURIComponent(studentId)}/progress`, options),
   listAssignments: (studentId, options) =>
     apiClient.get(`/diagnostics/students/${encodeURIComponent(studentId)}/assignments`, options),
   start: (assignmentId, options) => apiClient.get(`${assignmentPath(assignmentId)}/start`, options),

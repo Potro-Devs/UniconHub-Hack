@@ -1,0 +1,18 @@
+.student-real-data { min-width: 0; overflow-wrap: anywhere; }
+.student-progress-header { display: flex; align-items: center; gap: 16px; justify-content: space-between; }
+.student-progress-header > div { min-width: 0; }
+.student-progress-header > svg { flex: none; }
+.student-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 16px; }
+.student-progress-details { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.student-progress-details p { margin: 0; line-height: 1.5; }
+.student-real-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.student-mascot-colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); gap: 10px; }
+.student-nav { flex-wrap: wrap; }
+@media (max-width: 1023px) {
+  .student-shell .student-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .student-shell .student-nav button { min-width: 0; white-space: normal; }
+}
+@media (max-width: 639px) {
+  .student-progress-header { align-items: flex-start; }
+  .student-real-actions > a { width: 100%; }
+}
