@@ -1,150 +1,106 @@
 /**
  * Renderizador de cuestionarios en PDF tamaño Carta, blanco y negro, alto contraste.
+ * Plantilla "Aventura con Axi" (shared/pdf/axi-sheet.js).
  * Nunca incluye las respuestas correctas ni pistas reveladoras: está listo para fotocopiar.
  */
 import PDFDocument from 'pdfkit';
+import {
+  CARD_RADIUS,
+  CONTENT_BOTTOM,
+  CW,
+  INK,
+  M,
+  drawBadge,
+  drawContinuation,
+  drawNoteBox,
+  drawPageChrome,
+  drawTicketHeader,
+} from '../../shared/pdf/axi-sheet.js';
 
-const PAGE_MARGIN = 36;
-const CONTENT_WIDTH = 612 - PAGE_MARGIN * 2; // 540 pt en Carta (612x792)
-const FOOTER_LINE_Y = 734;
-const FOOTER_TEXT_Y = 740;
-const BOTTOM_Y = 722;
+const CARD_TOP = 12; // espacio para la insignia "Pregunta N" sobre la tarjeta
+const CARD_GAP = 14;
+const PROMPT_WIDTH = CW - 52;
+const OPTION_WIDTH = CW - 76;
+const INSTRUCTION =
+  'Lee con calma cada pregunta y responde sin prisa. No hay tiempo límite. En opción múltiple o verdadero/falso rellena un solo círculo.';
 
-function measureQuestionHeight(doc, question, boxWidth) {
-  const innerWidth = boxWidth - 20;
+function promptHeight(doc, question) {
   doc.font('Helvetica-Bold').fontSize(10);
-  const promptHeight = doc.heightOfString(`${question.position}. ${question.prompt}`, { width: innerWidth });
-
-  let answerHeight = 24;
-  if (question.questionType === 'multiple_choice') {
-    doc.font('Helvetica').fontSize(9.5);
-    const optHeights = question.options.map(
-      (opt) => doc.heightOfString(`${opt.label}) ${opt.text}`, { width: innerWidth - 24 }) + 4,
-    );
-    answerHeight = optHeights.reduce((sum, h) => sum + Math.max(17, h), 2);
-  } else if (question.questionType === 'true_false') {
-    answerHeight = 22;
-  } else {
-    answerHeight = 24;
-  }
-
-  return 9 + promptHeight + 6 + answerHeight + 9;
+  return doc.heightOfString(question.prompt, { width: PROMPT_WIDTH });
 }
 
-function drawHeader(doc, quiz, groupLabel, supportField = false) {
-  const startY = PAGE_MARGIN;
-  doc.font('Helvetica-Bold').fontSize(15).fillColor('black').text('Axi · Hoja de evaluación', PAGE_MARGIN, startY, {
-    width: CONTENT_WIDTH - 130,
-  });
-  doc.font('Helvetica').fontSize(10).text(
-    `${quiz.title}`,
-    PAGE_MARGIN,
-    doc.y + 2,
-    { width: CONTENT_WIDTH - 130 },
-  );
-  doc.font('Helvetica').fontSize(9).text(
-    `${quiz.skill.name} · ${quiz.grade}.º grado${groupLabel ? ` · ${groupLabel}` : ''}`,
-    PAGE_MARGIN,
-    doc.y + 2,
-    { width: CONTENT_WIDTH - 130 },
-  );
-  const leftBottom = doc.y;
+function optionRows(doc, question) {
+  doc.font('Helvetica').fontSize(9.5);
+  return question.options.map((opt) => Math.max(17, doc.heightOfString(opt.text, { width: OPTION_WIDTH }) + 4));
+}
 
-  doc.font('Helvetica').fontSize(9).text(
-    'Folio ____________\n(lo llena el docente)',
-    PAGE_MARGIN + CONTENT_WIDTH - 125,
-    startY + 2,
-    { width: 125, align: 'right' },
-  );
-  const folioBottom = doc.y;
+function cardHeight(doc, question) {
+  let answer = 26;
+  if (question.questionType === 'multiple_choice') answer = optionRows(doc, question).reduce((sum, h) => sum + h, 0);
+  else if (question.questionType === 'true_false') answer = 22;
+  return 10 + promptHeight(doc, question) + 8 + answer + 10;
+}
 
-  const lineY = Math.max(leftBottom, folioBottom, startY + 46) + 6;
-  doc.lineWidth(1.5).strokeColor('black').moveTo(PAGE_MARGIN, lineY).lineTo(PAGE_MARGIN + CONTENT_WIDTH, lineY).stroke();
+/** Folio, nombre, fecha, casilla de apoyo opcional e instrucciones. Devuelve la Y donde empiezan las preguntas. */
+function drawHeader(doc, quiz, groupLabel, supportField) {
+  const detail = `${quiz.skill.name} · ${quiz.grade}.º grado${groupLabel ? ` · ${groupLabel}` : ''}`;
+  drawTicketHeader(doc, { heading: 'Axi · Hoja de evaluación', title: quiz.title, detail, mood: 'celebra' });
 
-  const metaY = lineY + 8;
-  doc.font('Helvetica').fontSize(9.5).text('Nombre: ____________________________________________', PAGE_MARGIN, metaY);
-  doc.text('Fecha: ________________', PAGE_MARGIN + 370, metaY);
+  const fy = M + 92;
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(9).text('Folio', M, fy, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 30, fy + 10).lineTo(M + 200, fy + 10).stroke(INK);
+  doc.font('Helvetica').fontSize(7.5).text('(lo llena el docente)', M, fy + 16, { width: 200, align: 'right', lineBreak: false });
 
-  let instrY = metaY + 18;
+  const y = M + 130;
+  doc.font('Helvetica-Bold').fontSize(9.5).text('Nombre:', M, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 48, y + 11).lineTo(M + 360, y + 11).stroke(INK);
+  doc.font('Helvetica-Bold').fontSize(9.5).text('Fecha:', M + 378, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 420, y + 11).lineTo(M + CW, y + 11).stroke(INK);
+
+  let top = y + 22;
   if (supportField) {
     // Casilla general de apoyo (Modo Papel). La marca el docente; tono neutro, sin castigo.
-    const rowY = metaY + 17;
-    doc.font('Helvetica-Bold').fontSize(9).text('Apoyo durante la prueba', PAGE_MARGIN, rowY, { lineBreak: false });
-    doc.font('Helvetica').fontSize(8.5).text('(lo marca el docente):', PAGE_MARGIN + 112, rowY + 0.5, { lineBreak: false });
-    const choices = [{ x: PAGE_MARGIN + 215, label: 'Sin tarjetas de pistas' }, { x: PAGE_MARGIN + 345, label: 'Usó tarjetas de pistas' }];
-    for (const { x, label } of choices) {
-      doc.lineWidth(1).strokeColor('black').circle(x, rowY + 4.5, 5).stroke();
-      doc.font('Helvetica').fontSize(9).text(label, x + 9, rowY, { lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(9).text('Apoyo durante la prueba', M, top, { lineBreak: false });
+    doc.font('Helvetica').fontSize(8.5).text('(lo marca el docente):', M + 122, top + 0.5, { lineBreak: false });
+    for (const [x, label] of [[M + 238, 'Sin tarjetas de pistas'], [M + 370, 'Usó tarjetas de pistas']]) {
+      doc.lineWidth(1).circle(x, top + 4.5, 5).stroke(INK);
+      doc.font('Helvetica').fontSize(9).text(label, x + 9, top, { lineBreak: false });
     }
-    instrY = rowY + 18;
+    top += 20;
   }
-  const instrText =
-    'Lee con calma cada pregunta y responde sin prisa. No hay tiempo límite. En opción múltiple o verdadero/falso rellena un solo círculo.';
-  doc.font('Helvetica').fontSize(8.5);
-  const instrHeight = doc.heightOfString(instrText, { width: CONTENT_WIDTH - 18 }) + 12;
-  doc
-    .lineWidth(1)
-    .dash(4, { space: 3 })
-    .roundedRect(PAGE_MARGIN, instrY, CONTENT_WIDTH, instrHeight, 6)
-    .stroke()
-    .undash();
-  doc.fillColor('black').text(instrText, PAGE_MARGIN + 9, instrY + 6, { width: CONTENT_WIDTH - 18 });
-
-  doc.y = instrY + instrHeight + 10;
+  return drawNoteBox(doc, INSTRUCTION, top) + 14;
 }
 
-function drawQuestionCard(doc, question) {
-  const x = PAGE_MARGIN;
-  const y = doc.y;
-  const innerWidth = CONTENT_WIDTH - 20;
-  const cardHeight = measureQuestionHeight(doc, question, CONTENT_WIDTH);
+function drawQuestionCard(doc, question, y, h) {
+  doc.lineWidth(1.5).roundedRect(M, y, CW, h, CARD_RADIUS).stroke(INK);
+  drawBadge(doc, `Pregunta ${question.position}`, y);
 
-  doc.lineWidth(1).strokeColor('black').roundedRect(x, y, CONTENT_WIDTH, cardHeight, 6).stroke();
-
-  let cursorY = y + 9;
-  doc.font('Helvetica-Bold').fontSize(10).fillColor('black').text(
-    `${question.position}. ${question.prompt}`,
-    x + 10,
-    cursorY,
-    { width: innerWidth },
-  );
-  cursorY = doc.y + 6;
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(question.prompt, M + 40, y + 10, { width: PROMPT_WIDTH });
+  const top = y + 10 + promptHeight(doc, question) + 8;
 
   if (question.questionType === 'multiple_choice') {
-    doc.font('Helvetica').fontSize(9.5);
-    for (const opt of question.options) {
-      const circleCenterX = x + 19;
-      const circleCenterY = cursorY + 5.5;
-      doc.lineWidth(1).strokeColor('black').circle(circleCenterX, circleCenterY, 6.5).stroke();
-      doc.font('Helvetica-Bold').fontSize(7.5).text(opt.label, circleCenterX - 2.7, circleCenterY - 3.6, { lineBreak: false });
-      doc.font('Helvetica').fontSize(9.5).text(opt.text, x + 32, cursorY, { width: innerWidth - 24 });
-      cursorY = Math.max(cursorY + 17, doc.y + 3.5);
-    }
+    const rows = optionRows(doc, question);
+    let oy = top;
+    question.options.forEach((opt, i) => {
+      doc.lineWidth(1).circle(M + 50, oy + 5.5, 6.5).stroke(INK);
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(7.5).text(opt.label, M + 43.5, oy + 2.4, {
+        width: 13,
+        align: 'center',
+        lineBreak: false,
+      });
+      doc.font('Helvetica').fontSize(9.5).text(opt.text, M + 64, oy + 1.5, { width: OPTION_WIDTH });
+      oy += rows[i];
+    });
   } else if (question.questionType === 'true_false') {
-    const items = [
-      { key: 'V', label: 'Verdadero', offset: 0 },
-      { key: 'F', label: 'Falso', offset: 140 },
-    ];
-    for (const item of items) {
-      const cx = x + 19 + item.offset;
-      const cy = cursorY + 6;
-      doc.lineWidth(1).strokeColor('black').circle(cx, cy, 7).stroke();
-      doc.font('Helvetica-Bold').fontSize(8).text(item.key, cx - 2.8, cy - 3.8, { lineBreak: false });
-      doc.font('Helvetica').fontSize(9.5).text(item.label, cx + 13, cursorY + 0.5, { lineBreak: false });
+    for (const [cx, key, label] of [[M + 50, 'V', 'Verdadero'], [M + 190, 'F', 'Falso']]) {
+      doc.lineWidth(1).circle(cx, top + 6, 7).stroke(INK);
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(8).text(key, cx - 2.8, top + 2.2, { lineBreak: false });
+      doc.font('Helvetica').fontSize(9.5).text(label, cx + 13, top + 0.5, { lineBreak: false });
     }
-    cursorY += 22;
   } else {
-    doc.font('Helvetica').fontSize(9.5).text(
-      'Respuesta: ____________________________________________________________',
-      x + 10,
-      cursorY + 3,
-      { width: innerWidth },
-    );
-    cursorY += 24;
+    doc.fillColor(INK).font('Helvetica').fontSize(9.5).text('Respuesta:', M + 40, top + 4, { lineBreak: false });
+    doc.lineWidth(0.8).moveTo(M + 100, top + 15).lineTo(M + CW - 14, top + 15).stroke(INK);
   }
-
-  doc.y = y + cardHeight + 7;
-  doc.x = PAGE_MARGIN;
 }
 
 /**
@@ -158,7 +114,7 @@ export function renderQuizPdf(quiz, { groupLabel = null, supportField = false } 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'LETTER',
-      margin: PAGE_MARGIN,
+      margin: M,
       bufferPages: true,
       info: {
         Title: `${quiz.title} — Axi`,
@@ -172,46 +128,18 @@ export function renderQuizPdf(quiz, { groupLabel = null, supportField = false } 
     doc.on('error', reject);
 
     try {
-      drawHeader(doc, quiz, groupLabel, supportField);
-
+      let y = drawHeader(doc, quiz, groupLabel, supportField);
       for (const question of quiz.questions) {
-        const needed = measureQuestionHeight(doc, question, CONTENT_WIDTH);
-        if (doc.y + needed > BOTTOM_Y) {
+        const h = cardHeight(doc, question);
+        if (y + CARD_TOP + h > CONTENT_BOTTOM) {
           doc.addPage();
-          doc.font('Helvetica-Bold').fontSize(10.5).fillColor('black').text(
-            `${quiz.title} (continuación)`,
-            PAGE_MARGIN,
-            PAGE_MARGIN,
-            { width: CONTENT_WIDTH },
-          );
-          doc.lineWidth(1).moveTo(PAGE_MARGIN, doc.y + 4).lineTo(PAGE_MARGIN + CONTENT_WIDTH, doc.y + 4).stroke();
-          doc.y += 12;
+          y = drawContinuation(doc, quiz.title);
         }
-        drawQuestionCard(doc, question);
+        drawQuestionCard(doc, question, y + CARD_TOP, h);
+        y += CARD_TOP + h + CARD_GAP;
       }
 
-      const range = doc.bufferedPageRange();
-      for (let i = range.start; i < range.start + range.count; i += 1) {
-        doc.switchToPage(i);
-        const savedBottomMargin = doc.page.margins.bottom;
-        doc.page.margins.bottom = 0;
-
-        doc.lineWidth(0.75).strokeColor('black').moveTo(PAGE_MARGIN, FOOTER_LINE_Y).lineTo(PAGE_MARGIN + CONTENT_WIDTH, FOOTER_LINE_Y).stroke();
-        doc.font('Helvetica').fontSize(8.5).fillColor('black').text(
-          `Axi · ${quiz.skill.name} · ${quiz.grade}.º grado · Hoja imprimible sin respuestas`,
-          PAGE_MARGIN,
-          FOOTER_TEXT_Y,
-          { width: CONTENT_WIDTH - 95, height: 12, ellipsis: true, lineBreak: false },
-        );
-        doc.text(`Hoja ${i + 1} de ${range.count}`, PAGE_MARGIN + CONTENT_WIDTH - 90, FOOTER_TEXT_Y, {
-          width: 90,
-          align: 'right',
-          lineBreak: false,
-        });
-
-        doc.page.margins.bottom = savedBottomMargin;
-      }
-
+      drawPageChrome(doc, `Axi · ${quiz.skill.name} · ${quiz.grade}.º grado · Hoja imprimible sin respuestas`);
       doc.end();
     } catch (error) {
       doc.destroy();

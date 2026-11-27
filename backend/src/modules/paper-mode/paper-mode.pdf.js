@@ -1,17 +1,26 @@
 /**
  * Módulo paper-mode — Capa 1 (Presentación): tarjetas de pistas en PDF tamaño Carta, blanco y negro.
+ * Plantilla "Aventura con Axi" (shared/pdf/axi-sheet.js), la misma del cuestionario.
  * Una fila por reactivo con 3 tarjetas recortables (una por nivel) para entregar una pista a la vez.
  * Nunca incluye la respuesta correcta ni datos de alumnos.
  */
 import PDFDocument from 'pdfkit';
+import {
+  CONTENT_BOTTOM,
+  CW,
+  INK,
+  M,
+  drawBadge,
+  drawContinuation,
+  drawNoteBox,
+  drawPageChrome,
+  drawTicketHeader,
+} from '../../shared/pdf/axi-sheet.js';
 
-const PAGE_MARGIN = 36;
-const CONTENT_WIDTH = 612 - PAGE_MARGIN * 2; // 540 pt en Carta (612x792)
-const BOTTOM_Y = 722;
-const FOOTER_LINE_Y = 734;
-const FOOTER_TEXT_Y = 740;
+const ROW_TOP = 12; // espacio para la insignia "Reactivo N" sobre las tarjetas
+const ROW_GAP = 14;
 const CARD_GAP = 8;
-const CARD_WIDTH = (CONTENT_WIDTH - CARD_GAP * 2) / 3;
+const CARD_WIDTH = (CW - CARD_GAP * 2) / 3;
 const CARD_PADDING = 8;
 
 /** Qué hace cada nivel (AGENTS.md §4.6). */
@@ -22,58 +31,29 @@ const INSTRUCTIONS =
   + 'Ninguna pista dice la respuesta. Si el alumno usa alguna tarjeta, marca "Usó tarjetas de pistas" en el encabezado '
   + 'de su hoja: al capturar, sus aciertos cuentan como "Logrado con apoyo".';
 
-function measureRow(doc, question) {
+function cardHeight(doc, question) {
   doc.font('Helvetica').fontSize(9);
   const textHeights = question.hints.map((hint) => doc.heightOfString(hint, { width: CARD_WIDTH - CARD_PADDING * 2 }));
-  const cardHeight = CARD_PADDING + 12 + Math.max(...textHeights, 12) + CARD_PADDING;
-  return { cardHeight, rowHeight: 16 + cardHeight + 12 };
+  return CARD_PADDING + 14 + Math.max(...textHeights, 12) + CARD_PADDING;
 }
 
-function drawHeader(doc, { title, groupLabel }) {
-  doc.font('Helvetica-Bold').fontSize(15).fillColor('black').text('Axi · Tarjetas de pistas', PAGE_MARGIN, PAGE_MARGIN, {
-    width: CONTENT_WIDTH,
-  });
-  doc.font('Helvetica').fontSize(10).text(`${title}${groupLabel ? ` · ${groupLabel}` : ''}`, PAGE_MARGIN, doc.y + 2, {
-    width: CONTENT_WIDTH,
-  });
-  const lineY = doc.y + 6;
-  doc.lineWidth(1.5).strokeColor('black').moveTo(PAGE_MARGIN, lineY).lineTo(PAGE_MARGIN + CONTENT_WIDTH, lineY).stroke();
-
-  doc.font('Helvetica').fontSize(8.5);
-  const boxY = lineY + 8;
-  const boxHeight = doc.heightOfString(INSTRUCTIONS, { width: CONTENT_WIDTH - 18 }) + 12;
-  doc.lineWidth(1).roundedRect(PAGE_MARGIN, boxY, CONTENT_WIDTH, boxHeight, 6).stroke();
-  doc.text(INSTRUCTIONS, PAGE_MARGIN + 9, boxY + 6, { width: CONTENT_WIDTH - 18 });
-  doc.y = boxY + boxHeight + 12;
-}
-
-function drawRow(doc, question, { cardHeight, rowHeight }) {
-  const y = doc.y;
-  doc.font('Helvetica-Bold').fontSize(10).fillColor('black').text(
-    `Reactivo ${question.position} · ${question.skillName}`,
-    PAGE_MARGIN,
-    y,
-    { width: CONTENT_WIDTH, lineBreak: false },
-  );
-
-  const cardY = y + 16;
+function drawRow(doc, question, y, h) {
   question.hints.forEach((hint, level) => {
-    const x = PAGE_MARGIN + level * (CARD_WIDTH + CARD_GAP);
+    const x = M + level * (CARD_WIDTH + CARD_GAP);
     // Borde punteado = línea de corte.
-    doc.lineWidth(1).strokeColor('black').dash(4, { space: 3 }).rect(x, cardY, CARD_WIDTH, cardHeight).stroke().undash();
-    doc.font('Helvetica-Bold').fontSize(8).text(
+    doc.lineWidth(1).dash(4, { space: 3 }).rect(x, y, CARD_WIDTH, h).stroke(INK).undash();
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(8).text(
       `${question.position} · ${HINT_LEVEL_LABELS[level]}`,
       x + CARD_PADDING,
-      cardY + CARD_PADDING,
+      y + CARD_PADDING + 4,
       { width: CARD_WIDTH - CARD_PADDING * 2, lineBreak: false, ellipsis: true },
     );
-    doc.font('Helvetica').fontSize(9).text(hint, x + CARD_PADDING, cardY + CARD_PADDING + 12, {
+    doc.font('Helvetica').fontSize(9).text(hint, x + CARD_PADDING, y + CARD_PADDING + 16, {
       width: CARD_WIDTH - CARD_PADDING * 2,
     });
   });
-
-  doc.y = y + rowHeight;
-  doc.x = PAGE_MARGIN;
+  // La insignia se dibuja al final para quedar encima del borde punteado.
+  drawBadge(doc, `Reactivo ${question.position} · ${question.skillName}`, y);
 }
 
 /**
@@ -85,7 +65,7 @@ export function renderHintCardsPdf({ title, groupLabel = null, questions }) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'LETTER',
-      margin: PAGE_MARGIN,
+      margin: M,
       bufferPages: true,
       info: { Title: `${title} — Tarjetas de pistas — Axi`, Author: 'Axi Diagnóstico Educativo' },
     });
@@ -95,35 +75,24 @@ export function renderHintCardsPdf({ title, groupLabel = null, questions }) {
     doc.on('error', reject);
 
     try {
-      drawHeader(doc, { title, groupLabel });
+      drawTicketHeader(doc, {
+        heading: 'Axi · Tarjetas de pistas',
+        title,
+        detail: groupLabel ? `Grupo ${groupLabel}` : null,
+        mood: 'pista',
+      });
+      let y = drawNoteBox(doc, INSTRUCTIONS, M + 96) + 14;
       for (const question of questions) {
-        const size = measureRow(doc, question);
-        if (doc.y + size.rowHeight > BOTTOM_Y) {
+        const h = cardHeight(doc, question);
+        if (y + ROW_TOP + h > CONTENT_BOTTOM) {
           doc.addPage();
-          doc.y = PAGE_MARGIN;
+          y = drawContinuation(doc, `${title} · Tarjetas de pistas`);
         }
-        drawRow(doc, question, size);
+        drawRow(doc, question, y + ROW_TOP, h);
+        y += ROW_TOP + h + ROW_GAP;
       }
 
-      const range = doc.bufferedPageRange();
-      for (let i = range.start; i < range.start + range.count; i += 1) {
-        doc.switchToPage(i);
-        const savedBottomMargin = doc.page.margins.bottom;
-        doc.page.margins.bottom = 0;
-        doc.lineWidth(0.75).strokeColor('black').moveTo(PAGE_MARGIN, FOOTER_LINE_Y).lineTo(PAGE_MARGIN + CONTENT_WIDTH, FOOTER_LINE_Y).stroke();
-        doc.font('Helvetica').fontSize(8.5).fillColor('black').text(
-          `Axi · ${title} · Tarjetas de pistas`,
-          PAGE_MARGIN,
-          FOOTER_TEXT_Y,
-          { width: CONTENT_WIDTH - 95, height: 12, ellipsis: true, lineBreak: false },
-        );
-        doc.text(`Hoja ${i + 1} de ${range.count}`, PAGE_MARGIN + CONTENT_WIDTH - 90, FOOTER_TEXT_Y, {
-          width: 90,
-          align: 'right',
-          lineBreak: false,
-        });
-        doc.page.margins.bottom = savedBottomMargin;
-      }
+      drawPageChrome(doc, `Axi · ${title} · Tarjetas de pistas`);
       doc.end();
     } catch (error) {
       doc.destroy();
