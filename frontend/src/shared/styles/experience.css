@@ -12,7 +12,7 @@ button.brand-link { cursor: pointer; }
 .motion-toggle { color: var(--axi-muted); background: transparent; border-color: transparent; }
 .motion-toggle:hover, .quiet-button:hover { background: var(--axi-primarySoftBg); }
 .welcome-page { min-height: 100dvh; background: radial-gradient(ellipse at 0 15%, var(--axi-playfulLilac), transparent 50%), var(--axi-bg); }
-.welcome-header { max-width: 1280px; margin: auto; padding: 22px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.welcome-header { max-width: 1280px; margin: auto; padding: 22px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .welcome-grid { display: grid; grid-template-columns: 1.1fr 1fr; max-width: 1200px; padding: 16px 32px 56px; margin: auto; gap: 64px; align-items: center; }
 .welcome-world { position: relative; min-width: 0; }
 .welcome-tag { display: inline-flex; align-items: center; gap: 8px; font-size: .875rem; font-weight: 700; background: white; padding: 9px 14px; border: 1px solid var(--axi-border); border-radius: 100px; color: var(--axi-primaryText); }
