@@ -1,396 +1,104 @@
-import { useNavigate } from 'react-router-dom';
-import { COLORS, LEVELS, getLevelIndex } from '@/config/brand';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { COLORS } from '@/config/brand';
 import { useTeacherGroups } from '@/features/groups/TeacherGroupsContext';
-import { formatJoinCode } from '@/features/groups/groups.logic';
-import { CURRICULUM_CONTENTS, DEMO_JOIN_CODE, STUDENTS } from '@/shared/data/seedData';
-import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
-import { mean, useAppUi } from '@/shared/state/AppUiContext';
+import { errorMessageOf } from '@/shared/api/client';
+import { alertBox, buttonStyle, card, inputStyle, mutedText, noticeBox, pageTitle, sectionTitle } from '@/shared/styles/ui';
+import { AssignmentPanel } from './AssignmentPanel';
+import { CONTENT_STATUSES, skillsOfContents, toggleSelection } from './curriculum.logic';
+import { useCurriculum } from './useCurriculum';
+import './curriculum.css';
 
-const STATUS_STYLE = {
-  pend: { l: 'Pendiente', bg: '#E6EBF3', fg: COLORS.muted },
-  curso: { l: 'En curso', bg: COLORS.primarySoftBg, fg: COLORS.primarySoftFg },
-  visto: { l: 'Visto', bg: COLORS.ink, fg: '#fff' },
-};
+export function CurriculumGroupState({ status, retry }) {
+  if (status === 'loading') return <p role="status" style={mutedText}>Cargando tus grupos…</p>;
+  if (status === 'error') return <div role="alert" style={alertBox}><p>No pudimos cargar tus grupos.</p><button type="button" onClick={retry} style={buttonStyle('secondary')}>Reintentar</button></div>;
+  return <section style={card}><h1 style={pageTitle} className="font-display">Temario</h1><p style={mutedText}>Elige o crea un grupo para consultar su temario.</p><Link to="/docente/grupos" style={buttonStyle('primary')}>Ir a mis grupos</Link></section>;
+}
 
-const NEXT_STATUS = { pend: 'curso', curso: 'visto', visto: 'pend' };
-
-/**
- * Pantalla 04: Temario SEP de 3.º grado y panel de asignación de pruebas.
- */
-export function CurriculumScreen() {
-  const navigate = useNavigate();
-  const { narrow } = useBreakpoint();
-  const {
-    statuses,
-    setStatuses,
-    selected,
-    setSelected,
-    dest,
-    setDest,
-    format,
-    setFormat,
-    setAssigned,
-    statusOf,
-    isEvaluated,
-    covN,
-    contentScoreOf,
-    weakestSkill,
-    needSupportStudents,
-    say,
-  } = useAppUi();
-  const { activeGroup } = useTeacherGroups();
-
-  const stCount = {
-    visto: CURRICULUM_CONTENTS.filter((c) => statusOf(c) === 'visto').length,
-    curso: CURRICULUM_CONTENTS.filter((c) => statusOf(c) === 'curso').length,
-    pend: CURRICULUM_CONTENTS.filter((c) => statusOf(c) === 'pend').length,
-  };
-
-  const selCT = CURRICULUM_CONTENTS.filter((c) => selected[c.id]);
-  const selTests = selCT.map((c) => c.tests[0] || `${c.t}: sin pruebas todavía`);
-
-  const needN = needSupportStudents.length;
-  const destTabs = [
-    ['grupo', 'Todo el grupo (45)'],
-    ['apoyo', `Quienes necesitan apoyo en ${weakestSkill.k.name} (${needN})`],
-  ];
-
-  const assignTest = () => {
-    setAssigned(true);
-    if (format === 'papel') {
-      say('Prueba asignada. Imprime las hojas para tu grupo.');
-      navigate('/docente/hoja');
-    } else {
-      say(`Prueba asignada. Tus alumnos la verán al entrar con el código ${formatJoinCode(activeGroup?.joinCode ?? DEMO_JOIN_CODE)}.`);
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <h1 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '30px', lineHeight: 1.1 }}>
-          Temario de 3.º
-        </h1>
-        <div style={{ fontSize: '14px', color: COLORS.muted, marginTop: '4px' }}>
-          Fase 4 · Saberes y pensamiento científico (matemáticas) · Programa sintético SEP · ejemplo por validar con docente
-        </div>
-      </div>
-
-      {/* Cobertura */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '10px 24px',
-          alignItems: 'center',
-          padding: '16px 18px',
-          background: '#fff',
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: '18px',
-        }}
-      >
-        <div style={{ flex: '1 1 220px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ fontSize: '14px' }}>
-            <b>{covN} de 10</b> contenidos ya evaluados
-          </div>
-          <div style={{ height: '8px', borderRadius: '999px', background: '#E6EBF3', overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${covN * 10}%`,
-                background: COLORS.primaryAccent,
-                borderRadius: '999px',
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '13px' }}>
-          <span
-            style={{
-              padding: '5px 10px',
-              borderRadius: '999px',
-              background: COLORS.ink,
-              color: '#fff',
-              fontWeight: 700,
-            }}
-          >
-            Visto {stCount.visto}
-          </span>
-          <span
-            style={{
-              padding: '5px 10px',
-              borderRadius: '999px',
-              background: COLORS.primarySoftBg,
-              color: COLORS.primarySoftFg,
-              fontWeight: 700,
-            }}
-          >
-            En curso {stCount.curso}
-          </span>
-          <span
-            style={{
-              padding: '5px 10px',
-              borderRadius: '999px',
-              background: '#E6EBF3',
-              color: COLORS.muted,
-              fontWeight: 700,
-            }}
-          >
-            Pendiente {stCount.pend}
-          </span>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', alignItems: 'flex-start' }}>
-        {/* Lista de contenidos */}
-        <div style={{ flex: '1 1 460px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <h2 className="font-display" style={{ margin: '0 0 8px', fontSize: '22px' }}>1. Elige los contenidos</h2>
-          {CURRICULUM_CONTENTS.map((c) => {
-            const st = statusOf(c);
-            const isSel = !!selected[c.id];
-            const ev = isEvaluated(c);
-            const avg = ev ? mean(STUDENTS.map((s) => contentScoreOf(s, c))) : null;
-            const lv = avg != null ? LEVELS[getLevelIndex(avg)] : null;
-            const stMeta = STATUS_STYLE[st];
-
-            return (
-              <div
-                key={c.id}
-                style={{
-                  display: 'flex',
-                  gap: '14px',
-                  alignItems: 'flex-start',
-                  padding: '16px',
-                  background: '#fff',
-                  borderRadius: '18px',
-                  border: `2px solid ${isSel ? COLORS.primaryAccent : 'transparent'}`,
-                }}
-              >
-                <button
-                  type="button"
-                  aria-label={`Seleccionar ${c.t}`}
-                  aria-pressed={isSel}
-                  onClick={() => setSelected((prev) => ({ ...prev, [c.id]: !prev[c.id] }))}
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    flex: 'none',
-                    marginTop: '2px',
-                    borderRadius: '8px',
-                    border: `2px solid ${isSel ? COLORS.primary : '#B9C2D4'}`,
-                    background: isSel ? COLORS.primary : '#fff',
-                    color: '#fff',
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 0,
-                  }}
-                >
-                  {isSel ? '✓' : ''}
-                </button>
-
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button
-                    type="button"
-                    className="axi-name-hover"
-                    onClick={() => navigate(`/docente/temario/${c.id}`)}
-                    style={{
-                      alignSelf: 'flex-start',
-                      border: 0,
-                      background: 'none',
-                      padding: 0,
-                      textAlign: 'left',
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      lineHeight: 1.3,
-                      cursor: 'pointer',
-                      color: COLORS.ink,
-                    }}
-                  >
-                    {c.t} <span style={{ color: COLORS.primaryText }}>→</span>
-                  </button>
-
-                  <div style={{ fontSize: '14px', color: COLORS.muted, lineHeight: 1.4, textWrap: 'pretty' }}>
-                    <b style={{ color: COLORS.ink }}>Se espera:</b> {c.pda}
-                  </div>
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
-                    <button
-                      type="button"
-                      title="Cambiar estado"
-                      aria-label={`Cambiar estado de ${c.t}: ${stMeta.l}`}
-                      onClick={() =>
-                        setStatuses((prev) => ({ ...prev, [c.id]: NEXT_STATUS[statuses[c.id] || c.st] }))
-                      }
-                      style={{
-                        border: 0,
-                        borderRadius: '999px',
-                        padding: '5px 11px',
-                        minHeight: '44px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: stMeta.bg,
-                        color: stMeta.fg,
-                      }}
-                    >
-                      {stMeta.l} ▾
-                    </button>
-
-                    <span
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '999px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        background: ev ? lv.bg : COLORS.bg,
-                        color: ev ? lv.fg : COLORS.muted,
-                      }}
-                    >
-                      {ev ? `Evaluado · ${avg}% · ${lv.label}` : 'Sin evaluar'}
-                    </span>
-
-                    <span style={{ fontSize: '13px', color: COLORS.muted }}>
-                      {c.tests.length
-                        ? `${c.tests.length} ${c.tests.length > 1 ? 'pruebas' : 'prueba'}`
-                        : 'Sin pruebas todavía'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Panel Asignar prueba */}
-        <div
-          style={{
-            flex: '1 1 300px',
-            maxWidth: narrow ? 'none' : '360px',
-            order: narrow ? -1 : 0,
-            position: narrow ? 'static' : 'sticky',
-            top: 0,
-            background: '#fff',
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: '22px',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}
-        >
-          <h2 className="font-display" style={{ margin: 0, fontWeight: 700, fontSize: '20px', lineHeight: 1.2 }}>
-            Prepara la evaluación
-          </h2>
-
-          {selCT.length === 0 ? (
-            <div style={{ fontSize: '14px', color: COLORS.muted, lineHeight: 1.45 }}>
-              Marca uno o varios contenidos. Te propondremos pruebas ligadas a lo que se espera que logren.
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ fontSize: '13px', color: COLORS.muted }}>Pruebas propuestas</div>
-                {selTests.map((t) => (
-                  <div
-                    key={t}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '12px',
-                      background: COLORS.primarySoftBg,
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      color: 'oklch(0.35 0.18 268)',
-                    }}
-                  >
-                    {t}
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <h3 style={{ margin: '8px 0 2px', fontSize: '16px' }}>2. Elige a quién acompañar</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {destTabs.map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setDest(id)}
-                      aria-pressed={dest === id}
-                      style={{
-                        textAlign: 'left',
-                        minHeight: '48px',
-                        border: `2px solid ${dest === id ? COLORS.primaryAccent : COLORS.border}`,
-                        background: dest === id ? 'oklch(0.97 0.02 268)' : '#fff',
-                        borderRadius: '12px',
-                        padding: '10px 12px',
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <h3 style={{ margin: '8px 0 2px', fontSize: '16px' }}>3. Elige cómo responderán</h3>
-                <div style={{ display: 'flex', gap: '2px', padding: '3px', borderRadius: '12px', background: '#E6EBF3' }}>
-                  {[
-                    ['papel', 'En papel'],
-                    ['pantalla', 'En pantalla'],
-                  ].map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setFormat(id)}
-                      aria-pressed={format === id}
-                      style={{
-                        flex: 1,
-                        minHeight: '48px',
-                        border: 0,
-                        borderRadius: '9px',
-                        padding: '9px 10px',
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: format === id ? '#fff' : 'transparent',
-                        color: format === id ? COLORS.ink : COLORS.muted,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="axi-btn-primary"
-                onClick={assignTest}
-                style={{
-                  border: 0,
-                  borderRadius: '14px',
-                  padding: '14px 16px',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: COLORS.primary,
-                  color: '#fff',
-                }}
-              >
-                {format === 'papel' ? 'Asignar e imprimir hojas' : 'Asignar en pantalla'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+function CoverageCard({ request }) {
+  const { coverage } = request;
+  if (!coverage) return null;
+  return <section style={card} aria-labelledby="coverage-heading">
+    <h2 id="coverage-heading" className="font-display" style={sectionTitle}>Avance del temario</h2>
+    <p style={{ margin: 0 }}><strong>{coverage.seen} de {coverage.total}</strong> contenidos vistos · <strong>{coverage.coveragePercentage}%</strong></p>
+    <progress value={coverage.coveragePercentage} max={100} aria-label="Cobertura del temario" style={{ width: '100%', height: '16px', accentColor: COLORS.primary }} />
+    <div style={{ display: 'flex', gap: '8px 20px', flexWrap: 'wrap', ...mutedText }}>
+      <span>Vistos: {coverage.seen}</span><span>En curso: {coverage.in_progress}</span><span>Pendientes: {coverage.pending}</span>
     </div>
-  );
+    {coverage.bySkill.length > 0 && <details><summary style={{ minHeight: '44px', cursor: 'pointer', padding: '10px 0', fontWeight: 700 }}>Ver avance por habilidad</summary><ul style={{ margin: '6px 0', paddingLeft: '20px', lineHeight: 1.7 }}>{coverage.bySkill.map((skill) => <li key={skill.code}>{skill.name}: {skill.seen} de {skill.total} vistos · {skill.coveragePercentage}%</li>)}</ul></details>}
+    {request.coverageError && <div role="alert" style={alertBox}><span>El cambio se guardó, pero no pudimos actualizar la cobertura.</span><button type="button" style={buttonStyle('secondary')} onClick={request.refreshCoverage}>Actualizar cobertura</button></div>}
+  </section>;
+}
+
+function GroupCurriculum({ group }) {
+  const request = useCurriculum(group.id);
+  const [params] = useSearchParams();
+  const query = params.toString();
+  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [selectionNotice, setSelectionNotice] = useState('');
+  const headingRef = useRef(null);
+  const appliedQuery = useRef(null);
+  const skills = useMemo(() => skillsOfContents(request.contents), [request.contents]);
+  const focusPanel = () => { headingRef.current?.focus({ preventScroll: true }); headingRef.current?.scrollIntoView({ block: 'start' }); };
+
+  useEffect(() => {
+    if (request.status !== 'ready' || appliedQuery.current === query) return;
+    appliedQuery.current = query;
+    const requested = new URLSearchParams(query);
+    const skillCode = requested.get('skill');
+    if (skillCode) {
+      const skill = skills.find((entry) => entry.code === skillCode);
+      if (skill) { setSelectedSkills([skill.code]); setSelectionNotice(`Elegimos ${skill.name} para esta prueba. Puedes cambiar las habilidades.`); }
+      else { setSelectedSkills([]); setSelectionNotice('La habilidad del enlace no está en el temario de este grupo. Elige una de las disponibles.'); }
+    }
+    if (requested.get('assign') === '1') focusPanel();
+  }, [request.status, query, skills]);
+
+  return <div className="curriculum-page" style={{ '--curriculum-accent': COLORS.primary }}>
+    <header>
+      <h1 className="font-display" style={pageTitle}>Temario de {group.grade}.º · {group.name}</h1>
+      <p style={{ ...mutedText, margin: '8px 0' }}>Fase {group.phase} · Contenidos y procesos de desarrollo de aprendizaje del grupo.</p>
+      <p style={{ ...noticeBox, margin: '8px 0' }}>El temario de ejemplo está por validar con docente de primaria.</p>
+    </header>
+    {request.status === 'loading' ? <p role="status" style={mutedText}>Cargando temario y cobertura…</p> : request.status === 'error' ? <div role="alert" style={alertBox}>
+      <span>{errorMessageOf(request.error)}</span><button type="button" style={buttonStyle('secondary')} onClick={request.reload}>Reintentar temario</button>
+    </div> : <>
+      <CoverageCard request={request} />
+      <button type="button" style={{ ...buttonStyle('secondary'), alignSelf: 'flex-start' }} onClick={focusPanel}>Preparar prueba →</button>
+      <div className="curriculum-columns">
+        <section className="curriculum-stack" aria-labelledby="contents-heading">
+          <h2 id="contents-heading" className="font-display" style={sectionTitle}>Contenidos del grado</h2>
+          {request.contents.length === 0 && <p style={card}>Todavía no hay contenidos registrados para este grado.</p>}
+          {request.contents.map((content) => {
+            const pending = request.pending.includes(content.id);
+            return <article key={content.id} style={card}>
+              <div style={{ ...mutedText, fontSize: '13px' }}>{content.formativeFieldName} · Fase {content.phase}</div>
+              <Link to={`/docente/temario/${content.id}`} className="curriculum-content-title">{content.title} →</Link>
+              <p style={{ margin: 0, lineHeight: 1.5 }}><strong>Se espera:</strong> {content.pda}</p>
+              {content.skill ? <label className="curriculum-choice" style={{ border: `1px solid ${COLORS.border}`, borderRadius: '12px' }}>
+                <input type="checkbox" checked={selectedSkills.includes(content.skill.code)} onChange={() => setSelectedSkills((current) => toggleSelection(current, content.skill.code))} />
+                <span>Incluir {content.skill.name} en la prueba</span>
+              </label> : <p style={mutedText}>Este contenido aún no tiene una habilidad vinculada para evaluar.</p>}
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontWeight: 700 }} htmlFor={`content-status-${content.id}`}>
+                Avance del contenido
+                <select id={`content-status-${content.id}`} value={content.status} disabled={pending} style={inputStyle} onChange={(event) => request.updateContent(content.id, { status: event.target.value }).catch(() => {})}>
+                  {CONTENT_STATUSES.map((status) => <option key={status.code} value={status.code}>{status.label}</option>)}
+                </select>
+              </label>
+              {pending && <p role="status" style={{ ...mutedText, margin: 0 }}>Guardando avance…</p>}
+              {request.errors[content.id] && <p role="alert" style={{ ...alertBox, margin: 0 }}>{errorMessageOf(request.errors[content.id])} Se restauró el avance anterior.</p>}
+            </article>;
+          })}
+        </section>
+        <AssignmentPanel group={group} skills={skills} selectedSkills={selectedSkills} onSkillsChange={setSelectedSkills} headingRef={headingRef} selectionNotice={selectionNotice} />
+      </div>
+    </>}
+  </div>;
+}
+
+export function CurriculumScreen() {
+  const { activeGroup, status, retry } = useTeacherGroups();
+  if (!activeGroup || status !== 'ready') return <CurriculumGroupState status={status} retry={retry} />;
+  // Remontar evita conservar borradores y respuestas del grupo que se dejó de consultar.
+  return <GroupCurriculum key={activeGroup.id} group={activeGroup} />;
 }

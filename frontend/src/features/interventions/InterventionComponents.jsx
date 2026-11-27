@@ -78,9 +78,8 @@ function InterventionItem({ item }) {
     {outcome.status === 'awaiting_retest' ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
     <div style={{ flex: '1 1 240px' }}>
       <p style={{ ...mutedText, margin: '0 0 6px' }}>Falta una prueba corta de {item.skillName} (mínimo 3 reactivos) para ver el después.</p>
-      <p style={{ ...mutedText, margin: 0 }}>El temario enlazado aún es una vista de ejemplo; este botón no asigna una prueba real.</p>
     </div>
-    {canAssign && <button type="button" style={buttonStyle('secondary')} onClick={() => navigate('/docente/temario')}>Asignar prueba corta</button>}
+    {canAssign && <button type="button" style={buttonStyle('secondary')} onClick={() => navigate(`/docente/temario?skill=${encodeURIComponent(item.skillCode)}&assign=1`)}>Asignar prueba corta</button>}
     </div> : <>
       <p style={{ margin: 0, lineHeight: 1.5 }}>Después: de <strong>{outcome.reevaluatedCount}</strong> alumnos reevaluados, <strong>{outcome.overcameCount}</strong> ya no muestran ese error.</p>
       <OutcomeBar outcome={outcome} />
