@@ -22,10 +22,10 @@ const DOCENTE_NAV = [
     path: '/docente/cuestionarios',
     label: 'Cuestionarios y constructor',
     short: 'Cuestionarios',
-    matches: ['/docente/cuestionarios', '/docente/hoja', '/docente/pistas'],
+    matches: ['/docente/cuestionarios'],
   },
   { id: 'tutores', path: '/docente/tutores', label: TEAM_LEARNING_NAME, short: TEAM_LEARNING_SHORT_NAME, matches: ['/docente/tutores'] },
-  { id: 'captura', path: '/docente/captura', label: 'Captura', short: 'Captura', matches: ['/docente/captura'] },
+  { id: 'papel', path: '/docente/papel', label: 'Papel', short: 'Papel', matches: ['/docente/papel'] },
 ];
 
 const DIRECCION_NAV = [
@@ -35,9 +35,6 @@ const DIRECCION_NAV = [
   { id: 'promover', path: '/direccion/promover', label: 'Promover grupos', short: 'Promover', matches: ['/direccion/promover'] },
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
 ];
-
-/** Vistas que todavía usan datos locales del prototipo. */
-const SAMPLE_DATA_PATHS = ['/docente/temario', '/docente/pistas', '/docente/captura'];
 
 const headerChip = {
   display: 'flex',
@@ -172,7 +169,6 @@ export function AppShellLayout() {
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
-  const isSampleView = SAMPLE_DATA_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const userName = session?.user?.fullName ?? '';
   const userIni = initialsOf(userName);
 
@@ -228,7 +224,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', papel: 'paper', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={22} /><BiText k={`nav.${item.id}`}>{item.label}</BiText>
                 </button>
               );
             })}
@@ -356,23 +352,6 @@ export function AppShellLayout() {
             }}
           >
             {!wide && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}><MotionToggle /></div>}
-            {isSampleView && (
-              <div
-                style={{
-                  display: 'inline-block',
-                  marginBottom: '14px',
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  border: `1px solid ${COLORS.border}`,
-                  background: COLORS.surface,
-                  color: COLORS.muted,
-                  fontSize: '13px',
-                  fontWeight: 700,
-                }}
-              >
-                Vista con datos de ejemplo
-              </div>
-            )}
             <Outlet />
           </div>
         </main>
@@ -414,7 +393,7 @@ export function AppShellLayout() {
                     color: active ? 'oklch(0.4 0.2 268)' : COLORS.muted,
                   }}
                 >
-                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', captura: 'pencil', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
+                  <InterfaceIcon name={({ panel: 'map', docentes: 'groups', grupos: 'groups', mapa: 'map', temario: 'book', hoja: 'paper', papel: 'paper', tutores: 'tutors', escuela: 'groups', promover: 'star', traslados: 'paper' })[item.id]} size={20} /><BiText k={`nav.${item.id}`} compact>{item.short}</BiText>
                 </button>
               );
             })}

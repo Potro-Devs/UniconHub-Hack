@@ -8,11 +8,13 @@ import { Toast } from '@/shared/components/Toast';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
 import { initialsOf } from '@/shared/state/session';
+import './student-real-data.css';
 
 const destinations = [
   { path: '/alumno/inicio', name: 'Inicio', icon: 'home' },
   { path: '/alumno/clases', name: 'Clases', icon: 'book' },
   { path: '/alumno/juegos', name: 'Juegos', icon: 'games' },
+  { path: '/alumno/resumen', name: 'Mi progreso', icon: 'map' },
   { path: '/alumno/logros', name: 'Logros', icon: 'star' },
 ];
 
@@ -23,7 +25,7 @@ export function StudentShellLayout() {
   const { axiColor, toast, resetStudentSession, setJoinRoster } = useAppUi();
   const initials = initialsOf(session?.student?.displayName);
   const leave = () => {
-    signOut(); resetStudentSession(0); setJoinRoster(null); navigate('/login', { replace: true });
+    signOut(); resetStudentSession(); setJoinRoster(null); navigate('/login', { replace: true });
   };
   return <div className="student-shell">
     <a className="skip-link" href="#student-content">Ir a mis actividades</a>

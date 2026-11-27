@@ -82,7 +82,7 @@ export function weightedEvolution(scores) {
 /**
  * Extrae el primer nombre amigable para saludar al estudiante.
  */
-export function pickFirstName(displayName, fallback = 'Sofía') {
+export function pickFirstName(displayName, fallback = 'amiga o amigo') {
   const clean = String(displayName ?? '').trim();
   if (!clean) return fallback;
   return clean.split(/\s+/)[0] || fallback;

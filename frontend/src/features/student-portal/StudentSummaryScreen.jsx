@@ -1,236 +1,48 @@
-import { useNavigate } from 'react-router-dom';
-import { COLORS, LEVELS, getLevelIndex } from '@/config/brand';
+import { Link } from 'react-router-dom';
+import { COLORS, LEVELS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
-import { SKILLS, STUDENTS } from '@/shared/data/seedData';
-import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { buttonStyle, mutedText } from '@/shared/styles/ui';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
-import { getStudentSkillSummaries, pickFirstName } from './studentPortalStats';
+import { pickFirstName } from './studentPortalStats';
+import { StudentProgressState, studentCard, studentDate } from './StudentProgressState';
+import { useStudentProgress } from './useStudentProgress';
 
-/**
- * Pantalla 11: Resumen final del alumno comparado consigo mismo.
- */
+/** Los niveles, porcentajes y tendencias llegan calculados por el servidor. */
 export function StudentSummaryScreen() {
-  const navigate = useNavigate();
-  const reducedMotion = useReducedMotion();
-  const { axiColor, stuIdx, hintsUsed, activeQuizId, completedQuizzes } = useAppUi();
   const { session } = useSession();
-
-  const stu = STUDENTS[stuIdx ?? 0];
-  const firstName = pickFirstName(session?.student?.displayName, stu.first);
-  const latestQuizResult = completedQuizzes[activeQuizId] ?? null;
-
-  const effortMsg = hintsUsed
-    ? `Pediste ${hintsUsed} ${hintsUsed > 1 ? 'pistas' : 'pista'} y seguiste intentando.`
-    : 'Lo pensaste con calma, paso a paso.';
-
-  const makeProgRow = (name, a, b, note) => {
-    const f = LEVELS[getLevelIndex(a)];
-    const t = LEVELS[getLevelIndex(b)];
-    return {
-      name,
-      from: f.label,
-      fromBg: f.bg,
-      fromFg: f.fg,
-      to: t.label,
-      toBg: t.bg,
-      toFg: t.fg,
-      note,
-    };
-  };
-
-  const skillSummaries = getStudentSkillSummaries(stuIdx, completedQuizzes);
-  const focusSkillIds = [
-    latestQuizResult?.skillId ?? 'fractions',
-    'problem_solving',
-    'place_value',
-  ].filter((id, idx, arr) => arr.indexOf(id) === idx);
-
-  const stuProg = focusSkillIds.map((id) => {
-    const summary = skillSummaries.find((s) => s.id === id);
-    const skillName = SKILLS.find((x) => x.id === id)?.name ?? summary?.name ?? id;
-    const a = summary?.initialPct ?? stu.prev?.[id] ?? 36;
-    const b = summary?.currentPct ?? stu.sc?.[id] ?? 44;
-    const delta = summary?.deltaPct ?? Math.round((b - a) * 100) / 100;
-    const note =
-      getLevelIndex(b) > getLevelIndex(a)
-        ? 'Subiste respecto a tu nivel anterior.'
-        : b > a
-          ? `Mejoraste respecto a tu inicio: +${delta} puntos.`
-          : 'Esta habilidad todavía se está formando. Probemos con una pista la próxima vez.';
-    return makeProgRow(skillName, a, b, note);
-  });
-
-  return (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '18px',
-        textAlign: 'center',
-        padding: '10px 0',
-      }}
-    >
-      <Mascot size={150} color={axiColor} animate={!reducedMotion} />
-
-      <h1 className="font-display" style={{ margin: 0, fontWeight: 800, fontSize: '34px', lineHeight: 1.1 }}>
-        ¡Listo por hoy, {firstName}!
-      </h1>
-
-      <div style={{ fontSize: '18px' }}>{effortMsg}</div>
-
-      {latestQuizResult && (
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '480px',
-            background: '#fff',
-            borderRadius: '22px',
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            textAlign: 'left',
-          }}
-        >
-          <div className="font-display" style={{ fontWeight: 700, fontSize: '18px' }}>
-            {latestQuizResult.title}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '999px',
-                background: COLORS.primarySoftBg,
-                color: COLORS.primarySoftFg,
-                fontSize: '16px',
-                fontWeight: 700,
-              }}
-            >
-              {latestQuizResult.autonomousCount} de {latestQuizResult.totalCount} autónomos ({latestQuizResult.autonomousPct}%)
-            </span>
-            {latestQuizResult.withSupportCount > 0 && (
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  background: LEVELS[1].bg,
-                  color: LEVELS[1].fg,
-                  fontSize: '16px',
-                  fontWeight: 700,
-                }}
-              >
-                {latestQuizResult.withSupportCount}{' '}
-                {latestQuizResult.withSupportCount === 1 ? 'logrado con apoyo' : 'logrados con apoyo'}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '480px',
-          background: '#fff',
-          borderRadius: '26px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          textAlign: 'left',
-        }}
-      >
-        <div className="font-display" style={{ fontWeight: 700, fontSize: '20px', lineHeight: 1.2, marginBottom: '6px' }}>
-          Tu avance (comparado contigo)
-        </div>
-
-        {stuProg.map((p) => (
-          <div
-            key={p.name}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 0',
-              borderTop: '1px solid #EEF1F6',
-            }}
-          >
-            <div style={{ flex: '1 1 150px', fontSize: '17px', fontWeight: 700 }}>{p.name}</div>
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '999px',
-                fontSize: '16px',
-                fontWeight: 700,
-                background: p.fromBg,
-                color: p.fromFg,
-              }}
-            >
-              {p.from}
-            </span>
-            <span>→</span>
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '999px',
-                fontSize: '16px',
-                fontWeight: 700,
-                background: p.toBg,
-                color: p.toFg,
-              }}
-            >
-              {p.to}
-            </span>
-            <div style={{ flexBasis: '100%', fontSize: '16px', color: '#3A4565' }}>{p.note}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
-        <button
-          type="button"
-          onClick={() => navigate('/alumno/logros')}
-          style={{
-            height: '60px',
-            padding: '0 28px',
-            borderRadius: '20px',
-            border: `3px solid ${COLORS.ink}`,
-            background: '#fff',
-            fontFamily: "'Baloo 2', sans-serif",
-            fontWeight: 700,
-            fontSize: '20px',
-            lineHeight: 1,
-            cursor: 'pointer',
-          }}
-        >
-          Ver mis logros
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/alumno/inicio')}
-          style={{
-            height: '60px',
-            padding: '0 32px',
-            borderRadius: '20px',
-            border: 0,
-            background: COLORS.ink,
-            color: '#fff',
-            fontFamily: "'Baloo 2', sans-serif",
-            fontWeight: 700,
-            fontSize: '20px',
-            lineHeight: 1,
-            cursor: 'pointer',
-            boxShadow: '0 5px 0 oklch(0.4 0.05 260)',
-          }}
-        >
-          Volver a inicio
-        </button>
-      </div>
-    </div>
-  );
+  const { axiColor } = useAppUi();
+  const request = useStudentProgress();
+  return <div className="kid-page kid-collection student-real-data">
+    <header className="student-progress-header">
+      <div><h1>Mi progreso</h1><p style={mutedText}>{pickFirstName(session?.student?.displayName)}, cada paso forma parte de tu camino. Aquí puedes ver lo que has trabajado.</p><p style={mutedText}>El porcentaje principal muestra cómo avanzas al resolver sin pistas. Lo que logras con apoyo aparece aparte: pedir ayuda también es aprender.</p></div>
+      <Mascot size={92} color={axiColor} mood="feliz" animated={false} />
+    </header>
+    <StudentProgressState request={request} />
+    {request.status === 'ready' && <>
+      {request.data.skills.length === 0 ? <section style={studentCard}>
+        <h2>Un paso a la vez</h2><p style={mutedText}>Tu progreso aparecerá aquí cuando trabajes las habilidades de tu grupo.</p>
+      </section> : <section aria-label="Mi progreso por habilidad" className="student-progress-grid">
+        {request.data.skills.map((skill) => {
+          const tone = LEVELS.find((level) => level.code === skill.level);
+          return <article key={skill.code} style={studentCard}>
+            <h2 style={{ fontSize: '22px' }}>{skill.name}</h2>
+            <p style={{ margin: 0, padding: '10px 12px', borderRadius: '12px', fontWeight: 700, background: tone?.bg ?? COLORS.surfaceSubtle, color: tone?.fg ?? COLORS.muted }}>
+              {skill.masteryPercentage == null ? 'Sin evaluar' : `${skill.masteryPercentage} % · ${skill.label}`}
+            </p>
+            {skill.masteryPercentage != null && <>
+              <p style={{ ...mutedText, margin: 0 }}>Última sesión registrada{skill.grade ? ` · ${skill.grade}.º grado` : ''}</p>
+              <div className="student-progress-details">
+                {skill.autonomousPercentage != null && <p><strong>{skill.autonomousPercentage} %</strong> · Acierto autónomo</p>}
+                {skill.supportedPercentage != null && <p><strong>{skill.supportedPercentage} %</strong> · Logrado con apoyo</p>}
+              </div>
+              <p style={{ ...mutedText, margin: 0 }}>{studentDate(skill.recordedAt)}</p>
+            </>}
+            {skill.autonomyTrend?.label && <p style={{ margin: 0, color: COLORS.primaryText, fontWeight: 700 }}>{skill.autonomyTrend.label}</p>}
+          </article>;
+        })}
+      </section>}
+    </>}
+    <div className="student-real-actions"><Link to="/alumno/logros" style={buttonStyle('primary')}>Ver mis logros</Link><Link to="/alumno/inicio" style={buttonStyle('secondary')}>Volver al inicio</Link></div>
+  </div>;
 }
