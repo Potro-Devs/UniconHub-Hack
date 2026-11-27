@@ -8,7 +8,6 @@
 export const SESSION_STORAGE_KEY = 'axi.session';
 
 export const STAFF_ROLES = Object.freeze(['teacher', 'director']);
-export const isStaffRole = (role) => STAFF_ROLES.includes(role);
 
 /** Pantallas del director (coincidencia exacta: evita rutas como `/direccion/panelX` o con `..`). */
 const DIRECTOR_PATHS = Object.freeze(['/direccion/panel', '/direccion/docentes', '/direccion/promover', '/direccion/traslados']);
@@ -79,11 +78,10 @@ export function homePathFor(session) {
  */
 export function safeReturnPath(from, session) {
   if (typeof from !== 'string' || !from.startsWith('/')) return homePathFor(session);
-  const staffArea = from.startsWith('/docente') || from.startsWith('/direccion');
   const studentArea = from.startsWith('/alumno');
-  // Dirección solo tiene su panel; el docente usa todo el área de personal.
+  // Dirección solo vuelve a sus pantallas; el docente, solo al área docente.
   if (session?.role === 'director') return DIRECTOR_PATHS.includes(from) ? from : homePathFor(session);
-  if (isStaffRole(session?.role) && staffArea) return from;
+  if (session?.role === 'teacher' && from.startsWith('/docente')) return from;
   if (session?.role === 'student' && studentArea) return from;
   return homePathFor(session);
 }

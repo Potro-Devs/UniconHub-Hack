@@ -31,7 +31,6 @@ const DOCENTE_NAV = [
 const DIRECCION_NAV = [
   { id: 'panel', path: '/direccion/panel', label: 'Panel de la escuela', short: 'Panel', matches: ['/direccion/panel'] },
   { id: 'docentes', path: '/direccion/docentes', label: 'Docentes', short: 'Docentes', matches: ['/direccion/docentes'] },
-  { id: 'escuela', path: '/direccion/escuela', label: 'Escuela', short: 'Escuela', matches: ['/direccion/escuela'] },
   { id: 'promover', path: '/direccion/promover', label: 'Promover grupos', short: 'Promover', matches: ['/direccion/promover'] },
   { id: 'traslados', path: '/direccion/traslados', label: 'Traslados', short: 'Traslados', matches: ['/direccion/traslados'] },
 ];
@@ -160,12 +159,8 @@ export function AppShellLayout() {
   const { session, signOut } = useSession();
 
   const isDirector = session?.role === 'director';
-  const isDir = isDirector || pathname.startsWith('/direccion');
-  // Director: panel y docentes (datos reales) + promover y traslados (Roadmap).
-  // Docente: vista previa de Dirección con datos de ejemplo.
-  const navDef = isDirector
-    ? DIRECCION_NAV.filter((item) => item.id !== 'escuela')
-    : isDir ? DIRECCION_NAV.filter((item) => !['panel', 'docentes'].includes(item.id)) : DOCENTE_NAV;
+  // Director: panel y docentes (datos reales) + promover y traslados (Roadmap). Docente: su propio menú.
+  const navDef = isDirector ? DIRECCION_NAV : DOCENTE_NAV;
 
   const isActive = (item) =>
     item.matches.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -233,27 +228,7 @@ export function AppShellLayout() {
 
           <div style={{ marginTop: 'auto' }}>
             <MotionToggle />
-            {!isDir && <SidebarJoinCode />}
-
-            {!isDirector && <button
-              type="button"
-              onClick={() => navigate(isDir ? '/docente/grupos' : '/direccion/escuela')}
-              style={{
-                marginTop: '10px',
-                width: '100%',
-                textAlign: 'left',
-                border: 0,
-                background: 'none',
-                borderRadius: '12px',
-                padding: '8px 12px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: COLORS.primaryText,
-                cursor: 'pointer',
-              }}
-            >
-              {isDir ? '← Volver a vista Docente' : 'Vista Dirección (Roadmap) →'}
-            </button>}
+            {!isDirector && <SidebarJoinCode />}
 
             <button
               type="button"
@@ -292,11 +267,8 @@ export function AppShellLayout() {
         >
           {narrow && <Mascot size={36} />}
           <div style={{ minWidth: 0, flex: '0 1 auto', display: 'flex' }}>
-            {isDir ? (
-              <div style={headerChip}>
-                Dirección
-                {!isDirector && <span style={{ fontWeight: 400, color: COLORS.muted }}>· Vista previa</span>}
-              </div>
+            {isDirector ? (
+              <div style={headerChip}>Dirección</div>
             ) : (
               <ActiveGroupSwitcher wide={wide} />
             )}

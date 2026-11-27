@@ -17,7 +17,6 @@ import { QuizzesBuilderScreen } from '@/features/assessments/QuizzesBuilderScree
 import { PromoteGroupsScreen } from '@/features/school-admin/PromoteGroupsScreen';
 import { SchoolDashboardScreen } from '@/features/school-admin/SchoolDashboardScreen';
 import { SchoolTeachersScreen } from '@/features/school-admin/SchoolTeachersScreen';
-import { SchoolOverviewScreen } from '@/features/school-admin/SchoolOverviewScreen';
 import { TransfersScreen } from '@/features/school-admin/TransfersScreen';
 import { StudentAchievementsScreen } from '@/features/student-portal/StudentAchievementsScreen';
 import { StudentClassesScreen } from '@/features/student-portal/StudentClassesScreen';
@@ -91,14 +90,10 @@ export function App() {
                 {/* Dirección con datos reales y agregados de la escuela. */}
                 <Route path="/direccion/panel" element={<SchoolDashboardScreen />} />
                 <Route path="/direccion/docentes" element={<SchoolTeachersScreen />} />
+                {/* Promoción y traslados: Roadmap con datos de ejemplo, solo para Dirección. */}
+                <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
+                <Route path="/direccion/traslados" element={<TransfersScreen />} />
               </Route>
-              <Route element={<RequireRole roles={['teacher']} redirectTo="/login" />}>
-                {/* Vista previa de Dirección (Roadmap, datos de ejemplo) para la docente. */}
-                <Route path="/direccion/escuela" element={<SchoolOverviewScreen />} />
-              </Route>
-              {/* Promoción y traslados: Roadmap con datos de ejemplo (director y vista previa docente). */}
-              <Route path="/direccion/promover" element={<PromoteGroupsScreen />} />
-              <Route path="/direccion/traslados" element={<TransfersScreen />} />
             </Route>
 
             <Route path="/alumno" element={<StudentLayout />}>

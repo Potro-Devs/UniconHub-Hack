@@ -95,7 +95,9 @@ describe('navegación', () => {
     const teacher = toSession(teacherData);
     const student = toSession(studentData);
     assert.equal(safeReturnPath('/docente/mapa', teacher), '/docente/mapa');
-    assert.equal(safeReturnPath('/direccion/escuela', teacher), '/direccion/escuela');
+    // Sin vista previa de Dirección: el docente no vuelve a rutas de /direccion.
+    assert.equal(safeReturnPath('/direccion/escuela', teacher), '/docente/grupos');
+    assert.equal(safeReturnPath('/direccion/panel', teacher), '/docente/grupos');
     assert.equal(safeReturnPath('/alumno/logros', teacher), '/docente/grupos');
     assert.equal(safeReturnPath('/alumno/logros', student), '/alumno/logros');
     assert.equal(safeReturnPath('/docente/mapa', student), '/alumno/inicio');
