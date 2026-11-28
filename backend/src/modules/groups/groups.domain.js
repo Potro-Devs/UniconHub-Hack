@@ -263,6 +263,37 @@ export function parseStudentInput(body) {
 }
 
 /**
+ * Cuerpo de `PATCH /groups/:groupId/students/:studentId`: `{ firstNames?, lastNames? }`, al menos uno.
+ * Mismas reglas que el alta; las iniciales se recalculan con el nombre completo resultante.
+ *
+ * @returns {{ firstNames?: string, lastNames?: string }} Solo los campos enviados, ya normalizados.
+ */
+export function parseStudentPatch(body) {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) throw invalid('Envía el nombre o los apellidos a corregir.');
+  const patch = {};
+  for (const field of ['firstNames', 'lastNames']) {
+    if (body[field] === undefined) continue;
+    const value = normalizeName(typeof body[field] === 'string' ? body[field] : '');
+    if (!isValidNamePart(value)) {
+      throw invalid(`Escribe nombre(s) y apellido(s) con letras (máximo ${MAX_NAME_LENGTH} caracteres cada uno).`, { field });
+    }
+    patch[field] = value;
+  }
+  if (Object.keys(patch).length === 0) throw invalid('Indica el nombre o los apellidos a corregir.');
+  return patch;
+}
+
+/**
+ * ¿El alumno tiene algo que perder si se elimina? Respuestas, cortes de dominio, logros, pistas,
+ * tutorías o inscripciones en otros grupos (historial de otro grado). En ese caso solo se da de baja.
+ *
+ * @param {{ responses: number, masteryCuts: number, achievements: number, hintRequests: number, tutoringPairs: number, otherEnrollments: number }} counts
+ */
+export function studentHasHistory(counts) {
+  return Object.values(counts).some((n) => n > 0);
+}
+
+/**
  * Cuerpo de `POST /groups/:groupId/students/bulk` (`{ text }`). Aplica el límite de líneas y
  * rechaza el lote completo si alguna línea es inválida (`details.invalidLines`), para que la
  * docente corrija la lista y la vuelva a pegar sin altas parciales.

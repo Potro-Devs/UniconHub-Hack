@@ -50,6 +50,20 @@ export function createGroupsRepository(db) {
     ),
     enroll: db.prepare("INSERT INTO group_enrollments (group_id, student_id, status) VALUES (?, ?, 'active')"),
     updateAvatar: db.prepare('UPDATE students SET avatar_id = ?, avatar_color = ? WHERE id = ?'),
+    updateStudentNames: db.prepare('UPDATE students SET first_names = ?, last_names = ?, initials = ? WHERE id = ?'),
+    withdraw: db.prepare(`
+      UPDATE group_enrollments SET status = 'withdrawn', ended_at = datetime('now')
+      WHERE group_id = ? AND student_id = ? AND status = 'active'`),
+    // Todo lo que se perdería al eliminar al alumno (para decidir si solo se permite la baja).
+    studentDataCounts: db.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM student_responses r JOIN assignment_targets t ON t.id = r.assignment_target_id WHERE t.student_id = $id) AS responses,
+        (SELECT COUNT(*) FROM skill_mastery_history WHERE student_id = $id) AS masteryCuts,
+        (SELECT COUNT(*) FROM student_achievements WHERE student_id = $id) AS achievements,
+        (SELECT COUNT(*) FROM hint_requests h JOIN assignment_targets t ON t.id = h.assignment_target_id WHERE t.student_id = $id) AS hintRequests,
+        (SELECT COUNT(*) FROM tutoring_pairs WHERE tutor_student_id = $id OR tutee_student_id = $id) AS tutoringPairs,
+        (SELECT COUNT(*) FROM group_enrollments WHERE student_id = $id AND group_id <> $groupId) AS otherEnrollments`),
+    deleteStudent: db.prepare('DELETE FROM students WHERE id = ?'),
     groupHasHistory: db.prepare(`
       SELECT EXISTS (SELECT 1 FROM group_enrollments WHERE group_id = ?)
           OR EXISTS (SELECT 1 FROM assignments WHERE group_id = ?) AS has_history`),
@@ -84,6 +98,11 @@ export function createGroupsRepository(db) {
     enrollActive: (groupId, studentId) => statements.enroll.run(groupId, studentId),
     /** Escribe los valores finales; el servicio decide qué se conserva y qué se quita. */
     updateAvatar: (studentId, { avatarId, avatarColor }) => statements.updateAvatar.run(avatarId, avatarColor, studentId),
+    updateStudentNames: (studentId, { firstNames, lastNames, initials }) =>
+      statements.updateStudentNames.run(firstNames, lastNames, initials, studentId),
+    withdrawStudent: (groupId, studentId) => statements.withdraw.run(groupId, studentId),
+    countStudentData: (studentId, groupId) => statements.studentDataCounts.get({ id: studentId, groupId }),
+    deleteStudent: (studentId) => statements.deleteStudent.run(studentId),
     /** Inscripciones de cualquier estado o asignaciones. */
     groupHasHistory: (groupId) => statements.groupHasHistory.get(groupId, groupId).has_history === 1,
   };

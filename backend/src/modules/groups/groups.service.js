@@ -12,6 +12,7 @@ import { ROLES } from '../auth/auth.domain.js';
 import { phaseForGrade } from '../curriculum/curriculum.domain.js';
 import {
   assertGroupPatchAllowed,
+  buildInitials,
   buildNewStudent,
   generateInternalFolio,
   generateJoinCode,
@@ -21,6 +22,8 @@ import {
   parseGroupPatch,
   parsePositiveId,
   parseStudentInput,
+  parseStudentPatch,
+  studentHasHistory,
   toGroupDto,
   toStudentDto,
 } from './groups.domain.js';
@@ -31,6 +34,8 @@ import { parseImportInput, rowsToStudentList } from './groups.import.domain.js';
 const MAX_CODE_ATTEMPTS = 20;
 
 const STUDENT_NOT_FOUND = () => new HttpError(404, 'STUDENT_NOT_FOUND', 'No encontramos a ese alumno.');
+const STUDENT_HAS_HISTORY = (details) => new HttpError(409, 'STUDENT_HAS_HISTORY',
+  'Este alumno ya tiene respuestas o historial. Para conservarlo, dalo de baja en lugar de eliminarlo.', details);
 const GROUP_ALREADY_EXISTS = () =>
   new HttpError(409, 'GROUP_ALREADY_EXISTS', 'Ese grupo ya está registrado en tu escuela.');
 const SESSION_INVALID = () => new HttpError(401, 'SESSION_INVALID', 'Tu sesión ya no es válida. Vuelve a entrar.');
@@ -61,6 +66,15 @@ export function createGroupsService({ repository, transaction, random = Math.ran
 
   const assertNotDuplicate = (fields, excludeId) => {
     if (repository.groupExists(fields, excludeId)) throw GROUP_ALREADY_EXISTS();
+  };
+
+  /** Grupo propio de la docente y alumno activo en él; si no, 404 (no se revela qué ids existen). */
+  const findOwnActiveStudent = (auth, groupId, studentId) => {
+    const group = findOwnGroup(auth, groupId);
+    const id = parsePositiveId(studentId, 'id del alumno');
+    const student = repository.findActiveStudentInGroup(id, group.id);
+    if (!student) throw STUDENT_NOT_FOUND();
+    return { group, student };
   };
 
   const createStudent = (group, input) => {
@@ -147,6 +161,37 @@ export function createGroupsService({ repository, transaction, random = Math.ran
       findOwnGroup(auth, groupId);
       const { kind, buffer } = parseImportInput(body);
       return rowsToStudentList(await readSpreadsheetRows(kind, buffer));
+    },
+
+    /** Corrige nombre(s) y/o apellido(s) de un alumno activo del grupo; recalcula las iniciales. */
+    updateStudent(auth, groupId, studentId, body) {
+      const { student } = findOwnActiveStudent(auth, groupId, studentId);
+      const patch = parseStudentPatch(body);
+      const firstNames = patch.firstNames ?? student.first_names;
+      const lastNames = patch.lastNames ?? student.last_names;
+      repository.updateStudentNames(student.id, { firstNames, lastNames, initials: buildInitials(firstNames, lastNames) });
+      return toStudentDto(repository.findStudentById(student.id));
+    },
+
+    /**
+     * Baja del grupo: la inscripción pasa a `withdrawn` con fecha. No borra nada: el historial
+     * (respuestas, cortes, logros) se conserva para el seguimiento longitudinal.
+     */
+    withdrawStudent(auth, groupId, studentId) {
+      const { group, student } = findOwnActiveStudent(auth, groupId, studentId);
+      repository.withdrawStudent(group.id, student.id);
+      return { studentId: student.id, groupId: group.id, status: 'withdrawn' };
+    },
+
+    /** Elimina a un alumno creado por error. Solo si no tiene ningún dato; si lo tiene → 409. */
+    deleteStudent(auth, groupId, studentId) {
+      const { group, student } = findOwnActiveStudent(auth, groupId, studentId);
+      return transaction(() => {
+        const counts = repository.countStudentData(student.id, group.id);
+        if (studentHasHistory(counts)) throw STUDENT_HAS_HISTORY(counts);
+        repository.deleteStudent(student.id);
+        return { studentId: student.id, deleted: true };
+      });
     },
 
     updateAvatar(auth, studentId, body) {

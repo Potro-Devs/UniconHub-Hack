@@ -19,6 +19,10 @@ export function createGroupsController(service) {
       const students = service.listStudents(req.auth, req.params.groupId);
       sendData(res, students, { meta: { count: students.length } });
     },
+    updateStudent: (req, res) =>
+      sendData(res, service.updateStudent(req.auth, req.params.groupId, req.params.studentId, req.body)),
+    withdrawStudent: (req, res) => sendData(res, service.withdrawStudent(req.auth, req.params.groupId, req.params.studentId)),
+    deleteStudent: (req, res) => sendData(res, service.deleteStudent(req.auth, req.params.groupId, req.params.studentId)),
     addStudent: (req, res) =>
       sendData(res, service.addStudent(req.auth, req.params.groupId, req.body), { status: 201 }),
     previewStudentImport: asyncHandler(async (req, res) =>
