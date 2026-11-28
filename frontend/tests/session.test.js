@@ -95,12 +95,30 @@ describe('navegación', () => {
     const teacher = toSession(teacherData);
     const student = toSession(studentData);
     assert.equal(safeReturnPath('/docente/mapa', teacher), '/docente/mapa');
-    assert.equal(safeReturnPath('/direccion/escuela', teacher), '/direccion/escuela');
+    // Sin vista previa de Dirección: el docente no vuelve a rutas de /direccion.
+    assert.equal(safeReturnPath('/direccion/escuela', teacher), '/docente/grupos');
+    assert.equal(safeReturnPath('/direccion/panel', teacher), '/docente/grupos');
     assert.equal(safeReturnPath('/alumno/logros', teacher), '/docente/grupos');
     assert.equal(safeReturnPath('/alumno/logros', student), '/alumno/logros');
     assert.equal(safeReturnPath('/docente/mapa', student), '/alumno/inicio');
     assert.equal(safeReturnPath('https://otro.sitio', teacher), '/docente/grupos');
     assert.equal(safeReturnPath(undefined, student), '/alumno/inicio');
+  });
+
+  test('safeReturnPath: docente y alumno exigen el segmento completo y rechazan rutas raras', () => {
+    const teacher = toSession(teacherData);
+    const student = toSession(studentData);
+    for (const ok of ['/docente', '/docente/', '/docente/grupos/12', '/docente/papel/3/captura']) {
+      assert.equal(safeReturnPath(ok, teacher), ok, ok);
+    }
+    for (const bad of ['/docenteX', '/docentes/mapa', '/docente/../direccion/panel', '/docente/./mapa',
+      '/docente//mapa', '/docente/..', '/docente\\..\\direccion']) {
+      assert.equal(safeReturnPath(bad, teacher), '/docente/grupos', bad);
+    }
+    assert.equal(safeReturnPath('/alumno/ejercicio/5', student), '/alumno/ejercicio/5');
+    for (const bad of ['/alumnoX', '/alumno/../docente/mapa', '/alumno//logros']) {
+      assert.equal(safeReturnPath(bad, student), '/alumno/inicio', bad);
+    }
   });
 });
 
