@@ -236,7 +236,7 @@ export function TutoringScreen() {
   }, [groupId]);
   useEffect(() => { if (sessions.status === 'ready') setDemoOverrides({}); }, [sessions.status, sessions.data]);
   useEffect(() => {
-    const savedKey = createdSession?.groupId === groupId ? `${groupId}|${createdSession.session.id}` : null;
+    const savedKey = createdSession && groupId && createdSession.groupId === groupId ? `${groupId}|${createdSession.session.id}` : null;
     if (savedKey && openedMaterial.current !== savedKey) openMaterial();
     openedMaterial.current = savedKey;
   }, [createdSession, groupId, openMaterial]);
@@ -265,7 +265,7 @@ export function TutoringScreen() {
     if (refreshAction === 'defer') setProposalRefreshPending(true);
     if (refreshAction === 'refresh') refreshProposal();
   };
-  const justCreated = createdSession?.groupId === groupId ? createdSession.session : null;
+  const justCreated = createdSession && groupId && createdSession.groupId === groupId ? createdSession.session : null;
   const listedSessions = sessions.data?.sessions ?? [];
   const allSessions = justCreated && !listedSessions.some((item) => item.id === justCreated.id) ? [justCreated, ...listedSessions] : listedSessions;
   const sessionList = allSessions.map((item) => ({ ...item,
