@@ -310,6 +310,8 @@ export function GroupDetailScreen() {
             }}
             onRemoved={(studentId, message) => {
               setStudentsState((prev) => ({ ...prev, students: prev.students.filter((s) => s.id !== studentId) }));
+              // Refresca el conteo del encabezado y de la lista de grupos (como al agregar alumnos).
+              loadGroup();
               say(message);
             }}
           />
