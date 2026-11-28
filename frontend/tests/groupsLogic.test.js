@@ -173,3 +173,15 @@ describe('borradores de la lista pegada', () => {
     assert.equal(getDraft(draftsForUser(state, null), 3), '');
   });
 });
+
+describe('secretWindowStatus', () => {
+  const now = Date.parse('2026-11-28T15:00:00Z');
+  test('cerrada sin fecha o vencida; abierta con hora local de cierre', async () => {
+    const { secretWindowStatus } = await import('../src/features/groups/groups.logic.js');
+    assert.deepEqual(secretWindowStatus(null, now), { open: false, untilLabel: null });
+    assert.deepEqual(secretWindowStatus('2026-11-28 14:59:00', now), { open: false, untilLabel: null });
+    const open = secretWindowStatus('2026-11-28 16:00:00', now);
+    assert.equal(open.open, true);
+    assert.match(open.untilLabel, /\d{1,2}:\d{2}/);
+  });
+});

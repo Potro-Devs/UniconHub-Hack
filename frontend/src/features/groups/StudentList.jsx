@@ -27,7 +27,7 @@ export function StudentList({ students, groupId, canEdit = false, onUpdated, onR
           canEdit={canEdit && Boolean(groupId)}
           open={openId === s.id}
           onToggle={() => setOpenId((current) => (current === s.id ? null : s.id))}
-          onUpdated={(updated) => { setOpenId(null); onUpdated?.(updated); }}
+          onUpdated={(updated, message) => { setOpenId(null); onUpdated?.(updated, message); }}
           onRemoved={(id, message) => { setOpenId(null); onRemoved?.(id, message); }}
         />
       ))}
@@ -91,7 +91,7 @@ function StudentRow({ student: s, groupId, canEdit, open, onToggle, onUpdated, o
 
 /** Panel de acciones de un alumno: menú → corregir nombre | confirmar baja | confirmar eliminación. */
 function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, onClose }) {
-  const [mode, setMode] = useState('menu'); // 'menu' | 'edit' | 'withdraw' | 'delete'
+  const [mode, setMode] = useState('menu'); // 'menu' | 'edit' | 'withdraw' | 'delete' | 'secret'
   const [firstNames, setFirstNames] = useState(student.firstNames);
   const [lastNames, setLastNames] = useState(student.lastNames);
   const [busy, setBusy] = useState(false);
@@ -102,7 +102,7 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
 
   useEffect(() => {
     if (mode === 'edit') firstInput.current?.focus();
-    if (mode === 'withdraw' || mode === 'delete') confirmButton.current?.focus();
+    if (mode === 'withdraw' || mode === 'delete' || mode === 'secret') confirmButton.current?.focus();
   }, [mode]);
 
   const run = async (action) => {
@@ -120,12 +120,16 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
 
   const save = (event) => {
     event.preventDefault();
-    run(async () => onUpdated(await groupsApi.updateStudent(groupId, student.id, { firstNames, lastNames })));
+    run(async () => onUpdated(await groupsApi.updateStudent(groupId, student.id, { firstNames, lastNames }), 'Nombre corregido.'));
   };
   const withdraw = () => run(async () => {
     await groupsApi.withdrawStudent(groupId, student.id);
     onRemoved(student.id, `${fullName} se dio de baja del grupo. Su historial se conserva.`);
   });
+  const resetSecret = () => run(async () => onUpdated(
+    await groupsApi.resetStudentSecret(groupId, student.id),
+    `Se restableció la imagen secreta de ${fullName}. La elegirá de nuevo cuando abras la configuración.`,
+  ));
   const remove = () => run(async () => {
     await groupsApi.deleteStudent(groupId, student.id);
     onRemoved(student.id, `Se eliminó el registro de ${fullName}.`);
@@ -151,6 +155,22 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
           <button type="button" onClick={() => setMode('menu')} disabled={busy} style={buttonStyle('secondary')}>Cancelar</button>
         </div>
       </form>
+    );
+  }
+
+  if (mode === 'secret') {
+    return (
+      <div id={id} role="group" aria-label="Confirmar restablecer imagen secreta" style={panel}>
+        <p style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>¿Restablecer la imagen secreta de {fullName}?</p>
+        <p style={{ ...mutedText, margin: 0 }}>Úsalo si la olvidó o la eligió por error. La volverá a elegir cuando abras la configuración de imágenes.</p>
+        <FormMessage message={error} />
+        <div style={row}>
+          <button ref={confirmButton} type="button" onClick={resetSecret} disabled={busy} style={buttonStyle('primary', { disabled: busy })}>
+            {busy ? 'Un momento…' : 'Sí, restablecer'}
+          </button>
+          <button type="button" onClick={() => { setError(null); setMode('menu'); }} disabled={busy} style={buttonStyle('secondary')}>Cancelar</button>
+        </div>
+      </div>
     );
   }
 
@@ -188,6 +208,9 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
   return (
     <div id={id} role="group" aria-label={`Opciones de ${fullName}`} style={{ ...panel, ...row, flexDirection: 'row' }}>
       <button type="button" onClick={() => setMode('edit')} style={buttonStyle('secondary')}>Corregir nombre</button>
+      {student.hasSecret && (
+        <button type="button" onClick={() => setMode('secret')} style={buttonStyle('secondary')}>Restablecer imagen secreta</button>
+      )}
       <button type="button" onClick={() => setMode('withdraw')} style={buttonStyle('secondary')}>Dar de baja</button>
       <button type="button" onClick={() => setMode('delete')} style={buttonStyle('ghost')}>Eliminar (registro por error)</button>
       <button type="button" onClick={onClose} style={{ ...buttonStyle('ghost'), marginLeft: 'auto' }}>Cerrar</button>

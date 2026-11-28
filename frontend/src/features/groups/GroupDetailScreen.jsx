@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { authApi } from '@/features/auth/auth.api';
+import { errorMessageOf } from '@/shared/api/client';
+import { FormMessage } from '@/shared/components/FormMessage';
 import { buttonStyle, card, mutedText, pill } from '@/shared/styles/ui';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
@@ -9,7 +11,7 @@ import { AddStudentForm } from './AddStudentForm';
 import { BulkStudentsForm } from './BulkStudentsForm';
 import { EditGroupPanel } from './EditGroupPanel';
 import { groupsApi } from './groups.api';
-import { schoolYearToDisplay } from './groups.logic';
+import { schoolYearToDisplay, secretWindowStatus } from './groups.logic';
 import { JoinCode } from './JoinCode';
 import { StudentList } from './StudentList';
 import { useTeacherGroups } from './TeacherGroupsContext';
@@ -206,7 +208,7 @@ export function GroupDetailScreen() {
           Código para tus alumnos
         </h2>
         <JoinCode code={group.joinCode} size={36} label={`Código de ${group.name}`} />
-        <div style={mutedText}>Entran sin correo: escriben el código y eligen su tarjeta.</div>
+        <div style={mutedText}>Entran sin correo: escriben el código, eligen su tarjeta y tocan su imagen secreta.</div>
       </section>}
 
       {justSaved && isNew && (
@@ -242,6 +244,15 @@ export function GroupDetailScreen() {
 
       {canEdit && panel === 'add' && (
         <AddStudentForm group={group} onSaved={onStudentAdded} onClose={() => setPanel(null)} />
+      )}
+
+      {canEdit && studentsState.status === 'ready' && students.length > 0 && (
+        <SecretImagesCard
+          group={group}
+          students={students}
+          onGroupChanged={(updated) => { setGroupState({ status: 'ready', group: updated }); upsertGroup(updated); }}
+          say={say}
+        />
       )}
 
       <section aria-labelledby="students-title" style={card}>
@@ -293,9 +304,9 @@ export function GroupDetailScreen() {
             students={students}
             groupId={group.id}
             canEdit={canEdit}
-            onUpdated={(updated) => {
+            onUpdated={(updated, message) => {
               setStudentsState((prev) => ({ ...prev, students: prev.students.map((s) => (s.id === updated.id ? updated : s)) }));
-              say('Nombre corregido.');
+              if (message) say(message);
             }}
             onRemoved={(studentId, message) => {
               setStudentsState((prev) => ({ ...prev, students: prev.students.filter((s) => s.id !== studentId) }));
@@ -305,5 +316,52 @@ export function GroupDetailScreen() {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Imágenes secretas del grupo: cuántos alumnos ya la tienen y la ventana "Hoy configuramos imágenes".
+ * Solo con la ventana abierta un alumno sin imagen puede elegirla (en clase, con la docente presente).
+ */
+function SecretImagesCard({ group, students, onGroupChanged, say }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const withSecret = students.filter((s) => s.hasSecret).length;
+  const status = secretWindowStatus(group.secretSetupUntil);
+
+  const toggle = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = status.open ? await groupsApi.closeSecretSetup(group.id) : await groupsApi.openSecretSetup(group.id, 60);
+      onGroupChanged(updated);
+      say(status.open ? 'Configuración de imágenes cerrada.' : 'Configuración de imágenes abierta por 1 hora.');
+    } catch (e) {
+      setError(errorMessageOf(e));
+    }
+    setBusy(false);
+  };
+
+  return (
+    <section aria-labelledby="secret-title" style={card}>
+      <h2 id="secret-title" className="font-display" style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>Imágenes secretas para entrar</h2>
+      <p style={{ ...mutedText, margin: '6px 0 0' }}>
+        Después de tocar su tarjeta, cada alumno toca su imagen secreta. Así nadie entra por error con la tarjeta de un compañero.
+      </p>
+      <p style={{ margin: '10px 0 0', fontSize: '16px' }}>
+        <strong>{withSecret} de {students.length}</strong> alumnos ya tienen su imagen.
+      </p>
+      <p role="status" style={{ margin: '6px 0 0', fontSize: '16px' }}>
+        {status.open
+          ? <>Configuración <strong>abierta</strong> hasta las {status.untilLabel}: los alumnos sin imagen pueden elegirla ahora.</>
+          : 'Configuración cerrada: los alumnos sin imagen verán "Pídele ayuda a tu maestra".'}
+      </p>
+      <FormMessage message={error} />
+      <div style={{ marginTop: '10px' }}>
+        <button type="button" onClick={toggle} disabled={busy} style={buttonStyle(status.open ? 'secondary' : 'primary', { disabled: busy })}>
+          {busy ? 'Un momento…' : status.open ? 'Cerrar configuración' : 'Abrir configuración por 1 hora'}
+        </button>
+      </div>
+    </section>
   );
 }
