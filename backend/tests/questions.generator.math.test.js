@@ -214,13 +214,16 @@ describe('multiplicación', () => {
 });
 
 describe('fracciones', () => {
-  test('3.º: denominadores 4 u 8 y la fracción pintada es correcta', () => {
+  test('3.º: denominadores 4 u 8 y la fracción marcada (pizza, pastel o chocolate) es correcta', () => {
     forEach('fractions', 3, (q, at) => {
-      const m = q.stem.match(/se divide en (\d+) partes iguales y se pintan? (\d+)\./);
+      // El dibujo es la fuente de verdad; el enunciado debe decir los mismos números.
+      const { parts, shaded } = q.visual;
+      assert.ok([4, 8].includes(parts), at);
+      assert.ok(shaded >= 1 && shaded < parts, at);
+      const m = q.stem.match(/ (\d+) (?:rebanadas|cuadritos) iguales y (?:Luis se come )?(\d+)[ .]/);
       assert.ok(m, at);
-      assert.ok(['4', '8'].includes(m[1]), at);
-      assert.ok(Number(m[2]) >= 1 && Number(m[2]) < Number(m[1]), at);
-      assert.equal(q.correct, `${m[2]}/${m[1]}`, at);
+      assert.deepEqual([Number(m[1]), Number(m[2])], [parts, shaded], at);
+      assert.equal(q.correct, `${shaded}/${parts}`, at);
     });
   });
 
