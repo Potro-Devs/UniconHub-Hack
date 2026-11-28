@@ -261,10 +261,12 @@ const tourScene = (id) => function TourScene() { return <Tour tour={TOURS[id]} /
 const ART = { title: Title, opening: Opening, context: Context, map: tourScene('map'), diagnosis: Diagnosis, student: tourScene('student'), paper: tourScene('paper'), teams: tourScene('teams'), languages: tourScene('languages'), school: tourScene('school'), closing: Closing };
 const DARK_SCENES = ['title', 'opening', 'closing'];
 
-export default function PitchScreen() {
+export default function PitchScreen({ standalone = false } = {}) {
   const playback = usePitchPlayback(PITCH_DURATION);
   const current = getSceneAt(PITCH_SCENES, playback.time);
   const reduced = useReducedMotion();
+  const preview = !playback.hasPlayed && playback.time > 0;
+  const WorkspaceBrand = standalone ? 'div' : Link;
   const [clean, setClean] = useState(false);
   const [notes, setNotes] = useState(false);
   const [subtitles, setSubtitles] = useState(true);
@@ -322,12 +324,12 @@ export default function PitchScreen() {
   const subtitle = subtitleChunks[Math.min(subtitleChunks.length - 1, Math.floor(current.elapsed / current.scene.seconds * subtitleChunks.length))];
 
   return <main ref={root} className={`pitch-page ${clean ? 'pitch-page--clean' : ''}`}>
-    {!clean && <header className="pitch-workspace-header"><Link to="/login" className="pitch-workspace-brand"><AxiLogo size="md" /><span>ESTUDIO DE PRESENTACIÓN</span></Link><div><span>{formatPitchTime(PITCH_DURATION)} · Narración humana · {TEAM_NAME}</span><button type="button" onClick={() => setNotes((value) => !value)} aria-expanded={notes}>Guion y notas</button></div></header>}
+    {!clean && <header className="pitch-workspace-header"><WorkspaceBrand {...(standalone ? {} : { to: '/login' })} className="pitch-workspace-brand"><AxiLogo size="md" /><span>ESTUDIO DE PRESENTACIÓN</span></WorkspaceBrand><div><span>{formatPitchTime(PITCH_DURATION)} · Narración humana · {TEAM_NAME}</span><button type="button" onClick={() => setNotes((value) => !value)} aria-expanded={notes}>Guion y notas</button></div></header>}
     <div className="pitch-viewer">
       <section ref={stage} className={`pitch-stage ${dark ? 'pitch-stage--dark' : ''} ${TOURS[current.scene.id] ? 'pitch-stage--tour' : ''} pitch-stage--${current.scene.id}`} aria-label={`Presentación, escena ${current.index + 1} de ${PITCH_SCENES.length}`} style={{ '--pitch-play-state': playback.playing ? 'running' : 'paused' }}>
         <div className="pitch-stage-grain" aria-hidden="true" />
         <div className="pitch-stage-top"><strong className="pv-stage-brand"><AxiLogo size="sm" px={cq * 2.1} /><span> / </span> EDUCACIÓN QUE COMPRENDE</strong><span>{String(current.index + 1).padStart(2, '0')} — {String(PITCH_SCENES.length).padStart(2, '0')}</span></div>
-        <Motion.Provider value={{ elapsed: current.elapsed, reduced, cq }}><div className="pitch-scene" key={current.scene.id}>
+        <Motion.Provider value={{ elapsed: current.elapsed, reduced: reduced || preview, cq }}><div className="pitch-scene" key={current.scene.id}>
           <Ambient /><div className="pitch-scene-copy"><span className="pitch-kicker">{current.scene.kicker}</span><AnimatedHeading title={current.scene.title} accent={current.scene.accent} headingRef={sceneHeading} /></div>
           <div className="pitch-scene-art"><Art /></div>
           <SceneWipe />
@@ -340,7 +342,7 @@ export default function PitchScreen() {
       {!clean && <div className="pitch-controls" aria-label="Controles de presentación">
         <div className="pitch-scrub"><input aria-label="Posición de la presentación" type="range" min="0" max={PITCH_DURATION} step="0.1" value={playback.time} onChange={(event) => playback.seek(Number(event.target.value))} aria-valuetext={`${formatPitchTime(playback.time)} de ${formatPitchTime(PITCH_DURATION)}`} style={{ '--pitch-position': `${playback.time / PITCH_DURATION * 100}%` }} /></div>
         <div className="pitch-control-row"><div className="pitch-transport"><button type="button" onClick={playback.replay} aria-label="Reproducir desde el inicio" title="Reiniciar">↺</button><button type="button" onClick={() => move(-1)} disabled={current.index === 0} aria-label="Escena anterior">‹</button><button type="button" className="pitch-play-button" onClick={playback.toggle} aria-label={playback.playing ? 'Pausar presentación' : 'Reproducir presentación'}>{playback.playing ? 'Ⅱ' : '▶'}</button><button type="button" onClick={() => move(1)} disabled={current.index === PITCH_SCENES.length - 1} aria-label="Escena siguiente">›</button><span className="pitch-time">{formatPitchTime(playback.time)} <i>/ {formatPitchTime(PITCH_DURATION)}</i></span></div><div className="pitch-view-controls"><button type="button" className="pv-sound-toggle" aria-pressed={sound} onClick={() => setSound((value) => !value)} title="Música y efectos (tecla M)"><span aria-hidden="true">{sound ? '🔊' : '🔇'}</span> Sonido</button><button type="button" aria-pressed={subtitles} onClick={() => setSubtitles((value) => !value)}>Subtítulos</button><button type="button" onClick={() => setClean(true)}>Modo limpio <kbd>C</kbd></button><button type="button" onClick={toggleFullscreen} aria-label={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}>⛶</button></div></div>
-        <nav className="pitch-chapters" aria-label="Escenas de la presentación">{PITCH_SCENES.map((scene, index) => <button type="button" key={scene.id} onClick={() => playback.seek(sceneStart(PITCH_SCENES, index))} aria-current={index === current.index ? 'step' : undefined}><span>{String(index + 1).padStart(2, '0')}</span>{scene.chapter}</button>)}</nav>
+        <nav className="pitch-chapters" aria-label="Escenas de la presentación" style={{ '--pitch-scene-count': PITCH_SCENES.length }}>{PITCH_SCENES.map((scene, index) => <button type="button" key={scene.id} onClick={() => playback.seek(sceneStart(PITCH_SCENES, index))} aria-current={index === current.index ? 'step' : undefined}><span>{String(index + 1).padStart(2, '0')}</span>{scene.chapter}</button>)}</nav>
       </div>}
     </div>
     {!clean && <><p className="pitch-workspace-help"><span>Espacio: reproducir / pausar · ← →: cambiar escena · M: sonido</span><span>Modo limpio para presentar o grabar la pantalla. Sin voz incorporada.</span></p>{notes && <aside className="pitch-notes" aria-label="Guion para la persona que presenta"><div className="pitch-notes-heading"><div><span className="pitch-kicker">TELEPROMPTER · ESCENA {current.index + 1}</span><h2>{current.scene.kicker}</h2></div><div><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(script); setMessage('Guion copiado.'); } catch { setMessage('No se pudo copiar. Usa Descargar guion.'); } }}>Copiar guion</button><button type="button" onClick={downloadScript}>Descargar guion</button></div></div><p className="pitch-narration">{current.scene.narration}</p><p className="pitch-notes-source">{sources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}<span>El dato de PISA corresponde a adolescentes; los ejemplos de la presentación son ficticios. Contenidos por validar con docentes de primaria.</span></p></aside>}<p role="status" className="pitch-status">{message}</p></>}

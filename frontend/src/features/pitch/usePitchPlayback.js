@@ -5,6 +5,7 @@ import { clampTime } from './timeline';
 export function usePitchPlayback(duration) {
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const position = useRef(0);
   const seek = useCallback((value) => {
     position.current = clampTime(value, duration);
@@ -13,10 +14,11 @@ export function usePitchPlayback(duration) {
   }, [duration]);
   const toggle = useCallback(() => {
     if (document.hidden) return;
+    setHasPlayed(true);
     if (position.current >= duration) seek(0);
     setPlaying((value) => !value);
   }, [duration, seek]);
-  const replay = useCallback(() => { seek(0); setPlaying(true); }, [seek]);
+  const replay = useCallback(() => { seek(0); setHasPlayed(true); setPlaying(true); }, [seek]);
 
   useEffect(() => {
     const onVisibility = () => { if (document.hidden) setPlaying(false); };
@@ -39,5 +41,5 @@ export function usePitchPlayback(duration) {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [playing, duration]);
-  return { time, playing, seek, toggle, replay, pause: () => setPlaying(false) };
+  return { time, playing, hasPlayed, seek, toggle, replay, pause: () => setPlaying(false) };
 }

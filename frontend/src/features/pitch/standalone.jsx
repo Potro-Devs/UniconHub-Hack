@@ -17,7 +17,7 @@ for (const [name, color] of Object.entries(KID_COLORS)) document.documentElement
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <MemoryRouter initialEntries={['/pitch']}>
-      <PitchScreen />
+      <PitchScreen standalone />
     </MemoryRouter>
   </StrictMode>,
 );
