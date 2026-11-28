@@ -7,22 +7,34 @@ import { paperApi } from './paper.api';
 import { usePaperAssignment } from './usePaperAssignment';
 import './paper-mode.css';
 
-function PdfDownload({ assignmentId, hints = false }) {
+const DOWNLOAD_META = {
+  sheet: { label: 'Descargar hoja y respuestas', prefix: 'hoja', variant: 'primary' },
+  'answer-sheet': { label: 'Descargar solo hoja de respuestas', prefix: 'hoja-respuestas', variant: 'secondary' },
+  hints: { label: 'Descargar tarjetas de pistas', prefix: 'pistas', variant: 'secondary' },
+};
+
+function PdfDownload({ assignmentId, kind = 'sheet' }) {
   const [state, setState] = useState({ pending: false, error: null, downloaded: false });
   const alive = useRef(true);
   const sending = useRef(false);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const meta = DOWNLOAD_META[kind];
   const download = async () => {
     if (sending.current) return;
     sending.current = true;
     setState({ pending: true, error: null, downloaded: false });
     try {
-      const blob = await (hints ? paperApi.downloadHints(assignmentId) : paperApi.downloadSheet(assignmentId));
+      const fetchPdf = kind === 'hints'
+        ? paperApi.downloadHints
+        : kind === 'answer-sheet'
+          ? paperApi.downloadAnswerSheet
+          : paperApi.downloadSheet;
+      const blob = await fetchPdf(assignmentId);
       if (!alive.current) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${hints ? 'pistas' : 'hoja'}-${assignmentId}.pdf`;
+      link.download = `${meta.prefix}-${assignmentId}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -34,7 +46,7 @@ function PdfDownload({ assignmentId, hints = false }) {
     } finally { sending.current = false; }
   };
   return <div className="paper-page" style={{ gap: '8px' }}>
-    <button type="button" disabled={state.pending} style={buttonStyle('secondary', { disabled: state.pending, fullWidth: true })} onClick={download}>{state.pending ? 'Preparando descarga…' : hints ? 'Descargar tarjetas de pistas' : 'Descargar hoja'}</button>
+    <button type="button" disabled={state.pending} style={buttonStyle(meta.variant, { disabled: state.pending, fullWidth: true })} onClick={download}>{state.pending ? 'Preparando descarga…' : meta.label}</button>
     {state.error && <p role="alert" style={{ ...alertBox, margin: 0 }}>{errorMessageOf(state.error)}</p>}
     {state.downloaded && <p role="status" style={{ ...mutedText, margin: 0 }}>Descarga preparada.</p>}
   </div>;
@@ -50,8 +62,12 @@ function GroupPaperAssignment({ group, assignmentId }) {
     <CaptureProgress request={request} />
     <section style={card}>
       <h2 className="font-display" style={sectionTitle}>Material para imprimir</h2>
-      <p style={{ ...mutedText, margin: 0 }}>Hoja genérica, sin nombres, en blanco y negro y tamaño Carta. Incluye la casilla “Apoyo durante la prueba”. Entrega las tarjetas de pistas una a la vez.</p>
-      <div className="paper-actions"><PdfDownload assignmentId={assignment.id} /><PdfDownload assignmentId={assignment.id} hints /></div>
+      <p style={{ ...mutedText, margin: 0 }}>Hojas genéricas, sin nombres, en blanco y negro y tamaño Carta. La prueba completa incluye al final la hoja de respuestas escaneable con la cámara del celular; también puedes imprimir solo la hoja de respuestas o las tarjetas de pistas.</p>
+      <div className="paper-actions">
+        <PdfDownload assignmentId={assignment.id} kind="sheet" />
+        <PdfDownload assignmentId={assignment.id} kind="answer-sheet" />
+        <PdfDownload assignmentId={assignment.id} kind="hints" />
+      </div>
     </section>
     {assignment.status === 'closed' ? <p style={mutedText}>Esta prueba está cerrada. Puedes consultar y descargar sus materiales.</p> : captureStatus.pending > 0 ? <Link to={`/docente/papel/${assignment.id}/captura`} style={buttonStyle('primary')}>Capturar hojas</Link> : <p role="status" style={{ ...mutedText, margin: 0 }}>Todas las hojas están capturadas.</p>}
     <Link to="/docente/mapa" style={buttonStyle('secondary')}>Ver Mapa del grupo</Link>

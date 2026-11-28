@@ -14,6 +14,8 @@ import { closeSkillSessions } from '../diagnostics/diagnostics.mastery.js';
 import { createGroupAccess } from '../groups/groups.access.js';
 import { parsePositiveId } from '../groups/groups.domain.js';
 import { buildPaperCapture, parsePaperCaptureInput, summarizeCaptureStatus } from './paper-mode.domain.js';
+import { buildOmrLayout } from './paper-mode.omr.domain.js';
+import { renderOmrAnswerSheetPdf } from './paper-mode.omr.pdf.js';
 import { renderHintCardsPdf } from './paper-mode.pdf.js';
 
 const ASSIGNMENT_NOT_FOUND = () => new HttpError(404, 'ASSIGNMENT_NOT_FOUND', 'No encontramos esa prueba.');
@@ -77,13 +79,27 @@ export function createPaperModeService({
     contentType: 'application/pdf',
   });
 
+  const buildSheetOmrLayout = ({ assignment, questionRows, options, groupLabel }) =>
+    buildOmrLayout({
+      assignmentId: assignment.id,
+      title: assignment.title,
+      groupLabel,
+      questions: questionRows.map((q) => ({
+        id: q.id,
+        position: q.position,
+        options: (options.get(q.id) ?? []).map((o) => ({ id: o.id, label: o.label })),
+      })),
+    });
+
   return {
     /**
      * Hoja genérica de la prueba: Carta, B/N, sin datos del alumno ni respuestas. Reutiliza el
-     * renderizador de cuestionarios para que ambas hojas se vean igual.
+     * renderizador de cuestionarios y agrega al final la hoja de respuestas escaneable (OMR).
      */
     async exportSheetPdf(auth, assignmentId) {
-      const { assignment, group, questionRows, options, skillNames, groupLabel } = loadSheet(auth, assignmentId);
+      const sheet = loadSheet(auth, assignmentId);
+      const { assignment, group, questionRows, options, skillNames, groupLabel } = sheet;
+      const omrLayout = buildSheetOmrLayout(sheet);
       const buffer = await renderQuizPdf(
         {
           title: assignment.title,
@@ -96,9 +112,22 @@ export function createPaperModeService({
             options: (options.get(q.id) ?? []).map((o) => ({ label: o.label, text: o.text })),
           })),
         },
-        { groupLabel, supportField: true },
+        { groupLabel, supportField: true, omrLayout },
       );
       return pdfFile(buffer, 'hoja', assignment.id);
+    },
+
+    /** Solo hoja de respuestas escaneable (OMR), 1 página Carta B/N sin datos del alumno. */
+    async exportAnswerSheetPdf(auth, assignmentId) {
+      const sheet = loadSheet(auth, assignmentId);
+      const omrLayout = buildSheetOmrLayout(sheet);
+      const buffer = await renderOmrAnswerSheetPdf(omrLayout);
+      return pdfFile(buffer, 'hoja-respuestas', sheet.assignment.id);
+    },
+
+    /** Coordenadas OMR de la prueba (fuente única de verdad para PDF y escáner). */
+    getOmrLayout(auth, assignmentId) {
+      return buildSheetOmrLayout(loadSheet(auth, assignmentId));
     },
 
     /** Tarjetas de pistas recortables: 3 por reactivo, una por nivel. */

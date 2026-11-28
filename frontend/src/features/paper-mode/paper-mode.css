@@ -11,3 +11,20 @@
 .paper-capture select { min-width: 0; max-width: 100%; }
 .paper-student { display: flex; gap: 12px; align-items: center; }
 .paper-student > :last-child { min-width: 0; }
+.omr-scanner { min-width: 0; }
+.omr-scanner-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.omr-code-pill { flex: none; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 13px; background: #F2F4FC; color: #18203A; border: 1px solid #C9D1E0; }
+.omr-viewport { position: relative; width: 100%; max-width: 100%; aspect-ratio: 3 / 4; max-height: 460px; border-radius: 16px; overflow: hidden; background: #18203A; display: grid; place-items: center; }
+.omr-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.omr-guide { position: relative; grid-area: 1 / 1; width: min(84%, calc(84% * 516 / 696)); height: 84%; aspect-ratio: 516 / 696; max-width: 84%; max-height: 84%; pointer-events: none; box-shadow: 0 0 0 9999px rgb(24 32 58 / 38%); border-radius: 8px; }
+.omr-viewport > .omr-video { grid-area: 1 / 1; position: absolute; inset: 0; }
+.omr-viewport-status { position: absolute; bottom: 12px; left: 12px; right: 12px; margin: 0; text-align: center; color: #FFFFFF; font-weight: 700; font-size: 14px; text-shadow: 0 1px 4px rgb(0 0 0 / 70%); }
+.omr-corner { position: absolute; width: 24px; height: 24px; border-color: #FFFFFF; border-style: solid; }
+.omr-corner--tl { top: 0; left: 0; border-width: 4px 0 0 4px; border-top-left-radius: 6px; }
+.omr-corner--tr { top: 0; right: 0; border-width: 4px 4px 0 0; border-top-right-radius: 6px; }
+.omr-corner--br { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-bottom-right-radius: 6px; }
+.omr-corner--bl { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-bottom-left-radius: 6px; }
+.omr-upload-label { position: relative; overflow: hidden; }
+.omr-upload-label input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.omr-review-card { outline: 2px solid #D97706; background: #FFFBEB !important; }
+.omr-doubt-badge { display: inline-flex; align-self: flex-start; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #FEF3C7; color: #78350F; border: 1px solid #F59E0B; }

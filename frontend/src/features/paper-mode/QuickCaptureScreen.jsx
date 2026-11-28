@@ -3,8 +3,19 @@ import { Link, useParams } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { readableTextOn } from '@/features/groups/groups.logic';
 import { alertBox, buttonStyle, card, inputStyle, mutedText, noticeBox, pageTitle } from '@/shared/styles/ui';
+import { OmrScannerPanel } from './OmrScannerPanel';
 import { CaptureProgress, PaperGroupBoundary, PaperRequestState } from './PaperComponents';
-import { currentPaperTarget, paperCaptureBody, paperCaptureError, pendingPaperTargets, studentName, unansweredPaperCount } from './paper-mode.logic';
+import {
+  applyOmrScanToDraft,
+  clearReviewQuestion,
+  clearReviewSupport,
+  currentPaperTarget,
+  paperCaptureBody,
+  paperCaptureError,
+  pendingPaperTargets,
+  studentName,
+  unansweredPaperCount,
+} from './paper-mode.logic';
 import { paperApi } from './paper.api';
 import { usePaperAssignment } from './usePaperAssignment';
 import './paper-mode.css';
@@ -13,6 +24,8 @@ function CaptureForm({ request, group }) {
   const { assignment, captureStatus, students } = request;
   const [preferredId, setPreferredId] = useState(null);
   const [drafts, setDrafts] = useState({});
+  const [scanReviews, setScanReviews] = useState({});
+  const [omrState, setOmrState] = useState({ open: false, loading: false, layout: null, error: '' });
   const [completedLocally, setCompletedLocally] = useState([]);
   const [passed, setPassed] = useState([]);
   const [submission, setSubmission] = useState({ pending: false, error: '', message: '' });
@@ -27,19 +40,54 @@ function CaptureForm({ request, group }) {
   const studentById = useMemo(() => new Map(students.map((student) => [student.id, student])), [students]);
   const student = studentById.get(studentId);
   const draft = drafts[studentId] ?? { answers: {}, supportUsed: false };
+  const review = scanReviews[studentId] ?? null;
   const unanswered = unansweredPaperCount(assignment.questions, draft);
   const closed = assignment.status !== 'active';
-  useEffect(() => { studentHeading.current?.focus({ preventScroll: true }); }, [studentId]);
+  useEffect(() => {
+    studentHeading.current?.focus({ preventScroll: true });
+    setOmrState((state) => (state.open ? { ...state, open: false } : state));
+  }, [studentId]);
 
   const updateDraft = (patch) => setDrafts((currentDrafts) => ({
     ...currentDrafts,
     [studentId]: { answers: {}, supportUsed: false, ...currentDrafts[studentId], ...patch },
   }));
-  const forgetDraft = (id) => setDrafts((currentDrafts) => {
-    const next = { ...currentDrafts };
-    delete next[id];
-    return next;
-  });
+  const forgetDraft = (id) => {
+    setDrafts((currentDrafts) => {
+      const next = { ...currentDrafts };
+      delete next[id];
+      return next;
+    });
+    setScanReviews((currentReviews) => {
+      const next = { ...currentReviews };
+      delete next[id];
+      return next;
+    });
+  };
+  const openScanner = async () => {
+    if (omrState.loading || submission.pending || closed || studentId == null) return;
+    if (omrState.layout) {
+      setOmrState((state) => ({ ...state, open: !state.open, error: '' }));
+      return;
+    }
+    setOmrState({ open: false, loading: true, layout: null, error: '' });
+    try {
+      const layout = await paperApi.getOmrLayout(assignment.id);
+      if (!alive.current) return;
+      setOmrState({ open: true, loading: false, layout, error: '' });
+    } catch {
+      if (!alive.current) return;
+      setOmrState({ open: false, loading: false, layout: null, error: 'No pudimos preparar el escáner OMR. Puedes capturar las respuestas a mano.' });
+    }
+  };
+  const handleScanApplied = (scanResult) => {
+    if (studentId == null) return;
+    const { draft: scannedDraft, review: scannedReview } = applyOmrScanToDraft(assignment.questions, scanResult);
+    setDrafts((currentDrafts) => ({ ...currentDrafts, [studentId]: scannedDraft }));
+    setScanReviews((currentReviews) => ({ ...currentReviews, [studentId]: scannedReview }));
+    setOmrState((state) => ({ ...state, open: false, error: '' }));
+    setSubmission({ pending: false, error: '', message: scannedReview.summary });
+  };
   const refreshAfterSave = async () => {
     // Un fallo aquí no revierte una hoja ya guardada ni ofrece reenviar sus respuestas.
     try { await request.refreshStatus(); } catch { /* CaptureProgress permite reintentar sin reenviar. */ }
@@ -84,6 +132,7 @@ function CaptureForm({ request, group }) {
     <CaptureProgress request={request} />
     {submission.message && <p role="status" style={{ ...noticeBox, margin: 0 }}>{submission.message}</p>}
     {submission.error && <p role="alert" style={{ ...alertBox, margin: 0 }}>{submission.error} Tus respuestas se conservan.</p>}
+    {omrState.error && <p role="alert" style={{ ...alertBox, margin: 0 }}>{omrState.error}</p>}
     {closed ? <section style={card}><h2 className="font-display" style={{ margin: 0 }}>Prueba cerrada</h2><p style={mutedText}>Esta prueba ya no permite capturar hojas. Puedes consultar sus resultados en el Mapa del grupo.</p></section> : !current ? <section style={card}>
       <h2 className="font-display" style={{ margin: 0 }}>{captureStatus.pending === 0 ? 'Todas las hojas están capturadas' : 'Terminaste esta pasada'}</h2>
       {captureStatus.pending > 0 && <>
@@ -101,16 +150,60 @@ function CaptureForm({ request, group }) {
             <span aria-hidden="true" style={{ display: 'grid', placeItems: 'center', flex: 'none', width: '48px', height: '48px', borderRadius: '50%', background: student?.avatarColor ?? COLORS.surfaceSubtle, color: student?.avatarColor ? readableTextOn(student.avatarColor, COLORS.ink, COLORS.onPrimary) : COLORS.ink, border: `1px solid ${COLORS.border}`, fontWeight: 700 }}>{student?.initials ?? '—'}</span>
             <h2 ref={studentHeading} tabIndex={-1} className="font-display" style={{ margin: 0, fontSize: '22px' }}>{studentName(student, studentId)}</h2>
           </div>
-          <label className="paper-option" style={{ border: `1px solid ${COLORS.border}` }}><input type="checkbox" checked={draft.supportUsed} onChange={(event) => updateDraft({ supportUsed: event.target.checked })} /><span><strong>Usó tarjetas de pistas</strong><br /><span style={mutedText}>Marca lo mismo que aparece en su hoja. Al marcarla, todos los aciertos de esta hoja se registran como “Logrado con apoyo”.</span></span></label>
+          <div className="paper-actions">
+            <button type="button" disabled={omrState.loading || submission.pending} style={buttonStyle('secondary', { disabled: omrState.loading || submission.pending })} onClick={openScanner}>
+              {omrState.loading ? 'Preparando escáner…' : omrState.open ? 'Cerrar cámara' : 'Escanear hoja'}
+            </button>
+          </div>
+          <label className={`paper-option ${review?.supportUncertain ? 'omr-review-card' : ''}`} style={{ border: `1px solid ${review?.supportUncertain ? COLORS.alertBorder : COLORS.border}` }}>
+            <input
+              type="checkbox"
+              checked={draft.supportUsed}
+              onChange={(event) => {
+                updateDraft({ supportUsed: event.target.checked });
+                setScanReviews((currentReviews) => ({ ...currentReviews, [studentId]: clearReviewSupport(currentReviews[studentId]) }));
+              }}
+            />
+            <span>
+              <strong>Usó tarjetas de pistas</strong>
+              {review?.supportUncertain && <><br /><span className="omr-doubt-badge">Revisar: marca tenue en apoyo</span></>}
+              <br /><span style={mutedText}>Marca lo mismo que aparece en su hoja. Al marcarla, todos los aciertos de esta hoja se registran como “Logrado con apoyo”.</span>
+            </span>
+          </label>
         </section>
-        {assignment.questions.map((question, index) => <div key={question.id} style={card}>
-          <fieldset className="paper-fieldset">
-            <legend>{index + 1}. {question.stem}</legend>
-            {[...question.options.map((option) => ({ id: option.id, text: `${option.label}. ${option.text}` })), { id: null, text: 'Sin respuesta' }].map((option) => <label className="paper-option" key={option.id ?? 'unanswered'} style={{ border: `1px solid ${(draft.answers[question.id] ?? null) === option.id ? COLORS.primary : COLORS.border}`, background: (draft.answers[question.id] ?? null) === option.id ? COLORS.primarySoftBg : COLORS.surface }}>
-              <input type="radio" name={`paper-question-${question.id}`} checked={(draft.answers[question.id] ?? null) === option.id} onChange={() => updateDraft({ answers: { ...draft.answers, [question.id]: option.id } })} /><span>{option.text}</span>
-            </label>)}
-          </fieldset>
-        </div>)}
+        {omrState.open && omrState.layout && (
+          <OmrScannerPanel
+            layout={omrState.layout}
+            studentLabel={studentName(student, studentId)}
+            onApplyScan={handleScanApplied}
+            onClose={() => setOmrState((state) => ({ ...state, open: false }))}
+          />
+        )}
+        {review && (
+          <p role="status" style={{ ...noticeBox, margin: 0 }}>
+            {review.summary}
+          </p>
+        )}
+        {assignment.questions.map((question, index) => {
+          const doubt = review?.uncertainQuestions?.[question.id] ?? null;
+          return <div key={question.id} className={doubt ? 'omr-review-card' : undefined} style={card}>
+            <fieldset className="paper-fieldset">
+              <legend>{index + 1}. {question.stem}</legend>
+              {doubt && <span className="omr-doubt-badge">Revisar: {doubt.reason}</span>}
+              {[...question.options.map((option) => ({ id: option.id, text: `${option.label}. ${option.text}` })), { id: null, text: 'Sin respuesta' }].map((option) => <label className="paper-option" key={option.id ?? 'unanswered'} style={{ border: `1px solid ${(draft.answers[question.id] ?? null) === option.id ? COLORS.primary : COLORS.border}`, background: (draft.answers[question.id] ?? null) === option.id ? COLORS.primarySoftBg : COLORS.surface }}>
+                <input
+                  type="radio"
+                  name={`paper-question-${question.id}`}
+                  checked={(draft.answers[question.id] ?? null) === option.id}
+                  onChange={() => {
+                    updateDraft({ answers: { ...draft.answers, [question.id]: option.id } });
+                    setScanReviews((currentReviews) => ({ ...currentReviews, [studentId]: clearReviewQuestion(currentReviews[studentId], question.id) }));
+                  }}
+                /><span>{option.text}</span>
+              </label>)}
+            </fieldset>
+          </div>;
+        })}
       </fieldset>
       <p role="status" style={{ ...mutedText, margin: 0 }}>{submission.pending ? 'Guardando hoja…' : `${unanswered} de ${assignment.questions.length} reactivos quedarán sin respuesta.`}</p>
       <div className="paper-actions">

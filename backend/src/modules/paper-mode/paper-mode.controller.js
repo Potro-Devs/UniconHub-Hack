@@ -22,7 +22,9 @@ const sendPdf = (load) => async (req, res, next) => {
 export function createPaperModeController(service) {
   return {
     exportSheetPdf: sendPdf((req) => service.exportSheetPdf(req.auth, req.params.assignmentId)),
+    exportAnswerSheetPdf: sendPdf((req) => service.exportAnswerSheetPdf(req.auth, req.params.assignmentId)),
     exportHintsPdf: sendPdf((req) => service.exportHintsPdf(req.auth, req.params.assignmentId)),
+    getOmrLayout: (req, res) => sendData(res, service.getOmrLayout(req.auth, req.params.assignmentId)),
     getCaptureStatus: (req, res) => sendData(res, service.getCaptureStatus(req.auth, req.params.assignmentId)),
     captureStudent: (req, res) =>
       sendData(res, service.captureStudent(req.auth, req.params.assignmentId, req.params.studentId, req.body)),
