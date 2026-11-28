@@ -4,9 +4,10 @@
  */
 
 const ACTIVE_COUNT = `(SELECT COUNT(*) FROM group_enrollments e WHERE e.group_id = g.id AND e.status = 'active')`;
-const GROUP_COLUMNS = `g.id, g.school_id, g.teacher_id, g.grade, g.section, g.school_year, g.join_code, ${ACTIVE_COUNT} AS student_count`;
+const GROUP_COLUMNS = `g.id, g.school_id, g.teacher_id, g.grade, g.section, g.school_year, g.join_code, g.secret_setup_until, ${ACTIVE_COUNT} AS student_count`;
 const GROUP_ORDER = 'ORDER BY g.school_year DESC, g.grade, g.section, g.id';
-const STUDENT_COLUMNS = 's.id, s.first_names, s.last_names, s.initials, s.avatar_color, s.avatar_id';
+// secret_hash solo se usa para saber si el alumno ya tiene imagen (toStudentDto expone un booleano).
+const STUDENT_COLUMNS = 's.id, s.first_names, s.last_names, s.initials, s.avatar_color, s.avatar_id, s.secret_hash';
 
 /**
  * @param {import('node:sqlite').DatabaseSync} db
@@ -64,6 +65,9 @@ export function createGroupsRepository(db) {
         (SELECT COUNT(*) FROM tutoring_pairs WHERE tutor_student_id = $id OR tutee_student_id = $id) AS tutoringPairs,
         (SELECT COUNT(*) FROM group_enrollments WHERE student_id = $id AND group_id <> $groupId) AS otherEnrollments`),
     deleteStudent: db.prepare('DELETE FROM students WHERE id = ?'),
+    openSecretSetup: db.prepare("UPDATE groups SET secret_setup_until = datetime('now', ?) WHERE id = ?"),
+    closeSecretSetup: db.prepare('UPDATE groups SET secret_setup_until = NULL WHERE id = ?'),
+    resetSecret: db.prepare('UPDATE students SET secret_hash = NULL, secret_set_at = NULL WHERE id = ?'),
     groupHasHistory: db.prepare(`
       SELECT EXISTS (SELECT 1 FROM group_enrollments WHERE group_id = ?)
           OR EXISTS (SELECT 1 FROM assignments WHERE group_id = ?) AS has_history`),
@@ -103,6 +107,9 @@ export function createGroupsRepository(db) {
     withdrawStudent: (groupId, studentId) => statements.withdraw.run(groupId, studentId),
     countStudentData: (studentId, groupId) => statements.studentDataCounts.get({ id: studentId, groupId }),
     deleteStudent: (studentId) => statements.deleteStudent.run(studentId),
+    openSecretSetup: (groupId, minutes) => statements.openSecretSetup.run(`+${minutes} minutes`, groupId),
+    closeSecretSetup: (groupId) => statements.closeSecretSetup.run(groupId),
+    resetStudentSecret: (studentId) => statements.resetSecret.run(studentId),
     /** Inscripciones de cualquier estado o asignaciones. */
     groupHasHistory: (groupId) => statements.groupHasHistory.get(groupId, groupId).has_history === 1,
   };

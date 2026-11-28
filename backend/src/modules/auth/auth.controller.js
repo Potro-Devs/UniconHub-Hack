@@ -15,6 +15,7 @@ export function createAuthController(service) {
     quickLoginStudent: (_req, res) => sendData(res, service.quickLoginStudent()),
     joinGroup: (req, res) => sendData(res, service.joinGroup(req.body)),
     selectStudent: (req, res) => sendData(res, service.selectStudent(req.body)),
+    confirmSecret: (req, res) => sendData(res, service.confirmSecret(req.body)),
     me: (req, res) => sendData(res, service.me(req.auth)),
   };
 }

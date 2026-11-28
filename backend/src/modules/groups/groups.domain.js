@@ -379,6 +379,8 @@ export function toGroupDto(row, phase) {
     joinCode: row.join_code,
     teacherId: row.teacher_id ?? null,
     studentCount: row.student_count ?? 0,
+    // Hasta cuándo pueden los alumnos elegir su imagen secreta (texto UTC de SQLite) o null.
+    secretSetupUntil: row.secret_setup_until ?? null,
   };
 }
 
@@ -393,5 +395,7 @@ export function toStudentDto(row) {
     initials: row.initials,
     avatarColor: row.avatar_color,
     avatarId: row.avatar_id ?? null,
+    // Solo si ya configuró su imagen secreta; el hash nunca sale del servidor.
+    hasSecret: Boolean(row.secret_hash),
   };
 }

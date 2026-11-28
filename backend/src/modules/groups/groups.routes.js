@@ -37,5 +37,8 @@ export function createGroupsRouter({ db, requireAuth, random }) {
   router.patch('/:groupId/students/:studentId', teacher, controller.updateStudent);
   router.post('/:groupId/students/:studentId/withdraw', teacher, controller.withdrawStudent);
   router.delete('/:groupId/students/:studentId', teacher, controller.deleteStudent);
+  router.post('/:groupId/secret-setup', teacher, controller.openSecretSetup);
+  router.delete('/:groupId/secret-setup', teacher, controller.closeSecretSetup);
+  router.post('/:groupId/students/:studentId/secret/reset', teacher, controller.resetStudentSecret);
   return router;
 }

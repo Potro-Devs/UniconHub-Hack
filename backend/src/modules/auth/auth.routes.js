@@ -14,7 +14,16 @@ export function createAuthRouter({ db, config, requireAuth }) {
   const controller = createAuthController(createAuthService({ repository: createAuthRepository(db), config }));
   const { windowMs, max } = config.auth.rateLimit;
   const loginLimit = createRateLimit({ windowMs, max });
-  const joinLimit = createRateLimit({ windowMs, max });
+  // Acceso del alumno: límite amplio por IP (el salón comparte IP) y, para la imagen secreta,
+  // un límite por alumno que frena que alguien adivine la de un compañero.
+  const joinLimit = createRateLimit(config.auth.studentJoinRateLimit);
+  const secretLimit = createRateLimit({
+    ...config.auth.secretAttemptsPerStudent,
+    key: (req) => `secret:${Number(req.body?.studentId) || 'x'}`,
+    code: 'SECRET_TOO_MANY_ATTEMPTS',
+    failuresOnly: true,
+    message: 'Pídele ayuda a tu maestra o maestro para entrar.',
+  });
 
   const router = Router();
   router.post('/login', loginLimit, controller.login);
@@ -26,6 +35,7 @@ export function createAuthRouter({ db, config, requireAuth }) {
 
   router.post('/student-join', joinLimit, controller.joinGroup);
   router.post('/student-join/select', joinLimit, controller.selectStudent);
+  router.post('/student-join/secret', joinLimit, secretLimit, controller.confirmSecret);
 
   router.get('/me', requireAuth(), controller.me);
   return router;

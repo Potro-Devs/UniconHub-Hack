@@ -35,6 +35,7 @@ import { generateQuestionBank } from './seed/questions.generator.js';
 import { insertSchoolGroups } from './seed/schoolGroups.js';
 import { seedDemoQuizzes } from './seed/quizzes.seed.js';
 import { insertOpenPractice } from './seed/practice.seed.js';
+import { openDemoSecretWindow } from './seed/secret.seed.js';
 import { clamp, createRng, round2 } from './seed/random.js';
 
 export { DEMO };
@@ -352,6 +353,7 @@ function insertDemo(db, rng, bank, passwordHash) {
 
   // Práctica abierta en pantalla (Multiplicación, 3.º A): el alumno demo la puede contestar.
   insertOpenPractice(db);
+  openDemoSecretWindow(db);
 
   // Otros grupos del ciclo actual (otros docentes) para el panel de Dirección
   const schoolGroupsAdded = insertSchoolGroups(db);

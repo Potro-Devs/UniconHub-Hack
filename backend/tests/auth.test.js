@@ -190,12 +190,23 @@ describe('auth API', () => {
       assert.equal(missing.body.error.code, 'GROUP_NOT_FOUND');
     });
 
-    test('POST /student-join/select entrega una sesión de alumno', async () => {
-      const { status, body } = await api.call('POST', '/api/v1/auth/student-join/select', {
-        body: { joinCode: 'MAPA3A', studentId: fx.ids.sofia },
+    test('select ya no entrega sesión: pide la imagen secreta; al configurarla se entra', async () => {
+      // Sin imagen y con la ventana cerrada: hay que pedir ayuda a la maestra (sin sesión).
+      const closed = await api.call('POST', '/api/v1/auth/student-join/select', { body: { joinCode: 'MAPA3A', studentId: fx.ids.sofia } });
+      assert.equal(closed.status, 200);
+      assert.equal(closed.body.data.student.displayName, 'Sofía R.');
+      assert.equal(closed.body.data.step, 'ask_teacher');
+      assert.equal(closed.body.data.token, undefined);
+
+      // La docente abre la ventana → el alumno la configura (3.º: dos imágenes) y recibe su sesión.
+      fx.db.prepare("UPDATE groups SET secret_setup_until = datetime('now', '+30 minutes') WHERE id = ?").run(fx.ids.group);
+      const open = await api.call('POST', '/api/v1/auth/student-join/select', { body: { joinCode: 'MAPA3A', studentId: fx.ids.sofia } });
+      assert.equal(open.body.data.step, 'setup');
+      assert.equal(open.body.data.imageCount, 2);
+      const { status, body } = await api.call('POST', '/api/v1/auth/student-join/secret', {
+        body: { joinCode: 'MAPA3A', studentId: fx.ids.sofia, images: ['cat', 'sun'] },
       });
       assert.equal(status, 200);
-      assert.equal(body.data.student.displayName, 'Sofía R.');
       const claims = jwt.verify(body.data.token, SECRET);
       assert.deepEqual(
         { sub: claims.sub, role: claims.role, groupId: claims.groupId, schoolId: claims.schoolId },

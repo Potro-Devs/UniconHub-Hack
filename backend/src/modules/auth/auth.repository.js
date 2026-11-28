@@ -3,8 +3,9 @@
  */
 
 const STAFF_COLUMNS = 'id, school_id, email, password_hash, full_name, role';
-const GROUP_COLUMNS = 'id, school_id, teacher_id, grade, section, school_year, join_code';
-const STUDENT_COLUMNS = 's.id, s.school_id, s.first_names, s.last_names, s.initials, s.avatar_color, s.avatar_id';
+const GROUP_COLUMNS = 'id, school_id, teacher_id, grade, section, school_year, join_code, secret_setup_until';
+// secret_hash es de uso interno: toStudentCard nunca lo expone.
+const STUDENT_COLUMNS = 's.id, s.school_id, s.first_names, s.last_names, s.initials, s.avatar_color, s.avatar_id, s.secret_hash';
 
 /**
  * @param {import('node:sqlite').DatabaseSync} db
@@ -14,6 +15,8 @@ export function createAuthRepository(db) {
     staffByEmail: db.prepare(`SELECT ${STAFF_COLUMNS} FROM users WHERE email = ?`),
     staffById: db.prepare(`SELECT ${STAFF_COLUMNS} FROM users WHERE id = ?`),
     groupByJoinCode: db.prepare(`SELECT ${GROUP_COLUMNS} FROM groups WHERE join_code = ?`),
+    // Solo si aún no tiene imagen: dos dispositivos configurando a la vez no se pisan.
+    setSecret: db.prepare("UPDATE students SET secret_hash = ?, secret_set_at = datetime('now') WHERE id = ? AND secret_hash IS NULL"),
     groupById: db.prepare(`SELECT ${GROUP_COLUMNS} FROM groups WHERE id = ?`),
     latestGroupOfTeacher: db.prepare(
       `SELECT ${GROUP_COLUMNS} FROM groups WHERE teacher_id = ? ORDER BY school_year DESC, grade, section, id LIMIT 1`,
@@ -43,5 +46,6 @@ export function createAuthRepository(db) {
     listActiveStudents: (groupId) => statements.activeStudents.all(groupId),
     findActiveStudent: (groupId, studentId) => statements.activeStudent.get(groupId, studentId) ?? null,
     findFirstActiveStudent: (groupId) => statements.firstActiveStudent.get(groupId) ?? null,
+    setStudentSecretIfEmpty: (studentId, hash) => statements.setSecret.run(hash, studentId).changes === 1,
   };
 }

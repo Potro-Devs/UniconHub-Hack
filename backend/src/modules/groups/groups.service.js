@@ -27,6 +27,7 @@ import {
   toGroupDto,
   toStudentDto,
 } from './groups.domain.js';
+import { parseSetupMinutes } from '../auth/auth.secret.domain.js';
 import { createGroupAccess } from './groups.access.js';
 import { readSpreadsheetRows } from './groups.import.js';
 import { parseImportInput, rowsToStudentList } from './groups.import.domain.js';
@@ -192,6 +193,26 @@ export function createGroupsService({ repository, transaction, random = Math.ran
         repository.deleteStudent(student.id);
         return { studentId: student.id, deleted: true };
       });
+    },
+
+    /** Abre la ventana "Hoy configuramos imágenes" por `minutes` (5–240, por defecto 60). */
+    openSecretSetup(auth, groupId, body) {
+      const group = findOwnGroup(auth, groupId);
+      repository.openSecretSetup(group.id, parseSetupMinutes(body));
+      return toGroup(repository.findGroupOfSchool(group.id, group.school_id));
+    },
+
+    closeSecretSetup(auth, groupId) {
+      const group = findOwnGroup(auth, groupId);
+      repository.closeSecretSetup(group.id);
+      return toGroup(repository.findGroupOfSchool(group.id, group.school_id));
+    },
+
+    /** Borra la imagen secreta de un alumno (la olvidó o la eligió mal); la elegirá de nuevo con la ventana abierta. */
+    resetStudentSecret(auth, groupId, studentId) {
+      const { student } = findOwnActiveStudent(auth, groupId, studentId);
+      repository.resetStudentSecret(student.id);
+      return toStudentDto(repository.findStudentById(student.id));
     },
 
     updateAvatar(auth, studentId, body) {

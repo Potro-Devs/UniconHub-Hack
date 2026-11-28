@@ -57,10 +57,21 @@ export function loadConfig(source = process.env) {
       quickLoginEnabled: parseBoolean(source.ENABLE_QUICK_LOGIN, !isProduction),
       quickLoginTeacherEmail: source.QUICK_LOGIN_TEACHER_EMAIL || 'docente@axi.demo',
       quickLoginDirectorEmail: source.QUICK_LOGIN_DIRECTOR_EMAIL || 'direccion@axi.demo',
-      // Intentos permitidos por IP en login y acceso de alumno.
+      // Intentos permitidos por IP en el login del personal.
       rateLimit: {
         windowMs: Number(source.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
         max: Number(source.AUTH_RATE_LIMIT_MAX || 20),
+      },
+      // Acceso del alumno por IP: un salón entero suele compartir la misma IP (45 alumnos × varios
+      // pasos), así que el límite es amplio. El código de grupo tiene 6 caracteres (31⁶ combinaciones).
+      studentJoinRateLimit: {
+        windowMs: Number(source.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
+        max: Number(source.AUTH_STUDENT_JOIN_MAX || 600),
+      },
+      // Intentos de imagen secreta por alumno (no por IP): frena que alguien adivine la de otro.
+      secretAttemptsPerStudent: {
+        windowMs: Number(source.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
+        max: Number(source.AUTH_SECRET_ATTEMPTS_MAX || 8),
       },
     },
   };

@@ -17,6 +17,15 @@ import {
   toStaffProfile,
   toStudentCard,
 } from './auth.domain.js';
+import {
+  SECRET_IMAGES,
+  hashSecret,
+  isSetupWindowOpen,
+  nextJoinStep,
+  parseSecretImages,
+  secretLengthForGrade,
+  secretMatches,
+} from './auth.secret.domain.js';
 
 const INVALID_CREDENTIALS = () => new HttpError(401, 'INVALID_CREDENTIALS', 'Correo o contraseña incorrectos.');
 const GROUP_NOT_FOUND = () =>
@@ -25,7 +34,7 @@ const GROUP_NOT_FOUND = () =>
 /**
  * @param {{ repository: ReturnType<import('./auth.repository.js').createAuthRepository>, config: ReturnType<import('../../config/env.js').loadConfig> }} deps
  */
-export function createAuthService({ repository, config }) {
+export function createAuthService({ repository, config, now = Date.now }) {
   const { jwtSecret, auth } = config;
   // Hash de referencia para comparar aunque el correo no exista: misma latencia en ambos casos
   // (evita enumerar correos). Se calcula al iniciar, no en la primera petición.
@@ -34,6 +43,17 @@ export function createAuthService({ repository, config }) {
   const issueStaffSession = (user) => {
     const { token, expiresAt } = signToken(buildStaffClaims(user), { secret: jwtSecret, expiresIn: auth.teacherTokenTtl });
     return { token, expiresAt, user: toStaffProfile(user) };
+  };
+
+  /** Código de grupo + alumno activo en él (pasos 2 y 3 del acceso del alumno). */
+  const findJoinTarget = (body) => {
+    const code = parseJoinCode(body?.joinCode);
+    const studentId = parseStudentId(body?.studentId);
+    const group = repository.findGroupByJoinCode(code);
+    if (!group) throw GROUP_NOT_FOUND();
+    const student = repository.findActiveStudent(group.id, studentId);
+    if (!student) throw new HttpError(404, 'STUDENT_NOT_IN_GROUP', 'Esa tarjeta no pertenece a este grupo.');
+    return { group, student };
   };
 
   const issueStudentSession = (student, group) => {
@@ -105,15 +125,41 @@ export function createAuthService({ repository, config }) {
       return { group: toGroupSummary(group), students: repository.listActiveStudents(group.id).map(toStudentCard) };
     },
 
-    /** Paso 2 del alumno: elige su tarjeta → sesión de alumno. */
+    /**
+     * Paso 2 del alumno: toca su tarjeta. Ya NO entrega la sesión: indica qué sigue con su imagen
+     * secreta (`verify` | `setup` | `ask_teacher`), para que nadie entre con la tarjeta de otro.
+     */
     selectStudent(body) {
-      const code = parseJoinCode(body?.joinCode);
-      const studentId = parseStudentId(body?.studentId);
-      const group = repository.findGroupByJoinCode(code);
-      if (!group) throw GROUP_NOT_FOUND();
-      const student = repository.findActiveStudent(group.id, studentId);
-      if (!student) {
-        throw new HttpError(404, 'STUDENT_NOT_IN_GROUP', 'Esa tarjeta no pertenece a este grupo.');
+      const { group, student } = findJoinTarget(body);
+      const step = nextJoinStep({ hasSecret: Boolean(student.secret_hash), windowOpen: isSetupWindowOpen(group.secret_setup_until, now()) });
+      return {
+        step,
+        imageCount: secretLengthForGrade(group.grade),
+        images: step === 'ask_teacher' ? [] : SECRET_IMAGES,
+        student: toStudentCard(student),
+        group: toGroupSummary(group),
+      };
+    },
+
+    /**
+     * Paso 3 del alumno: toca su imagen secreta. Si la acierta (o la configura por primera vez con
+     * la ventana abierta) → sesión de alumno. Si no, mensaje amable para volver a intentar.
+     */
+    confirmSecret(body) {
+      const { group, student } = findJoinTarget(body);
+      const images = parseSecretImages(body, secretLengthForGrade(group.grade));
+      if (student.secret_hash) {
+        if (!secretMatches(student.secret_hash, student.id, images, jwtSecret)) {
+          throw new HttpError(401, 'SECRET_MISMATCH', 'Esa no es tu imagen secreta. Intenta otra vez.');
+        }
+        return issueStudentSession(student, group);
+      }
+      if (!isSetupWindowOpen(group.secret_setup_until, now())) {
+        throw new HttpError(409, 'SECRET_SETUP_CLOSED', 'Todavía no tienes imagen secreta. Pídele ayuda a tu maestra o maestro.');
+      }
+      if (!repository.setStudentSecretIfEmpty(student.id, hashSecret(student.id, images, jwtSecret))) {
+        // Otro dispositivo la configuró al mismo tiempo: hay que tocar esa imagen.
+        throw new HttpError(409, 'SECRET_ALREADY_SET', 'Tu imagen secreta ya se guardó. Tócala para entrar.');
       }
       return issueStudentSession(student, group);
     },
