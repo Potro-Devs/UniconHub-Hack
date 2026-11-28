@@ -2,7 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { env } from './config/env.js';
 import { createAssessmentsRouter } from './modules/assessments/assessments.routes.js';
-import { createAuthRouter } from './modules/auth/auth.routes.js';
+import { createAuthRouter, createSecretAttemptsLimit } from './modules/auth/auth.routes.js';
 import { createCurriculumRouter } from './modules/curriculum/curriculum.routes.js';
 import { createDiagnosticsRouter } from './modules/diagnostics/diagnostics.routes.js';
 import { createGroupsRouter } from './modules/groups/groups.routes.js';
@@ -39,8 +39,10 @@ export function createApp({ db, config = env, logger = console, now }) {
     });
   });
 
-  app.use('/api/v1/auth', createAuthRouter({ db, config, requireAuth }));
-  app.use('/api/v1/groups', createGroupsRouter({ db, requireAuth }));
+  // Compartido: al restablecer la imagen secreta (groups) se liberan los intentos del alumno (auth).
+  const secretLimit = createSecretAttemptsLimit(config);
+  app.use('/api/v1/auth', createAuthRouter({ db, config, requireAuth, secretLimit }));
+  app.use('/api/v1/groups', createGroupsRouter({ db, requireAuth, onSecretReset: secretLimit.resetStudent }));
   app.use('/api/v1/curriculum', createCurriculumRouter({ db, requireAuth }));
   app.use('/api/v1/assessments', createAssessmentsRouter({ db, requireAuth }));
   app.use('/api/v1/paper', createPaperModeRouter({ db, requireAuth }));

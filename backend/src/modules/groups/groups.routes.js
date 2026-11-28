@@ -12,11 +12,12 @@ import { createGroupsService } from './groups.service.js';
 /**
  * @param {{ db: import('node:sqlite').DatabaseSync, requireAuth: Function, random?: () => number }} deps
  */
-export function createGroupsRouter({ db, requireAuth, random }) {
+export function createGroupsRouter({ db, requireAuth, random, onSecretReset }) {
   const service = createGroupsService({
     repository: createGroupsRepository(db),
     transaction: (fn) => withTransaction(db, fn),
     random,
+    onSecretReset,
   });
   const controller = createGroupsController(service);
 
@@ -37,5 +38,8 @@ export function createGroupsRouter({ db, requireAuth, random }) {
   router.patch('/:groupId/students/:studentId', teacher, controller.updateStudent);
   router.post('/:groupId/students/:studentId/withdraw', teacher, controller.withdrawStudent);
   router.delete('/:groupId/students/:studentId', teacher, controller.deleteStudent);
+  router.post('/:groupId/secret-setup', teacher, controller.openSecretSetup);
+  router.delete('/:groupId/secret-setup', teacher, controller.closeSecretSetup);
+  router.post('/:groupId/students/:studentId/secret/reset', teacher, controller.resetStudentSecret);
   return router;
 }

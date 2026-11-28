@@ -226,3 +226,17 @@ export function readableTextOn(background, dark, light) {
   const lightRatio = contrastRatio(background, light) ?? 0;
   return lightRatio > darkRatio ? light : dark;
 }
+
+/**
+ * Estado de la ventana "imagen secreta" del grupo a partir de `secretSetupUntil`
+ * (texto UTC de SQLite, `AAAA-MM-DD HH:MM:SS`). `untilLabel`: hora local "HH:MM" o fecha si es otro día.
+ */
+export function secretWindowStatus(secretSetupUntil, now = Date.now()) {
+  if (!secretSetupUntil) return { open: false, untilLabel: null };
+  const ms = Date.parse(`${String(secretSetupUntil).replace(' ', 'T')}Z`);
+  if (Number.isNaN(ms) || ms <= now) return { open: false, untilLabel: null };
+  const end = new Date(ms);
+  const sameDay = end.toDateString() === new Date(now).toDateString();
+  const hhmm = end.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  return { open: true, untilLabel: sameDay ? hhmm : `${end.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}, ${hhmm}` };
+}

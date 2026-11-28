@@ -12,6 +12,10 @@ export const authApi = {
   quickLoginDirector: () => apiClient.post('/auth/quick-login/director', undefined, noAuth),
   quickLoginStudent: () => apiClient.post('/auth/quick-login/student', undefined, noAuth),
   joinGroup: (joinCode) => apiClient.post('/auth/student-join', { joinCode }, noAuth),
+  /** Toca su tarjeta → qué sigue con su imagen secreta: `{ step: verify | setup | ask_teacher, imageCount, images }`. */
   selectStudent: (joinCode, studentId) =>
     apiClient.post('/auth/student-join/select', { joinCode, studentId }, noAuth),
+  /** Toca su imagen secreta (o la configura la primera vez) → sesión de alumno. */
+  confirmSecret: (joinCode, studentId, images) =>
+    apiClient.post('/auth/student-join/secret', { joinCode, studentId, images }, noAuth),
 };

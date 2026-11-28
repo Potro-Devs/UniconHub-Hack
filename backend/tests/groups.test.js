@@ -137,7 +137,7 @@ describe('groups API', () => {
       assert.equal(status, 200);
       assert.deepEqual(body.data, [{
         id: fx.ids.groupA, name: '3.º A', grade: 3, section: 'A', schoolYear: '2026-2027', phase: 4,
-        joinCode: 'MAPA3A', teacherId: fx.ids.teacherA, studentCount: 2,
+        joinCode: 'MAPA3A', teacherId: fx.ids.teacherA, studentCount: 2, secretSetupUntil: null,
       }]);
       assert.deepEqual(body.meta, { count: 1 });
     });
@@ -344,8 +344,8 @@ describe('groups API', () => {
       const { status, body } = await api.call('GET', `/api/v1/groups/${fx.ids.groupA}/students`, { token: fx.tokens.teacherA });
       assert.equal(status, 200);
       assert.deepEqual(body.data, [
-        { id: fx.ids.mateo, firstNames: 'Mateo', lastNames: 'Hernández López', initials: 'MH', avatarColor: '#F4B6C2', avatarId: null },
-        { id: fx.ids.sofia, firstNames: 'Sofía', lastNames: 'Ramírez García', initials: 'SR', avatarColor: '#F4B6C2', avatarId: null },
+        { id: fx.ids.mateo, firstNames: 'Mateo', lastNames: 'Hernández López', initials: 'MH', avatarColor: '#F4B6C2', avatarId: null, hasSecret: false },
+        { id: fx.ids.sofia, firstNames: 'Sofía', lastNames: 'Ramírez García', initials: 'SR', avatarColor: '#F4B6C2', avatarId: null, hasSecret: false },
       ]);
       assert.ok(!body.data.some((s) => s.id === fx.ids.diego), 'el alumno dado de baja no aparece');
       assertNoSensitive(body);

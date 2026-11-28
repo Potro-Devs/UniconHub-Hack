@@ -33,10 +33,17 @@ Los endpoints protegidos esperan `Authorization: Bearer <token>`. El token (JWT 
 | `POST /quick-login/director` | — | Igual que `/login` (director demo, solo lectura de su escuela) | 403 `QUICK_LOGIN_DISABLED`, 404 `DEMO_DATA_MISSING` |
 | `POST /quick-login/student` | — | `{ token, expiresAt, student, group }` (primer alumno activo del grupo demo) | 403, 404 |
 | `POST /student-join` | `{ joinCode }` | `{ group, students: [StudentCard] }` | 400, 404 `GROUP_NOT_FOUND`, 429 |
-| `POST /student-join/select` | `{ joinCode, studentId }` | `{ token, expiresAt, student, group }` | 400, 404 `GROUP_NOT_FOUND` / `STUDENT_NOT_IN_GROUP`, 429 |
+| `POST /student-join/select` | `{ joinCode, studentId }` | `{ step, imageCount, images, student, group }` (**sin sesión**) | 400, 404 `GROUP_NOT_FOUND` / `STUDENT_NOT_IN_GROUP`, 429 |
+| `POST /student-join/secret` | `{ joinCode, studentId, images: [code, …] }` | `{ token, expiresAt, student, group }` | 400, 401 `SECRET_MISMATCH`, 404, 409 `SECRET_SETUP_CLOSED` / `SECRET_ALREADY_SET`, 429 `SECRET_TOO_MANY_ATTEMPTS` |
 | `GET /me` *(sesión)* | — | Docente: `{ role, user }` · Alumno: `{ role: 'student', student, group }` | 401 |
 
 - `StudentCard`: `{ id, displayName: "Sofía R.", initials, avatarColor, avatarId }`. Solo el primer nombre y la inicial del apellido, sin el folio interno.
+- **Imagen secreta del alumno** (evita entrar por error con la tarjeta de un compañero; no es seguridad de banco):
+  - `select` ya no entrega la sesión. `step`: `verify` (ya tiene imagen: tocarla), `setup` (no tiene y la docente abrió la ventana: elegirla) o `ask_teacher` (no tiene y la ventana está cerrada: pedir ayuda). `imageCount`: **1** en 1.º y 2.º, **2 en orden** de 3.º a 6.º. `images`: catálogo `[{ code, label }]` de 9 (`turtle`, `cat`, `dog`, `fish`, `butterfly`, `sun`, `star`, `flower`, `tree`); vacío en `ask_teacher`.
+  - `secret`: con `verify`, si coincide → sesión; si no → `401 SECRET_MISMATCH` ("Esa no es tu imagen secreta. Intenta otra vez."). Con `setup` → guarda la imagen y entrega la sesión. Sin imagen y con la ventana cerrada → `409 SECRET_SETUP_CLOSED`.
+  - Se guarda solo un HMAC (alumno + imágenes en orden, con `JWT_SECRET`); nunca las imágenes ni el hash salen del servidor.
+  - **Límites:** por IP, amplio (`AUTH_STUDENT_JOIN_MAX`, 600 por ventana): un salón entero comparte la misma IP. Por alumno, solo intentos **fallidos** de imagen (`AUTH_SECRET_ATTEMPTS_MAX`, 8 por ventana) → `429 SECRET_TOO_MANY_ATTEMPTS` "Pídele ayuda a tu maestra o maestro para entrar.".
+  - El acceso rápido de demo ("Entrar como Alumno") no pide imagen.
 - `group`: `{ id, name: "3.º A", grade, section, schoolYear }`.
 - En `GET /me` del alumno, `group` además incluye `joinCode` y `teacherName` (nombre del docente del grupo, para "Mis clases"). Solo con sesión: `student-join` es público y nunca los devuelve. En el MVP cada alumno tiene un solo grupo; no hay clases por materia.
 - `joinCode` acepta minúsculas y espacios (`" mapa 3a "` → `MAPA3A`).
@@ -60,10 +67,14 @@ Todos los endpoints exigen sesión.
 | `PATCH /:groupId/students/:studentId` | teacher | `{ firstNames?, lastNames? }` (al menos uno) | `Student` con iniciales recalculadas | 400, 401, 403, 404 `GROUP_NOT_FOUND` / `STUDENT_NOT_FOUND` |
 | `POST /:groupId/students/:studentId/withdraw` | teacher | — | `{ studentId, groupId, status: "withdrawn" }` | 400, 401, 403, 404 |
 | `DELETE /:groupId/students/:studentId` | teacher | — | `{ studentId, deleted: true }` | 400, 401, 403, 404, 409 `STUDENT_HAS_HISTORY` |
+| `POST /:groupId/secret-setup` | teacher | `{ minutes? }` (5–240; por defecto 60) | `Group` con `secretSetupUntil` | 400, 401, 403, 404 |
+| `DELETE /:groupId/secret-setup` | teacher | — | `Group` con `secretSetupUntil: null` | 401, 403, 404 |
+| `POST /:groupId/students/:studentId/secret/reset` | teacher | — | `Student` con `hasSecret: false` | 400, 401, 403, 404 |
 | `PATCH /students/:studentId/avatar` | teacher, student | `{ avatarId?, avatarColor? }` (al menos uno) | `Student` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
 
 - `Group`: `{ id, name: "3.º A", grade, section, schoolYear, phase, joinCode, teacherId, studentCount }`. `phase` se calcula del grado (3: 1.º–2.º, 4: 3.º–4.º, 5: 5.º–6.º); `studentCount` cuenta inscripciones activas.
 - `Student`: `{ id, firstNames, lastNames, initials, avatarColor, avatarId }`. Nombre completo porque es un contexto autenticado de la escuela. **Nunca incluye `internal_folio`.**
+- `Group` incluye `secretSetupUntil` (texto UTC de SQLite o `null`): hasta cuándo los alumnos sin imagen pueden elegirla ("Hoy configuramos imágenes"). `Student` incluye `hasSecret` (booleano); el hash nunca se expone.
 - **Corregir, dar de baja y eliminar alumnos** (solo la docente dueña del grupo; el alumno debe estar activo en él, si no → 404):
   - `PATCH`: mismas reglas de nombre que el alta. Las iniciales se recalculan; el `internal_folio` no cambia.
   - `withdraw` (**baja**): la inscripción pasa a `withdrawn` con `ended_at`. **No borra nada**: respuestas, cortes y logros se conservan para el historial. El alumno deja de aparecer en la lista, en el mapa y en el acceso por código, y su sesión de alumno deja de servir.

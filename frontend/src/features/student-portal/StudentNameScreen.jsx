@@ -7,10 +7,12 @@ import { FormMessage } from '@/shared/components/FormMessage';
 import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
 import { JoinSteps } from './JoinSteps';
+import { StudentSecretStep } from './StudentSecretStep';
 import { readableTextOn } from '@/features/groups/groups.logic';
 
 /**
- * Pantalla 09b: Selección visual del alumno dentro de su grupo sin contraseña.
+ * Pantalla 09b: el alumno toca su tarjeta y después su imagen secreta (paso 3), para que nadie
+ * entre por error con la tarjeta de un compañero.
  */
 export function StudentNameScreen() {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export function StudentNameScreen() {
   const { session, signIn } = useSession();
   const [pendingId, setPendingId] = useState(null);
   const [error, setError] = useState(null);
+  const [selection, setSelection] = useState(null); // respuesta de select: paso de la imagen secreta
 
   if (session?.role === 'student') return <Navigate to="/alumno/inicio" replace />;
   // Se llega aquí después de escribir el código (al recargar la página se vuelve a pedir).
@@ -29,14 +32,27 @@ export function StudentNameScreen() {
     setError(null);
     setPendingId(student.id);
     try {
-      signIn(await authApi.selectStudent(joinCode, student.id));
-      resetStudentSession();
-      navigate('/alumno/inicio', { replace: true });
+      setSelection(await authApi.selectStudent(joinCode, student.id));
     } catch (err) {
       setError(errorMessageOf(err));
-      setPendingId(null);
     }
+    setPendingId(null);
   };
+
+  if (selection) {
+    return (
+      <StudentSecretStep
+        joinCode={joinCode}
+        selection={selection}
+        onSignedIn={(data) => {
+          signIn(data);
+          resetStudentSession();
+          navigate('/alumno/inicio', { replace: true });
+        }}
+        onBack={() => setSelection(null)}
+      />
+    );
+  }
 
   return (
     <div className="kid-access" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -104,7 +120,7 @@ export function StudentNameScreen() {
               >
                 {st.initials}
               </span>
-              {pendingId === st.id ? 'Entrando…' : st.displayName}
+              {pendingId === st.id ? 'Un momento…' : st.displayName}
             </button>
           ))}
         </div>
