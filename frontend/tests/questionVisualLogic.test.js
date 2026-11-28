@@ -7,7 +7,8 @@ describe('gráfico del reactivo (vista)', () => {
     assert.deepEqual(toVisual({ type: 'fraction_bar', parts: 8, shaded: 3 }), { type: 'fraction_bar', theme: 'plain', parts: 8, shaded: 3 });
     assert.deepEqual(toVisual({ type: 'fraction_circle', theme: 'pizza', parts: 4, shaded: 1 }), { type: 'fraction_circle', theme: 'pizza', parts: 4, shaded: 1 });
     for (const bad of [null, undefined, {}, { type: 'pie' }, { type: 'fraction_bar', parts: 1, shaded: 0 }, { type: 'fraction_bar', parts: 4, shaded: 9 },
-      { type: 'fraction_circle', parts: 4, shaded: 1 }, { type: 'fraction_bar', theme: 'pastel', parts: 4, shaded: 1 }]) {
+      { type: 'fraction_circle', parts: 4, shaded: 1 }, { type: 'fraction_bar', theme: 'pastel', parts: 4, shaded: 1 },
+      { type: 'constructor', parts: 4, shaded: 1 }, { type: 'toString', theme: 'plain', parts: 4, shaded: 1 }]) {
       assert.equal(toVisual(bad), null, JSON.stringify(bad));
     }
   });

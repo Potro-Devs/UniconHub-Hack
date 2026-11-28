@@ -8,7 +8,7 @@ const THEMES = { fraction_bar: ['plain', 'chocolate'], fraction_circle: ['pizza'
 
 /** Gráfico válido y normalizado ({ type, theme, parts, shaded }) o null. */
 export function toVisual(visual) {
-  if (!visual || !THEMES[visual.type]) return null;
+  if (!visual || !Object.hasOwn(THEMES, visual.type)) return null;
   const { parts, shaded } = visual;
   if (!Number.isInteger(parts) || parts < 2 || parts > 12) return null;
   if (!Number.isInteger(shaded) || shaded < 0 || shaded > parts) return null;
