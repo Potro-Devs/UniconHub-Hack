@@ -48,13 +48,13 @@ function drawHeader(doc, quiz, groupLabel, supportField) {
 
   const y = M + 96;
   doc.fillColor(INK).font('Helvetica-Bold').fontSize(9.5).text('Nombre:', M, y, { lineBreak: false });
-  doc.lineWidth(0.8).moveTo(M + 48, y + 11).lineTo(M + 290, y + 11).stroke(INK);
-  doc.font('Helvetica-Bold').fontSize(9.5).text('Fecha:', M + 302, y, { lineBreak: false });
-  doc.lineWidth(0.8).moveTo(M + 340, y + 11).lineTo(M + 420, y + 11).stroke(INK);
-  doc.font('Helvetica-Bold').fontSize(9.5).text('Folio:', M + 430, y, { lineBreak: false });
-  doc.lineWidth(0.8).moveTo(M + 462, y + 11).lineTo(M + CW, y + 11).stroke(INK);
-  doc.font('Helvetica').fontSize(7).text('(lo llena el docente)', M + 430, y + 13, {
-    width: CW - 430,
+  doc.lineWidth(0.8).moveTo(M + 48, y + 11).lineTo(M + 244, y + 11).stroke(INK);
+  doc.font('Helvetica-Bold').fontSize(9.5).text('Fecha:', M + 256, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 294, y + 11).lineTo(M + 374, y + 11).stroke(INK);
+  doc.font('Helvetica-Bold').fontSize(9.5).text('Folio:', M + 384, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 416, y + 11).lineTo(M + CW, y + 11).stroke(INK);
+  doc.font('Helvetica').fontSize(7).text('(lo llena el docente)', M + 416, y + 13, {
+    width: CW - 416,
     align: 'right',
     lineBreak: false,
   });
