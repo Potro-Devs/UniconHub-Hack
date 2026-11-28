@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { LanguageProvider } from '@/shared/i18n/LanguageContext';
 import { TutoringScreen } from '@/features/tutoring/TutoringScreen';
@@ -46,6 +47,8 @@ function StaffShell() {
   );
 }
 
+const PitchScreen = lazy(() => import('@/features/pitch/PitchScreen'));
+
 /**
  * Enrutador modular de Axi que separa cada ventana en su feature correspondiente.
  * Las vistas de docente/dirección y el área del alumno con sesión están protegidas por rol.
@@ -58,6 +61,7 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
+            <Route path="/pitch" element={<Suspense fallback={<p role="status">Preparando presentación…</p>}><PitchScreen /></Suspense>} />
 
             <Route
               element={
