@@ -16,4 +16,13 @@ export const groupsApi = {
   /** Lee un .xlsx o .csv y devuelve la lista "Apellidos, Nombres" (no guarda). */
   previewStudentImport: (groupId, fileName, contentBase64) =>
     apiClient.post(`/groups/${encodeURIComponent(groupId)}/students/import-preview`, { fileName, contentBase64 }),
+  /** Corrige nombre(s) y/o apellido(s); devuelve el alumno con sus iniciales recalculadas. */
+  updateStudent: (groupId, studentId, patch) =>
+    apiClient.patch(`/groups/${encodeURIComponent(groupId)}/students/${encodeURIComponent(studentId)}`, patch),
+  /** Baja del grupo: no borra su historial. */
+  withdrawStudent: (groupId, studentId) =>
+    apiClient.post(`/groups/${encodeURIComponent(groupId)}/students/${encodeURIComponent(studentId)}/withdraw`),
+  /** Elimina un alumno creado por error; si ya tiene datos responde 409 STUDENT_HAS_HISTORY. */
+  deleteStudent: (groupId, studentId) =>
+    apiClient.delete(`/groups/${encodeURIComponent(groupId)}/students/${encodeURIComponent(studentId)}`),
 };
