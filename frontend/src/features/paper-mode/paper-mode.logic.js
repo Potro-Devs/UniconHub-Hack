@@ -44,7 +44,7 @@ function recountReview(uncertainQuestions, supportUncertain) {
  * Convierte el resultado del escáner OMR en un borrador seguro de Captura rápida y su resumen de revisión.
  * Solo conserva reactivos y opciones reales de la asignación; nunca guarda en el servidor.
  */
-export function applyOmrScanToDraft(questions, scanResult) {
+export function applyOmrScanToDraft(questions, scanResult, studentLabel = '') {
   const answers = {};
   const uncertainQuestions = {};
   let answeredCount = 0;
@@ -63,9 +63,14 @@ export function applyOmrScanToDraft(questions, scanResult) {
   const supportUncertain = Boolean(scanResult?.supportUncertain);
   const uncertainCount = recountReview(uncertainQuestions, supportUncertain);
   const totalCount = questions.length;
+  const label = typeof studentLabel === 'string' ? studentLabel.trim() : '';
   const summary = uncertainCount > 0
-    ? `Hoja leída: ${answeredCount} de ${totalCount} respuestas. Revisa ${uncertainCount} marca(s) dudosa(s) y confirma antes de guardar.`
-    : `Hoja leída: ${answeredCount} de ${totalCount} respuestas. Verifica los datos y guarda cuando estés lista.`;
+    ? label
+      ? `Hoja leída: ${answeredCount} de ${totalCount} respuestas. Revisa ${uncertainCount} marca(s) dudosa(s) y verifica que la hoja sea de ${label} antes de guardar.`
+      : `Hoja leída: ${answeredCount} de ${totalCount} respuestas. Revisa ${uncertainCount} marca(s) dudosa(s) y confirma antes de guardar.`
+    : label
+      ? `Hoja leída: ${answeredCount} de ${totalCount} respuestas. Verifica que la hoja sea de ${label} y guarda la hoja.`
+      : `Hoja leída: ${answeredCount} de ${totalCount} respuestas. Verifica los datos y guarda la hoja.`;
 
   return {
     draft: { answers, supportUsed },

@@ -16,7 +16,6 @@ import {
   drawPageChrome,
   drawTicketHeader,
 } from '../../shared/pdf/axi-sheet.js';
-import { drawOmrAnswerSheetPage } from '../paper-mode/paper-mode.omr.pdf.js';
 
 const CARD_TOP = 12; // espacio para la insignia "Pregunta N" sobre la tarjeta
 const CARD_GAP = 8;
@@ -110,11 +109,10 @@ function drawQuestionCard(doc, question, y, h) {
  * Genera el buffer PDF Carta blanco y negro de un cuestionario (sin respuestas).
  *
  * @param {object} quiz DTO de detalle del cuestionario.
- * @param {{ groupLabel?: string | null, supportField?: boolean, omrLayout?: object | null }} [options]
- *   `supportField` agrega la casilla general de apoyo (Modo Papel); `omrLayout` agrega una página final escaneable.
+ * @param {{ groupLabel?: string | null, supportField?: boolean }} [options] `supportField` agrega la casilla general de apoyo (Modo Papel).
  * @returns {Promise<Buffer>}
  */
-export function renderQuizPdf(quiz, { groupLabel = null, supportField = false, omrLayout = null } = {}) {
+export function renderQuizPdf(quiz, { groupLabel = null, supportField = false } = {}) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'LETTER',
@@ -143,12 +141,7 @@ export function renderQuizPdf(quiz, { groupLabel = null, supportField = false, o
         y += CARD_TOP + h + CARD_GAP;
       }
 
-      // El marco punteado se dibuja solo en las hojas de preguntas para no invadir las marcas de esquina OMR.
       drawPageChrome(doc, `Axi · ${quiz.skill.name} · ${quiz.grade}.º grado · Hoja imprimible sin respuestas`);
-      if (omrLayout) {
-        doc.addPage();
-        drawOmrAnswerSheetPage(doc, omrLayout);
-      }
       doc.end();
     } catch (error) {
       doc.destroy();

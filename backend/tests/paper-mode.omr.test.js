@@ -140,16 +140,15 @@ describe('OMR en Modo Papel (layout y PDF escaneable)', () => {
     }
   });
 
-  test('GET /pdf incluye la hoja de respuestas OMR como página final propia', async () => {
+  test('GET /pdf mantiene solo la hoja de preguntas sin anexar la página OMR', async () => {
     const res = await get(`/api/v1/paper/assignments/${ids.paper}/pdf`, tokens.teacherA);
     assert.equal(res.status, 200);
     const pages = (res.buffer.toString('latin1').match(/\/Type \/Page\b/g) || []).length;
-    assert.equal(pages, 2);
+    assert.equal(pages, 1);
 
     const text = pdfText(res.buffer);
     assert.ok(text.includes(asPdf('Reactivo 1')));
-    assert.ok(text.includes(asPdf('Hoja de respuestas')));
-    assert.ok(text.includes(asPdf(`P-${ids.paper}`)));
+    assert.ok(!text.includes(asPdf('Hoja de respuestas')));
     assert.ok(!text.includes(asPdf('Sofia')));
     assert.ok(!text.includes(asPdf('AXI-OMR12345')));
   });

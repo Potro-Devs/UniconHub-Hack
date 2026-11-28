@@ -82,7 +82,11 @@ function CaptureForm({ request, group }) {
   };
   const handleScanApplied = (scanResult) => {
     if (studentId == null) return;
-    const { draft: scannedDraft, review: scannedReview } = applyOmrScanToDraft(assignment.questions, scanResult);
+    const { draft: scannedDraft, review: scannedReview } = applyOmrScanToDraft(
+      assignment.questions,
+      scanResult,
+      studentName(student, studentId),
+    );
     setDrafts((currentDrafts) => ({ ...currentDrafts, [studentId]: scannedDraft }));
     setScanReviews((currentReviews) => ({ ...currentReviews, [studentId]: scannedReview }));
     setOmrState((state) => ({ ...state, open: false, error: '' }));

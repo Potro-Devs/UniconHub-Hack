@@ -136,13 +136,13 @@ Todos los endpoints exigen sesión de personal escolar. **Alumno → 403 en todo
 
 ## Paper Mode (`/api/v1/paper`)
 
-> **Estado:** los 6 endpoints están implementados (hoja con página OMR, hoja de respuestas OMR dedicada, layout OMR, pistas, avance y captura). El corte de dominio se comparte con pantalla en `diagnostics/diagnostics.mastery.js` (`closeSkillSessions`).
+> **Estado:** los 6 endpoints están implementados (hoja genérica, hoja de respuestas OMR dedicada, layout OMR, pistas, avance y captura). El corte de dominio se comparte con pantalla en `diagnostics/diagnostics.mastery.js` (`closeSkillSessions`).
 
 Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna respuesta incluye nombres ni `internal_folio`: el frontend cruza `studentId` con `GET /groups/:groupId/students`.
 
 | Método y ruta | Roles | Cuerpo | Respuesta | Errores |
 | --- | --- | --- | --- | --- |
-| `GET /assignments/:assignmentId/pdf` | teacher, director | — | `application/pdf` (hoja genérica + página final OMR) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
+| `GET /assignments/:assignmentId/pdf` | teacher, director | — | `application/pdf` (hoja genérica) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/answer-sheet-pdf` | teacher, director | — | `application/pdf` (solo hoja de respuestas OMR) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/omr-layout` | teacher, director | — | `OmrLayout` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
 | `GET /assignments/:assignmentId/hints-pdf` | teacher, director | — | `application/pdf` (tarjetas de pistas) | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` |
@@ -150,7 +150,7 @@ Todos exigen sesión de personal escolar. **Alumno → 403 en todo.** Ninguna re
 | `POST /assignments/:assignmentId/capture/:studentId` | teacher | `{ answers, supportUsed?, hintLevels?, absent? }` | `CaptureResult` | 400, 401, 403, 404 `ASSIGNMENT_NOT_FOUND` / `STUDENT_NOT_FOUND`, 409 `NOT_PAPER_ASSIGNMENT` / `ALREADY_CAPTURED`, 422 `ASSIGNMENT_CLOSED` |
 
 - **Autorización:** igual que `assessments`. Docente: solo asignaciones de sus grupos. Director: solo lectura de su escuela; `POST` → 403. Asignación inexistente **o ajena** → 404 con el mismo cuerpo. Una asignación `screen` → 409 `NOT_PAPER_ASSIGNMENT`.
-- **PDF de la hoja (`pdf`):** tamaño Carta, blanco y negro, alto contraste. **Genérica**: sin nombre, folio ni datos prellenados del alumno; solo líneas en blanco para "Nombre" y "Fecha". Reactivos en orden `position`, opciones con su `label` (A, B, C…) para marcar. Nunca indica la opción correcta. Incluye la casilla **"Apoyo durante la prueba (lo marca el docente): ○ Sin tarjetas de pistas ○ Usó tarjetas de pistas"**, que se captura como `supportUsed`. Los cuestionarios del banco (`/assessments/quizzes/:id/pdf`) no la llevan. Al final agrega en una página propia la **hoja de respuestas escaneable (OMR)** generada a partir de `OmrLayout`.
+- **PDF de la hoja (`pdf`):** tamaño Carta, blanco y negro, alto contraste. **Genérica**: sin nombre, folio ni datos prellenados del alumno; solo líneas en blanco para "Nombre" y "Fecha". Reactivos en orden `position`, opciones con su `label` (A, B, C…) para marcar. Nunca indica la opción correcta. Incluye la casilla **"Apoyo durante la prueba (lo marca el docente): ○ Sin tarjetas de pistas ○ Usó tarjetas de pistas"**, que se captura como `supportUsed`. Los cuestionarios del banco (`/assessments/quizzes/:id/pdf`) no la llevan. Para usar el escáner OMR, la **hoja de respuestas escaneable** se descarga por separado en `answer-sheet-pdf`.
 - **PDF solo hoja de respuestas (`answer-sheet-pdf`):** Carta, B/N, 1 página (`hoja-respuestas-<id>.pdf`). Genérica (sin nombre ni folio del alumno), con 4 marcas negras cuadradas en las esquinas, código visible de la prueba (`P-<id>`) + tira de verificación de 18 bits (14 bits de ID + 4 bits de suma de verificación), burbuja `"Usó tarjetas de pistas"` y cuadrícula fija de burbujas (columnas `A`, `B`, `C`, `D`; 1 columna hasta 20 reactivos, 2 columnas de 21 a 40).
 - **`OmrLayout` (`omr-layout`):** fuente única de verdad de coordenadas (en puntos PDF y normalizadas `[0..1]` respecto al marco de las 4 marcas de esquina) que comparten el PDF y el escáner del navegador:
   `{ version, assignmentId, code, title, groupLabel, page: { size, widthPt, heightPt }, fiducials: { markerSizePt, frame, corners: { tl, tr, br, bl } }, codeStrip: { idBits, checksumBits, expectedId14, expectedChecksum, cellSizePt, blackRef, whiteRef, bits: [{ index, value, x, y, u, v, sizeU, sizeV }] }, supportBubble: { label, x, y, r, u, v, ru, rv }, columns: ['A','B','C','D'], gridColumns, questions: [{ questionId, position, options: [{ optionId, label, x, y, r, u, v, ru, rv }] }] }`.

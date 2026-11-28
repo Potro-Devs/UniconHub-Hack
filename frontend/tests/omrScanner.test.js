@@ -327,7 +327,7 @@ describe('omr.scanner · lectura OMR en navegador', () => {
     assert.ok(Math.abs(landscape.width / landscape.height - 516 / 696) < 0.02);
   });
 
-  test('applyOmrScanToDraft filtra IDs inválidos y clearReview limpia dudas al editar', () => {
+  test('applyOmrScanToDraft filtra IDs inválidos, incluye verificación del alumno con lenguaje neutro y clearReview limpia dudas', () => {
     const questions = makeQuestions(3);
     const { draft, review } = applyOmrScanToDraft(questions, {
       answers: {
@@ -340,7 +340,7 @@ describe('omr.scanner · lectura OMR en navegador', () => {
       uncertainQuestions: {
         [questions[1].id]: { status: 'faint', reason: 'Marca tenue en B' },
       },
-    });
+    }, 'Fernanda A.');
 
     assert.equal(draft.answers[questions[0].id], questions[0].options[1].id);
     assert.equal(draft.answers[questions[1].id], null);
@@ -348,6 +348,17 @@ describe('omr.scanner · lectura OMR en navegador', () => {
     assert.equal(draft.supportUsed, true);
     assert.equal(review.answeredCount, 1);
     assert.equal(review.uncertainCount, 2);
+    assert.doesNotMatch(review.summary, /estés lista/i);
+    assert.match(review.summary, /verifica que la hoja sea de Fernanda A\./i);
+
+    const clean = applyOmrScanToDraft(questions, {
+      answers: { [questions[0].id]: questions[0].options[0].id },
+      supportUsed: false,
+      supportUncertain: false,
+      uncertainQuestions: {},
+    }, 'Fernanda A.');
+    assert.doesNotMatch(clean.review.summary, /estés lista/i);
+    assert.match(clean.review.summary, /Verifica que la hoja sea de Fernanda A\. y guarda la hoja\./);
 
     const afterQ = clearReviewQuestion(review, questions[1].id);
     assert.equal(afterQ.uncertainQuestions[questions[1].id], undefined);

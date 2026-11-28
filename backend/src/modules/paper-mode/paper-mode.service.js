@@ -94,12 +94,10 @@ export function createPaperModeService({
   return {
     /**
      * Hoja genérica de la prueba: Carta, B/N, sin datos del alumno ni respuestas. Reutiliza el
-     * renderizador de cuestionarios y agrega al final la hoja de respuestas escaneable (OMR).
+     * renderizador de cuestionarios para que ambas hojas se vean igual.
      */
     async exportSheetPdf(auth, assignmentId) {
-      const sheet = loadSheet(auth, assignmentId);
-      const { assignment, group, questionRows, options, skillNames, groupLabel } = sheet;
-      const omrLayout = buildSheetOmrLayout(sheet);
+      const { assignment, group, questionRows, options, skillNames, groupLabel } = loadSheet(auth, assignmentId);
       const buffer = await renderQuizPdf(
         {
           title: assignment.title,
@@ -112,7 +110,7 @@ export function createPaperModeService({
             options: (options.get(q.id) ?? []).map((o) => ({ label: o.label, text: o.text })),
           })),
         },
-        { groupLabel, supportField: true, omrLayout },
+        { groupLabel, supportField: true },
       );
       return pdfFile(buffer, 'hoja', assignment.id);
     },

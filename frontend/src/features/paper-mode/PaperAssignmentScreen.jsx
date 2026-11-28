@@ -8,8 +8,8 @@ import { usePaperAssignment } from './usePaperAssignment';
 import './paper-mode.css';
 
 const DOWNLOAD_META = {
-  sheet: { label: 'Descargar hoja y respuestas', prefix: 'hoja', variant: 'primary' },
-  'answer-sheet': { label: 'Descargar solo hoja de respuestas', prefix: 'hoja-respuestas', variant: 'secondary' },
+  sheet: { label: 'Descargar hoja', prefix: 'hoja', variant: 'secondary' },
+  'answer-sheet': { label: 'Descargar hoja de respuestas escaneable', prefix: 'hoja-respuestas', variant: 'secondary' },
   hints: { label: 'Descargar tarjetas de pistas', prefix: 'pistas', variant: 'secondary' },
 };
 
@@ -62,7 +62,7 @@ function GroupPaperAssignment({ group, assignmentId }) {
     <CaptureProgress request={request} />
     <section style={card}>
       <h2 className="font-display" style={sectionTitle}>Material para imprimir</h2>
-      <p style={{ ...mutedText, margin: 0 }}>Hojas genéricas, sin nombres, en blanco y negro y tamaño Carta. La prueba completa incluye al final la hoja de respuestas escaneable con la cámara del celular; también puedes imprimir solo la hoja de respuestas o las tarjetas de pistas.</p>
+      <p style={{ ...mutedText, margin: 0 }}>Hojas genéricas, sin nombres, en blanco y negro y tamaño Carta. Imprime la hoja de la prueba (incluye la casilla “Apoyo durante la prueba”) y, si vas a escanear con el celular, imprime también la hoja de respuestas escaneable. Entrega las tarjetas de pistas una a la vez.</p>
       <div className="paper-actions">
         <PdfDownload assignmentId={assignment.id} kind="sheet" />
         <PdfDownload assignmentId={assignment.id} kind="answer-sheet" />
