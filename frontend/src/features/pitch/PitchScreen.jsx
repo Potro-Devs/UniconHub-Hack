@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { APP_NAME } from '@/config/brand';
+import { APP_NAME, TEAM_LEARNING_NAME } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { PITCH_DURATION, PITCH_EXTRA_SOURCES, PITCH_SCENES, PITCH_SOURCE, TEAM_MEMBERS, TEAM_NAME } from './pitch.content';
@@ -153,7 +153,7 @@ function Title() {
         return <span key={i} aria-hidden="true" style={{ opacity: t, transform: `translateY(${(1 - t) * 40}%) scale(${0.7 + 0.3 * t})` }}>{letter}</span>;
       })}<span className="pv-title-mascot" style={{ opacity: reduced ? 1 : ease((elapsed - 1) / 0.8) }}><StageMascot w={15} mood="celebra" float /></span></div>
       <Reveal at={1.6} className="pv-title-tagline">Cada error abre un siguiente paso.</Reveal>
-      <Reveal at={2.4} className="pv-title-pillars"><span>Diagnóstico del error típico</span><span>Pistas sin regalar respuestas</span><span>Funciona en papel</span><span>Aprendemos en equipo</span><span>Español · náhuatl · maya</span></Reveal>
+      <Reveal at={2.4} className="pv-title-pillars"><span>Diagnóstico del error típico</span><span>Pistas sin regalar respuestas</span><span>Funciona en papel</span><span>{TEAM_LEARNING_NAME}</span><span>Español · náhuatl · maya</span></Reveal>
     </div>
     <Reveal at={1.2} className="pv-team-card" from={40} axis="x">
       <div className="pv-team-brand"><span className="pv-team-logo"><img src={potroDevsLogo} alt={`Logo de ${TEAM_NAME}`} width="128" height="128" /></span><div><span>Un proyecto de</span><strong>{TEAM_NAME}</strong></div></div>
