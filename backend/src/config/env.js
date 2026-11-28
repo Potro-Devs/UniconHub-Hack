@@ -18,6 +18,12 @@ function resolveDbPath(value) {
   return path.resolve(BACKEND_ROOT, value);
 }
 
+/** Carpeta opcional; las rutas relativas se toman desde `backend/`. Vacía → null. */
+function resolveOptionalDir(value) {
+  if (!value) return null;
+  return path.isAbsolute(value) ? value : path.resolve(BACKEND_ROOT, value);
+}
+
 const DEV_JWT_SECRET = 'dev_jwt_secret_change_me';
 const PLACEHOLDER_SECRETS = new Set([DEV_JWT_SECRET, 'change_me']);
 const MIN_PRODUCTION_SECRET_LENGTH = 32;
@@ -50,6 +56,8 @@ export function loadConfig(source = process.env) {
     jwtSecret,
     corsOrigin: source.CORS_ORIGIN || 'http://localhost:5173',
     nodeEnv,
+    // Solo demo: carpeta del servidor con patrocinadores.json y logos de los juegos patrocinados.
+    demoSponsorsDir: resolveOptionalDir(source.DEMO_SPONSORS_DIR),
     auth: {
       teacherTokenTtl: source.TEACHER_TOKEN_TTL || '8h',
       studentTokenTtl: source.STUDENT_TOKEN_TTL || '2h',

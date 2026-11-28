@@ -419,8 +419,11 @@ observación hasta un ejemplo con otros datos; no entregan la solución del reto
   `hundreds * 100 + tens * 10 + units`, con centenas ausentes equivalentes a 0.
 
 **Juegos con patrocinio educativo (demo, sin convenios).** `sponsor` es
-`{ name: "Marca patrocinadora de ejemplo", category, demo: true }`; no hay nombres ni logos
-reales, enlaces ni llamados a comprar. Se listan después de los juegos propios y nunca
+`{ name, category, demo: true, logoUrl }`. En el repo, `name` es "Marca patrocinadora de ejemplo"
+y `logoUrl` es `null`. Si el servidor configura `DEMO_SPONSORS_DIR` (solo demo, ver README),
+`name` y `logoUrl` vienen de ahí; `logoUrl` apunta a `GET /api/v1/demo-sponsors/<archivo>`,
+que es público y solo sirve los logos listados en `patrocinadores.json` (otro archivo: 404).
+No hay enlaces ni llamados a comprar. Se listan después de los juegos propios y nunca
 aparecen en pruebas, diagnósticos ni Modo Papel. Mismas reglas de práctica que los demás.
 
 - `grammar_fix`: `material: { words, options }`. El alumno toca la palabra con error y

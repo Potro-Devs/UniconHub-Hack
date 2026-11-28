@@ -49,7 +49,8 @@ describe('games API: práctica privada independiente de diagnósticos', () => {
     // Los propios van primero y sin patrocinio; los patrocinados son demo con la marca de ejemplo.
     assert.ok(catalog.body.data.games.slice(0, 3).every((game) => game.sponsor === null));
     for (const game of catalog.body.data.games.slice(3)) {
-      assert.deepEqual(Object.keys(game.sponsor).sort(), ['category', 'demo', 'name']);
+      assert.deepEqual(Object.keys(game.sponsor).sort(), ['category', 'demo', 'logoUrl', 'name']);
+      assert.equal(game.sponsor.logoUrl, null, 'sin carpeta del servidor no hay logo');
       assert.equal(game.sponsor.name, 'Marca patrocinadora de ejemplo');
       assert.equal(game.sponsor.demo, true);
     }

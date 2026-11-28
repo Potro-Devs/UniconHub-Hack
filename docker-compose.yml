@@ -14,8 +14,12 @@ services:
       # Demo: datos ficticios y botones "Entrar como...". Desactívalos con una escuela real.
       SEED_DEMO: ${SEED_DEMO:-true}
       ENABLE_QUICK_LOGIN: ${ENABLE_QUICK_LOGIN:-true}
+      # Solo demo: marcas de los juegos patrocinados desde la carpeta ./demo-sponsors del servidor
+      # (patrocinadores.json + logos). Si está vacía, se usa "Marca patrocinadora de ejemplo".
+      DEMO_SPONSORS_DIR: /demo-sponsors
     volumes:
       - axi-data:/data
+      - ./demo-sponsors:/demo-sponsors:ro
     restart: unless-stopped
 
 volumes:

@@ -8,6 +8,7 @@ import { createDiagnosticsRouter } from './modules/diagnostics/diagnostics.route
 import { createGroupsRouter } from './modules/groups/groups.routes.js';
 import { createAnalyticsRouter } from './modules/analytics/analytics.routes.js';
 import { createGamesRouter } from './modules/games/games.routes.js';
+import { createDemoSponsorAssetsRouter, loadDemoSponsors } from './modules/games/games.demo-sponsors.js';
 import { createInterventionsRouter } from './modules/interventions/interventions.routes.js';
 import { createPaperModeRouter } from './modules/paper-mode/paper-mode.routes.js';
 import { createTutoringRouter } from './modules/tutoring/tutoring.routes.js';
@@ -49,7 +50,10 @@ export function createApp({ db, config = env, logger = console, now }) {
   app.use('/api/v1/diagnostics', createDiagnosticsRouter({ db, requireAuth }));
   // `now` permite fijar la fecha en pruebas (próxima sesión del CTE); por defecto, la fecha real.
   app.use('/api/v1/analytics', createAnalyticsRouter({ db, requireAuth, now }));
-  app.use('/api/v1/games', createGamesRouter({ db, requireAuth }));
+  // Marcas de demostración de los juegos patrocinados: solo si el servidor tiene su carpeta (no viene en git).
+  const demoSponsors = loadDemoSponsors(config.demoSponsorsDir, logger);
+  app.use('/api/v1/demo-sponsors', createDemoSponsorAssetsRouter(demoSponsors));
+  app.use('/api/v1/games', createGamesRouter({ db, requireAuth, demoSponsors }));
   app.use('/api/v1/interventions', createInterventionsRouter({ db, requireAuth }));
   app.use('/api/v1/tutoring', createTutoringRouter({ db, requireAuth }));
 

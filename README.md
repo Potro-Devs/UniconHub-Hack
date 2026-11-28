@@ -172,6 +172,8 @@ Si la docente marca **"Usó tarjetas de pistas"** en la hoja, todos los aciertos
 
 Después de entrar como alumno, abre **Juegos** o **Explorar juegos** en el inicio. La sección incluye tres juegos manipulables: pintar fracciones, formar grupos iguales y construir números por valor posicional. Cada partida contiene tres retos, materiales adaptados al grado del grupo y pistas graduadas. Se puede ajustar una construcción y volver a comprobarla sin penalización.
 
+Debajo aparecen **3 juegos con patrocinio educativo (demostración)**: *Corrige el cuaderno*, *Reto de cálculo mental* y *Completa la figura*. Muestran "Este juego lo hace posible Marca patrocinadora de ejemplo · Demostración, sin convenio real". Para mostrar marcas y logos en una demo, ver **Marcas de demostración** en Despliegue con Docker.
+
 Los juegos son práctica libre: **no modifican evaluaciones, dominio ni historial**, y su avance solo permanece mientras la pantalla está abierta. No tienen cronómetros, vidas ni rankings. Funcionan por toque o teclado, sin exigir arrastrar. Las animaciones respetan el control de movimiento y la preferencia del sistema. El material de ejemplo está **por validar con docente de primaria**.
 
 ### Progreso y logros del alumno
@@ -234,6 +236,14 @@ Abre http://localhost:3000. El servidor **no arranca** sin un `JWT_SECRET` de al
 
 - **Con una escuela real:** usa `SEED_DEMO=false` y `ENABLE_QUICK_LOGIN=false`. Los datos demo son ficticios y los accesos rápidos no piden contraseña.
 - **Empezar de cero:** `docker compose down -v` borra el volumen, **con todos sus datos**.
+- **Marcas de demostración (opcional, solo demo):** los nombres y logos de los juegos patrocinados se leen de la carpeta `./demo-sponsors` **del servidor**. Esa carpeta no se sube al repositorio ni entra en la imagen: `docker-compose.yml` la monta como volumen de solo lectura en `/demo-sponsors`.
+  1. En el servidor, junto a `docker-compose.yml`: `mkdir demo-sponsors`.
+  2. Copia ahí los logos (`.png`, `.jpg`, `.webp` o `.svg`, nombres simples como `cuadernos.png`) y un `patrocinadores.json` con la forma de [docs/demo-sponsors.example.json](docs/demo-sponsors.example.json): por juego (`grammar_fix`, `mental_math`, `symmetry`), el `name` y el archivo `logo`.
+  3. `docker compose up -d` (o `docker compose restart`). Los cambios se leen al arrancar; el registro del contenedor avisa si un logo no existe o si el archivo tiene errores.
+  - La leyenda "Demostración · sin convenio real" se muestra siempre. Sin carpeta, o con la carpeta vacía, se ve "Marca patrocinadora de ejemplo".
+  - Solo se publican los logos listados en `patrocinadores.json`, en `/api/v1/demo-sponsors/<archivo>`.
+  - Usa solo logos que el equipo tenga permiso de mostrar.
+  - En desarrollo: `DEMO_SPONSORS_DIR=../demo-sponsors` en `.env`. La ruta relativa se toma desde `backend/`.
 - **Respaldo:** detén el contenedor antes de copiar (SQLite usa modo WAL y una copia en caliente puede quedar incompleta): `docker compose stop && docker compose cp axi:/data/axi.db ./respaldo-axi.db && docker compose start`.
 
 ### Pitch animado para grabación

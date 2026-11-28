@@ -3,14 +3,52 @@
  *
  * Modelo: una marca relacionada con la escuela financia un juego de aprendizaje; aparece solo como
  * "Este juego lo hace posible …". Sin anuncios, sin enlaces, sin el producto dentro de los retos y
- * nunca en pruebas, diagnósticos ni Modo Papel. Mientras no haya convenios, el patrocinador es
- * siempre "Marca patrocinadora de ejemplo" (`demo: true`): no se usan nombres ni logos reales.
+ * nunca en pruebas, diagnósticos ni Modo Papel. Mientras no haya convenios, el patrocinador en el
+ * repo es siempre "Marca patrocinadora de ejemplo" (`demo: true`). Para una demo, el servidor puede
+ * mostrar otros nombres y logos desde una carpeta propia (`games.demo-sponsors.js`), nunca desde git.
  * Roadmap: interruptor por escuela/zona y conteo de partidas agregado y anónimo.
  */
 import { DomainError } from '../../shared/errors/DomainError.js';
 
 export const DEMO_SPONSOR_NAME = 'Marca patrocinadora de ejemplo';
-const sponsor = (category) => Object.freeze({ name: DEMO_SPONSOR_NAME, category, demo: true });
+const sponsor = (category) => Object.freeze({ name: DEMO_SPONSOR_NAME, category, demo: true, logoUrl: null });
+
+const MAX_DEMO_NAME = 60;
+const LOGO_FILE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,60}\.(png|jpe?g|webp|svg)$/i;
+
+/**
+ * Valida `patrocinadores.json` (marcas de demostración del servidor). Solo acepta los juegos
+ * patrocinados, un nombre de 1–60 caracteres y un logo que exista en la carpeta, con nombre simple
+ * (sin rutas). Lo inválido se ignora con un aviso: nunca rompe el arranque.
+ *
+ * @param {unknown} raw contenido del JSON
+ * @param {Set<string>} files archivos presentes en la carpeta
+ * @returns {{ overrides: Map<string, { name: string, logo: string | null }>, warnings: string[] }}
+ */
+export function parseDemoSponsorsConfig(raw, files) {
+  const overrides = new Map();
+  const warnings = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { overrides, warnings: ['El archivo debe ser un objeto JSON.'] };
+  for (const [code, entry] of Object.entries(raw)) {
+    if (!SPONSORED_CATALOG.some((game) => game.code === code)) { warnings.push(`"${code}" no es un juego patrocinado; se ignora.`); continue; }
+    const name = typeof entry?.name === 'string' ? entry.name.trim() : '';
+    if (!name || name.length > MAX_DEMO_NAME) { warnings.push(`"${code}": falta el nombre o pasa de ${MAX_DEMO_NAME} caracteres.`); continue; }
+    let logo = null;
+    if (entry.logo != null) {
+      if (typeof entry.logo !== 'string' || !LOGO_FILE.test(entry.logo)) warnings.push(`"${code}": el logo debe ser un archivo .png, .jpg, .webp o .svg sin carpetas.`);
+      else if (!files.has(entry.logo)) warnings.push(`"${code}": no encontré el archivo ${entry.logo}.`);
+      else logo = entry.logo;
+    }
+    overrides.set(code, { name, logo });
+  }
+  return { overrides, warnings };
+}
+
+/** Aplica la marca de demostración del servidor a un juego patrocinado (sigue siendo `demo: true`). */
+export function applyDemoSponsor(game, override, logoUrlFor) {
+  if (!game?.sponsor || !override) return game;
+  return { ...game, sponsor: { ...game.sponsor, name: override.name, logoUrl: logoUrlFor(override.logo) } };
+}
 
 export const SPONSORED_CATALOG = Object.freeze([
   Object.freeze({ code: 'grammar_fix', title: 'Corrige el cuaderno', skillCode: null, area: 'Lenguajes',

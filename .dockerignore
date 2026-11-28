@@ -28,3 +28,6 @@ data
 .claude
 backend/tests
 frontend/tests
+
+# Solo demo: logos de marcas del servidor; se montan como volumen, nunca dentro de la imagen.
+demo-sponsors

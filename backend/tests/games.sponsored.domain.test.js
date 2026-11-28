@@ -11,11 +11,12 @@ const GRADES = [1, 2, 3, 4, 5, 6];
 const cents = (n) => Math.round(n * 100);
 
 describe('juegos patrocinados (demo): contenido', () => {
-  test('el patrocinador es siempre la marca de ejemplo, sin enlaces ni logos reales', () => {
+  test('en el repo el patrocinador es siempre la marca de ejemplo, sin enlaces ni logos', () => {
     for (const game of SPONSORED_CATALOG) {
       assert.equal(game.sponsor.name, DEMO_SPONSOR_NAME);
       assert.equal(game.sponsor.demo, true);
-      assert.ok(!JSON.stringify(game).match(/https?:|www\.|\.com|logo/i), game.code);
+      assert.equal(game.sponsor.logoUrl, null);
+      assert.ok(!JSON.stringify(game).match(/https?:|www\.|\.com|\.png|\.svg/i), game.code);
     }
   });
 
