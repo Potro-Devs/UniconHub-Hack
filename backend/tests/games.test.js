@@ -28,6 +28,8 @@ function fixtures() {
   } };
 }
 
+const ALL_CODES = ['fractions', 'multiplication', 'place_value', 'grammar_fix', 'mental_math', 'symmetry'];
+
 describe('games API: práctica privada independiente de diagnósticos', () => {
   let fx;
   let api;
@@ -43,7 +45,14 @@ describe('games API: práctica privada independiente de diagnósticos', () => {
   test('catálogo y retos ofrecen tres prácticas por grado sin nombres ni solución oculta', async () => {
     const catalog = await get();
     assert.equal(catalog.status, 200);
-    assert.deepEqual(catalog.body.data.games.map((game) => game.code), ['fractions', 'multiplication', 'place_value']);
+    assert.deepEqual(catalog.body.data.games.map((game) => game.code), ALL_CODES);
+    // Los propios van primero y sin patrocinio; los patrocinados son demo con la marca de ejemplo.
+    assert.ok(catalog.body.data.games.slice(0, 3).every((game) => game.sponsor === null));
+    for (const game of catalog.body.data.games.slice(3)) {
+      assert.deepEqual(Object.keys(game.sponsor).sort(), ['category', 'demo', 'name']);
+      assert.equal(game.sponsor.name, 'Marca patrocinadora de ejemplo');
+      assert.equal(game.sponsor.demo, true);
+    }
     assert.equal(catalog.body.data.practiceOnly, true);
     assert.equal(catalog.body.data.contentReview, 'por validar con docente');
     const visitKeys = (value) => {
@@ -55,7 +64,7 @@ describe('games API: práctica privada independiente de diagnósticos', () => {
     };
     for (const grade of [1, 2, 3, 4, 5, 6]) {
       fx.db.prepare('UPDATE groups SET grade = ? WHERE id = ?').run(grade, fx.ids.group);
-      for (const code of ['fractions', 'multiplication', 'place_value']) {
+      for (const code of ALL_CODES) {
         const response = await get(`${root}/${code}`);
         assert.equal(response.status, 200);
         assert.equal(response.body.data.grade, grade);
@@ -109,6 +118,35 @@ describe('games API: práctica privada independiente de diagnósticos', () => {
     const target = fx.db.prepare('SELECT status,is_screen_locked FROM assignment_targets').get();
     assert.equal(target.status, 'pending');
     assert.equal(target.is_screen_locked, 1);
+  });
+
+  test('juegos patrocinados (demo): se revisan en el servidor y tampoco escriben nada', async () => {
+    const before = fx.db.prepare('SELECT total_changes() AS n').get().n;
+    const symmetry = (await get(`${root}/symmetry`)).body.data.rounds[0].material;
+    const mirror = symmetry.left.map((row) => [...row].reverse());
+    const wrongMirror = symmetry.left.map((row) => [...row]);
+    // 3.º: "Los niños juega en el patio." → juega (2) → "juegan" (1); meta 100 → 45 + 55.
+    for (const [code, answer, wrong] of [
+      ['grammar_fix', { wordIndex: 2, optionIndex: 1 }, { wordIndex: 2, optionIndex: 0 }],
+      ['mental_math', [0, 2], [0, 1]],
+      ['symmetry', mirror, wrongMirror],
+    ]) {
+      const correct = await submit(code, { roundId: `${code}-1`, answer });
+      assert.equal(correct.status, 200, JSON.stringify(correct.body));
+      assert.equal(correct.body.data.correct, true, code);
+      const incorrect = await submit(code, { roundId: `${code}-1`, answer: wrong });
+      assert.equal(incorrect.body.data.correct, false, code);
+      assert.ok(!/reprobado|deficiente|fallaste|compra/i.test(JSON.stringify(incorrect.body)));
+    }
+    // Encontrar la palabra pero escribirla mal da una pista distinta.
+    const almost = await submit('grammar_fix', { roundId: 'grammar_fix-1', answer: { wordIndex: 2, optionIndex: 2 } });
+    assert.match(almost.body.data.explanation, /Encontraste la palabra/);
+    for (const [code, answer] of [
+      ['grammar_fix', { wordIndex: 2 }], ['grammar_fix', { wordIndex: 9, optionIndex: 0 }], ['grammar_fix', { wordIndex: 2, optionIndex: 1, x: 1 }],
+      ['mental_math', [0, 0]], ['mental_math', [0]], ['mental_math', [0, 7]],
+      ['symmetry', [[true]]], ['symmetry', symmetry.left.map((row) => row.map(() => 1))],
+    ]) assert.equal((await submit(code, { roundId: `${code}-1`, answer })).status, 400, `${code} ${JSON.stringify(answer)}`);
+    assert.equal(fx.db.prepare('SELECT total_changes() AS n').get().n, before);
   });
 
   test('cuerpos inválidos, datos extra y override de grado se rechazan sin persistir', async () => {

@@ -9,8 +9,11 @@ const answerFor = (code, round) => code === 'fractions' ? round.material.targetN
 const check = (code, rounds, answer, round = rounds[0]) => checkGameConstruction(code, rounds, { roundId: round.id, answer });
 
 describe('games domain: construcciones manipulativas sin evaluación', () => {
-  test('catálogo contiene tres juegos y sus copias no alteran el catálogo', () => {
-    assert.deepEqual(listGames().map((game) => game.code), codes);
+  test('catálogo: tres juegos propios primero y después los patrocinados (demo); las copias no alteran el catálogo', () => {
+    assert.deepEqual(listGames().map((game) => game.code), [...codes, 'grammar_fix', 'mental_math', 'symmetry']);
+    assert.ok(listGames().slice(0, 3).every((game) => game.sponsor === null));
+    const sponsored = listGames()[3]; sponsored.sponsor.name = 'Otra';
+    assert.equal(findGame('grammar_fix').sponsor.name, 'Marca patrocinadora de ejemplo');
     const copy = listGames(); copy[0].title = 'Cambio externo';
     assert.notEqual(findGame('fractions').title, 'Cambio externo');
     assert.equal(findGame('unknown'), null);

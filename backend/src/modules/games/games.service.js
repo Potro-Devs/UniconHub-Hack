@@ -27,8 +27,8 @@ export function createGamesService({ groupsRepository, repository }) {
     },
     getGame: loadGame,
     check(auth, gameCode, body) {
-      const { rounds } = loadGame(auth, gameCode);
-      return checkGameConstruction(gameCode, rounds, body);
+      const { rounds, grade } = loadGame(auth, gameCode);
+      return checkGameConstruction(gameCode, rounds, body, grade);
     },
   };
 }

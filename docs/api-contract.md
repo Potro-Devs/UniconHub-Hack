@@ -392,8 +392,10 @@ todavía vigente. El grado se obtiene siempre del grupo, nunca del cliente.
 | `POST /games/:gameCode/check` | `{ correct: boolean, feedback: string, explanation: string }` |
 
 Las rutas anteriores se expresan bajo `/api/v1`. `contentReview` vale
-`"por validar con docente"`. `Game` es `{ code, title, skillCode, description }`.
-Los códigos disponibles son `fractions`, `multiplication`, `place_value`.
+`"por validar con docente"`. `Game` es `{ code, title, skillCode, description, sponsor }`
+(los patrocinados agregan `area` y tienen `skillCode: null`).
+Los códigos disponibles son `fractions`, `multiplication`, `place_value` (propios, `sponsor: null`)
+y `grammar_fix`, `mental_math`, `symmetry` (patrocinio educativo de **demostración**, ver abajo).
 Código inexistente: 404 `GAME_NOT_FOUND`. Los tres retos de cada juego son
 deterministas para cada grado de 1.º a 6.º; constituyen ejemplos de práctica y
 no una declaración de alineación curricular SEP validada.
@@ -415,6 +417,19 @@ observación hasta un ejemplo con otros datos; no entregan la solución del reto
   `places = ["hundreds", "tens", "units"]`. `answer` es un objeto con
   exactamente esas claves y valores enteros entre 0 y 9. Se verifica el valor
   `hundreds * 100 + tens * 10 + units`, con centenas ausentes equivalentes a 0.
+
+**Juegos con patrocinio educativo (demo, sin convenios).** `sponsor` es
+`{ name: "Marca patrocinadora de ejemplo", category, demo: true }`; no hay nombres ni logos
+reales, enlaces ni llamados a comprar. Se listan después de los juegos propios y nunca
+aparecen en pruebas, diagnósticos ni Modo Papel. Mismas reglas de práctica que los demás.
+
+- `grammar_fix`: `material: { words, options }`. El alumno toca la palabra con error y
+  elige su corrección. `answer` es `{ wordIndex, optionIndex }` (índices válidos). Es correcto
+  si ambos coinciden; si solo acierta la palabra, la explicación lo dice.
+- `mental_math`: `material: { target, cards }` (4 tarjetas; exactamente un par suma `target`;
+  en 5.º y 6.º hay decimales). `answer` es un arreglo de 2 índices distintos.
+- `symmetry`: `material: { rows, half, left }` (`left` es `boolean[rows][half]`). `answer` es
+  `boolean[rows][half]` con la mitad derecha; es correcto si es el reflejo exacto de `left`.
 
 El cuerpo de `check` debe tener **exactamente** `{ roundId, answer }`.
 Un cuerpo no objeto, propiedades extra (incluidos `grade` o datos de otra
