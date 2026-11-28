@@ -31,6 +31,8 @@ export function createPaperModeRouter({ db, requireAuth }) {
 
   const router = Router();
   router.get('/assignments/:assignmentId/pdf', staff, controller.exportSheetPdf);
+  router.get('/assignments/:assignmentId/answer-sheet-pdf', staff, controller.exportAnswerSheetPdf);
+  router.get('/assignments/:assignmentId/omr-layout', staff, controller.getOmrLayout);
   router.get('/assignments/:assignmentId/hints-pdf', staff, controller.exportHintsPdf);
   router.get('/assignments/:assignmentId/capture-status', staff, controller.getCaptureStatus);
   router.post('/assignments/:assignmentId/capture/:studentId', teacher, controller.captureStudent);
