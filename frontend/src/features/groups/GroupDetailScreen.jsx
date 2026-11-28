@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { COLORS } from '@/config/brand';
 import { authApi } from '@/features/auth/auth.api';
 import { buttonStyle, card, mutedText, pill } from '@/shared/styles/ui';
+import { useAppUi } from '@/shared/state/AppUiContext';
 import { useSession } from '@/shared/state/SessionContext';
 import { AddStudentForm } from './AddStudentForm';
 import { BulkStudentsForm } from './BulkStudentsForm';
@@ -41,6 +42,7 @@ export function GroupDetailScreen() {
   const canEdit = session?.role === 'teacher';
   const { groups, activeGroup, setActiveGroupId, upsertGroup } = useTeacherGroups();
   const showExample = useQuickLoginEnabled();
+  const { say } = useAppUi();
 
   const [groupState, setGroupState] = useState({ status: 'loading', group: null });
   const [studentsState, setStudentsState] = useState({ status: 'loading', students: [] });
@@ -286,7 +288,21 @@ export function GroupDetailScreen() {
         {studentsState.status === 'ready' && students.length === 0 && (
           <div style={mutedText}>Todavía no hay alumnos en este grupo.</div>
         )}
-        {studentsState.status === 'ready' && students.length > 0 && <StudentList students={students} groupId={group.id} />}
+        {studentsState.status === 'ready' && students.length > 0 && (
+          <StudentList
+            students={students}
+            groupId={group.id}
+            canEdit={canEdit}
+            onUpdated={(updated) => {
+              setStudentsState((prev) => ({ ...prev, students: prev.students.map((s) => (s.id === updated.id ? updated : s)) }));
+              say('Nombre corregido.');
+            }}
+            onRemoved={(studentId, message) => {
+              setStudentsState((prev) => ({ ...prev, students: prev.students.filter((s) => s.id !== studentId) }));
+              say(message);
+            }}
+          />
+        )}
       </section>
     </div>
   );

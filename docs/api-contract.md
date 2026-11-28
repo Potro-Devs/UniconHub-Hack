@@ -57,10 +57,17 @@ Todos los endpoints exigen sesión.
 | `POST /:groupId/students` | teacher | `{ firstNames, lastNames }` | `Student` (201) | 400, 401, 403, 404 |
 | `POST /:groupId/students/bulk` | teacher | `{ text }` (un alumno por línea) | `{ created: [Student] }` (201) · `meta: { createdCount }` | 400 (`details.invalidLines` si hay líneas inválidas), 401, 403, 404 |
 | `POST /:groupId/students/import-preview` | teacher | `{ fileName, contentBase64 }` (`.xlsx` o `.csv`, máx. 60 KB) | `{ text, studentCount, invalidRows: [{ row, text }], headerDetected }`: lista "Apellidos, Nombres" lista para `POST /bulk`. **No guarda alumnos.** Columnas: apellido paterno, apellido materno, nombre(s); con encabezados se ubican por nombre; CSV con `,` `;` o tabulador, UTF-8 o Latin-1. | 400 (formato, archivo dañado o vacío, más de 60 alumnos), 401, 403, 404 |
+| `PATCH /:groupId/students/:studentId` | teacher | `{ firstNames?, lastNames? }` (al menos uno) | `Student` con iniciales recalculadas | 400, 401, 403, 404 `GROUP_NOT_FOUND` / `STUDENT_NOT_FOUND` |
+| `POST /:groupId/students/:studentId/withdraw` | teacher | — | `{ studentId, groupId, status: "withdrawn" }` | 400, 401, 403, 404 |
+| `DELETE /:groupId/students/:studentId` | teacher | — | `{ studentId, deleted: true }` | 400, 401, 403, 404, 409 `STUDENT_HAS_HISTORY` |
 | `PATCH /students/:studentId/avatar` | teacher, student | `{ avatarId?, avatarColor? }` (al menos uno) | `Student` | 400, 401, 403, 404 `STUDENT_NOT_FOUND` |
 
 - `Group`: `{ id, name: "3.º A", grade, section, schoolYear, phase, joinCode, teacherId, studentCount }`. `phase` se calcula del grado (3: 1.º–2.º, 4: 3.º–4.º, 5: 5.º–6.º); `studentCount` cuenta inscripciones activas.
 - `Student`: `{ id, firstNames, lastNames, initials, avatarColor, avatarId }`. Nombre completo porque es un contexto autenticado de la escuela. **Nunca incluye `internal_folio`.**
+- **Corregir, dar de baja y eliminar alumnos** (solo la docente dueña del grupo; el alumno debe estar activo en él, si no → 404):
+  - `PATCH`: mismas reglas de nombre que el alta. Las iniciales se recalculan; el `internal_folio` no cambia.
+  - `withdraw` (**baja**): la inscripción pasa a `withdrawn` con `ended_at`. **No borra nada**: respuestas, cortes y logros se conservan para el historial. El alumno deja de aparecer en la lista, en el mapa y en el acceso por código, y su sesión de alumno deja de servir.
+  - `DELETE`: solo para alumnos agregados por error. Si tiene respuestas, cortes de dominio, logros, pistas pedidas, tutorías o inscripciones en otros grupos → `409 STUDENT_HAS_HISTORY` con `details: { responses, masteryCuts, achievements, hintRequests, tutoringPairs, otherEnrollments }` (conviene darlo de baja). Sin datos, se elimina junto con sus asignaciones pendientes.
 - **Autorización:**
   - `teacher`: solo grupos con `teacher_id` = su id (y de su escuela), y alumnos con inscripción `active` en ellos.
   - `director`: **solo lectura** de los grupos y alumnos de su escuela; cualquier escritura → 403.
