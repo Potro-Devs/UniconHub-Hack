@@ -31,6 +31,7 @@ import {
   THIRD_GRADE_PROGRESS,
   formativeFieldFor,
 } from './seed/demo.data.js';
+import { serializeQuestionVisual } from '../modules/assessments/question-visual.domain.js';
 import { generateQuestionBank } from './seed/questions.generator.js';
 import { insertSchoolGroups } from './seed/schoolGroups.js';
 import { seedDemoQuizzes } from './seed/quizzes.seed.js';
@@ -161,8 +162,8 @@ function insertDemo(db, rng, bank, passwordHash) {
   const questionsBy = {};
   for (const q of bank) {
     const questionId = run(
-      'INSERT INTO questions (skill_id, content_id, grade, stem, hint_1, hint_2, hint_3, difficulty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      skillIds[q.skill], contentIds[`${q.grade}:${q.skill}`], q.grade, q.stem, ...q.hints, q.difficulty,
+      'INSERT INTO questions (skill_id, content_id, grade, stem, hint_1, hint_2, hint_3, difficulty, visual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      skillIds[q.skill], contentIds[`${q.grade}:${q.skill}`], q.grade, q.stem, ...q.hints, q.difficulty, serializeQuestionVisual(q.visual),
     );
     const options = rng
       .shuffle([{ text: q.correct, isCorrect: true }, ...q.distractors.map((x) => ({ ...x, isCorrect: false }))])

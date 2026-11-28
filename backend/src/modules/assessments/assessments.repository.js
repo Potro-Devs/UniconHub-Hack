@@ -4,7 +4,7 @@
  * Nunca selecciona `internal_folio`.
  */
 
-const QUESTION_COLUMNS = `q.id, q.grade, q.content_id, q.stem, q.hint_1, q.hint_2, q.hint_3, q.difficulty,
+const QUESTION_COLUMNS = `q.id, q.grade, q.content_id, q.stem, q.hint_1, q.hint_2, q.hint_3, q.difficulty, q.visual,
   s.code AS skill_code, s.name AS skill_name`;
 const OPTION_COLUMNS = 'o.id, o.question_id, o.label, o.text, o.is_correct, o.error_tag, o.error_explanation';
 // `(? IS NULL OR ...)` permite que cada filtro sea opcional con la misma sentencia preparada.

@@ -5,6 +5,7 @@
 import { DomainError } from '../../shared/errors/DomainError.js';
 import { getMasteryLevelIndex, roundPercentage } from '../analytics/analytics.domain.js';
 import { MIN_QUESTIONS_PER_SKILL } from '../assessments/assessments.domain.js';
+import { parseQuestionVisual } from '../assessments/question-visual.domain.js';
 
 export const MAX_HINT_LEVEL = 3;
 
@@ -261,6 +262,8 @@ export function toStartQuestionDto(q, options, response, hintLevel = 0) {
     position: q.position,
     skill: { code: q.skill_code, name: q.skill_name },
     stem: q.stem,
+    // Gráfico del reactivo (p. ej. la tira de fracciones) o null.
+    visual: parseQuestionVisual(q.visual),
     hints: [q.hint_1, q.hint_2, q.hint_3].slice(0, hintLevel),
     options: options.map((o) => ({ id: o.id, label: o.label, text: o.text })),
     answered: Boolean(response),

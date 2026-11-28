@@ -92,6 +92,7 @@ export function createPaperModeService({
           questions: questionRows.map((q) => ({
             position: q.position,
             prompt: q.stem,
+            visual: q.visual,
             questionType: 'multiple_choice',
             options: (options.get(q.id) ?? []).map((o) => ({ label: o.label, text: o.text })),
           })),

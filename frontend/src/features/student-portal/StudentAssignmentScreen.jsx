@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { QuestionVisual } from '@/shared/components/QuestionVisual';
+import { describeVisual } from '@/shared/components/questionVisual.logic';
 import { useNavigate, useParams } from 'react-router-dom';
 import { APP_NAME, COLORS } from '@/config/brand';
 import { Mascot } from '@/features/mascot';
@@ -17,7 +19,8 @@ function questionSpeech(question) {
   if (!question) return '';
   const { passage, prompt } = splitStem(question.stem);
   const options = question.options.map((o) => `${o.label}: ${o.text}`).join('. ');
-  return [passage?.join('. '), prompt, `Opciones. ${options}`].filter(Boolean).join('. ');
+  // La bocina también describe el dibujo, para quien no lo ve bien en pantalla.
+  return [passage?.join('. '), prompt, describeVisual(question.visual), `Opciones. ${options}`].filter(Boolean).join('. ');
 }
 
 /** Botón de bocina: lee en voz alta solo cuando se toca (o detiene la lectura). */
@@ -233,6 +236,7 @@ export function StudentAssignmentScreen() {
           <div className="font-display" style={{ flex: '1 1 260px', fontWeight: 700, fontSize: narrow ? '24px' : '28px', lineHeight: 1.25 }}>{prompt}</div>
           <SpeakerButton speech={speech} id={`q-${question.id}`} text={questionSpeech(question)} label="Escuchar la pregunta y las opciones" />
         </div>
+        <QuestionVisual visual={question.visual} />
 
         {question.answered ? (
           <div role="status" style={{ padding: '14px 16px', borderRadius: '20px', background: COLORS.primarySoftBg, fontSize: '19px', fontWeight: 700 }}>

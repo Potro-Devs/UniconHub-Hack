@@ -4,6 +4,7 @@
  * Nunca incluye las respuestas correctas ni pistas reveladoras: está listo para fotocopiar.
  */
 import PDFDocument from 'pdfkit';
+import { drawQuestionVisual, questionVisualHeight } from '../../shared/pdf/question-visual.js';
 import {
   CARD_RADIUS,
   CONTENT_BOTTOM,
@@ -38,7 +39,8 @@ function cardHeight(doc, question) {
   let answer = 26;
   if (question.questionType === 'multiple_choice') answer = optionRows(doc, question).reduce((sum, h) => sum + h, 0);
   else if (question.questionType === 'true_false') answer = 22;
-  return 10 + promptHeight(doc, question) + 8 + answer + 4;
+  const visualHeight = questionVisualHeight(question.visual);
+  return 10 + promptHeight(doc, question) + 8 + (visualHeight ? visualHeight + 8 : 0) + answer + 4;
 }
 
 /** Folio, nombre, fecha, casilla de apoyo opcional e instrucciones. Devuelve la Y donde empiezan las preguntas. */
@@ -78,7 +80,9 @@ function drawQuestionCard(doc, question, y, h) {
   drawBadge(doc, `Pregunta ${question.position}`, y);
 
   doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(question.prompt, M + 40, y + 10, { width: PROMPT_WIDTH });
-  const top = y + 10 + promptHeight(doc, question) + 8;
+  let top = y + 10 + promptHeight(doc, question) + 8;
+  const visualHeight = drawQuestionVisual(doc, question.visual, M + 40, top, PROMPT_WIDTH);
+  if (visualHeight) top += visualHeight + 8;
 
   if (question.questionType === 'multiple_choice') {
     const rows = optionRows(doc, question);

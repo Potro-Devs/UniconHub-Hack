@@ -161,7 +161,7 @@ describe('assessments API', () => {
       assert.equal(status, 200);
       assert.equal(body.meta.count, 12);
       const first = body.data[0];
-      assert.deepEqual(Object.keys(first).sort(), ['contentId', 'difficulty', 'grade', 'hints', 'id', 'options', 'skill', 'stem'].sort());
+      assert.deepEqual(Object.keys(first).sort(), ['contentId', 'difficulty', 'grade', 'hints', 'id', 'options', 'skill', 'stem', 'visual'].sort());
       assert.equal(first.hints.length, 3);
       assert.deepEqual(first.skill, { code: 'fractions', name: 'Fracciones' });
       assert.ok(first.options.every((o) => Number.isInteger(o.id) && o.id > 0), 'cada opción trae su id');
