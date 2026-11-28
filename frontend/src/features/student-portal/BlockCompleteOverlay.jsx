@@ -142,7 +142,7 @@ export function BlockCompleteOverlay({ axiColor, effortMsg, skip = false, onSkip
               boxShadow: '0 4px 0 #D97706',
             }}
           >
-            Ver mi avance
+            Ver mis logros
           </button>
         </div>
       </div>

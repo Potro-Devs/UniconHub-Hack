@@ -41,7 +41,7 @@ const isFraction = (text) => /^\d+\/\d+$/.test(text);
  * Ejercicio del alumno con datos reales (`/api/v1/diagnostics`): una pregunta a la vez, pistas
  * graduadas pedidas al servidor y retroalimentación neutra ("Respuesta guardada"): el servidor
  * nunca revela si fue correcta, para no distorsionar el diagnóstico. Al terminar se registra el
- * corte de dominio y se muestra un resumen amable.
+ * corte de dominio, se celebra brevemente y se pasa a "Mis logros".
  */
 export function StudentAssignmentScreen() {
   const { assignmentId } = useParams();
@@ -57,7 +57,6 @@ export function StudentAssignmentScreen() {
   const [pending, setPending] = useState(null); // 'hint' | 'answer' | 'complete'
   const [notice, setNotice] = useState(null);
   const [result, setResult] = useState(null);
-  const [overlay, setOverlay] = useState(false);
   const [skip, setSkip] = useState(false);
 
   useEffect(() => {
@@ -141,7 +140,6 @@ export function StudentAssignmentScreen() {
       const data = await diagnosticsApi.complete(assignmentId);
       setResult(data);
       setSkip(false);
-      setOverlay(true);
     } catch (error) {
       setNotice({ tone: 'error', text: friendlyDiagnosticsError(error) });
     } finally {
@@ -160,44 +158,17 @@ export function StudentAssignmentScreen() {
     );
   }
 
+  // Al terminar: celebración breve y de ahí directo a "Mis logros" (sin pantalla intermedia).
+  // `replace` evita que "atrás" regrese a una actividad que ya terminó.
   if (result) {
-    const recorded = result.skills.filter((s) => s.masteryRecorded);
     return (
-      <div className="kid-page" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <header style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <Mascot size={110} color={axiColor} mood="acierto" animated={!reducedMotion} />
-          <div>
-            <p className="kid-eyebrow" style={{ margin: 0 }}>ACTIVIDAD TERMINADA</p>
-            <h1 className="font-display" style={{ margin: '4px 0 0', fontSize: narrow ? '26px' : '32px' }}>¡Terminaste {assignment.title}!</h1>
-            <p style={{ margin: '6px 0 0', fontSize: '17px', color: COLORS.muted }}>
-              {hintsUsed ? `Pediste ${hintsUsed} ${hintsUsed === 1 ? 'pista' : 'pistas'} y seguiste intentando.` : 'Lo pensaste con calma, paso a paso.'}
-            </p>
-          </div>
-        </header>
-        <section className="kid-helper-panel" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {result.skills.map((s) => (
-            <div key={s.code} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <strong style={{ fontSize: '18px' }}>{s.name}</strong>
-              <span style={{ fontSize: '17px', lineHeight: 1.4 }}>{s.message}</span>
-              {s.achievedWithSupport > 0 && <span style={{ fontSize: '15px', color: COLORS.muted }}>Logrado con apoyo: {s.achievedWithSupport} {s.achievedWithSupport === 1 ? 'respuesta' : 'respuestas'}</span>}
-            </div>
-          ))}
-          {recorded.length > 0 && <p style={{ margin: 0, fontSize: '15px', color: COLORS.muted }}>Tu maestra o maestro ya puede ver tu avance.</p>}
-        </section>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button type="button" className="kid-button kid-button-primary" onClick={() => navigate('/alumno/inicio')}>Volver al inicio</button>
-          <button type="button" className="kid-button" onClick={() => navigate('/alumno/juegos')}>Practicar con juegos</button>
-        </div>
-        {overlay && (
-          <BlockCompleteOverlay
-            axiColor={axiColor}
-            effortMsg={hintsUsed ? `Pediste ${hintsUsed} ${hintsUsed === 1 ? 'pista' : 'pistas'} y seguiste intentando.` : 'Lo pensaste con calma, paso a paso.'}
-            skip={skip}
-            onSkip={() => setSkip(true)}
-            onContinue={() => setOverlay(false)}
-          />
-        )}
-      </div>
+      <BlockCompleteOverlay
+        axiColor={axiColor}
+        effortMsg={hintsUsed ? `Pediste ${hintsUsed} ${hintsUsed === 1 ? 'pista' : 'pistas'} y seguiste intentando.` : 'Lo pensaste con calma, paso a paso.'}
+        skip={skip}
+        onSkip={() => setSkip(true)}
+        onContinue={() => navigate('/alumno/logros', { replace: true })}
+      />
     );
   }
 
