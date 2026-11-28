@@ -112,9 +112,19 @@ export function drawTicketHeader(doc, { heading, title, detail, mood = 'celebra'
   const line = { width: 350, lineBreak: false, ellipsis: true };
   doc.lineWidth(2.5).roundedRect(M, M + 4, 380, 74, 14).stroke(INK);
   doc.lineWidth(0.8).roundedRect(M + 5, M + 9, 370, 64, 10).stroke(INK);
-  doc.fillColor(INK).font('Helvetica-Bold').fontSize(19).text(heading, M + 18, M + 16, line);
-  doc.font('Helvetica').fontSize(10.5).text(title, M + 18, M + 42, line);
-  if (detail) doc.fontSize(9).text(detail, M + 18, M + 60, line);
+
+  doc.font('Helvetica').fontSize(10.5);
+  const titleFitsOneLine = doc.widthOfString(title) <= 350;
+  if (titleFitsOneLine) {
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(19).text(heading, M + 18, M + 16, line);
+    doc.font('Helvetica').fontSize(10.5).text(title, M + 18, M + 42, line);
+    if (detail) doc.fontSize(9).text(detail, M + 18, M + 60, line);
+  } else {
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(16.5).text(heading, M + 18, M + 13, line);
+    doc.font('Helvetica').fontSize(9).text(title, M + 18, M + 35, { width: 350, height: 23, ellipsis: true });
+    if (detail) doc.fontSize(8.5).text(detail, M + 18, M + 60, line);
+  }
+
   drawAxi(doc, M + CW - 50, M + 52, 100, mood);
   return M + 78;
 }
@@ -131,9 +141,9 @@ export function drawNoteBox(doc, text, y) {
 /** Insignia negra tipo pestaña ("Pregunta 1"); se ancla sobre el borde superior de una tarjeta en `y`. */
 export function drawBadge(doc, label, y) {
   doc.font('Helvetica-Bold').fontSize(8.5);
-  const w = Math.max(76, doc.widthOfString(label) + 22);
+  const w = Math.min(CW - 28, Math.max(76, doc.widthOfString(label) + 22));
   doc.roundedRect(M + 14, y - 10, w, 18, 9).fill(INK);
-  doc.fillColor(PAPER).text(label, M + 14, y - 6.5, { width: w, align: 'center', lineBreak: false });
+  doc.fillColor(PAPER).text(label, M + 14, y - 6.5, { width: w, align: 'center', lineBreak: false, ellipsis: true });
   doc.fillColor(INK);
 }
 

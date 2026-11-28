@@ -18,7 +18,7 @@ import {
 } from '../../shared/pdf/axi-sheet.js';
 
 const CARD_TOP = 12; // espacio para la insignia "Pregunta N" sobre la tarjeta
-const CARD_GAP = 14;
+const CARD_GAP = 8;
 const PROMPT_WIDTH = CW - 52;
 const OPTION_WIDTH = CW - 76;
 const INSTRUCTION =
@@ -31,14 +31,14 @@ function promptHeight(doc, question) {
 
 function optionRows(doc, question) {
   doc.font('Helvetica').fontSize(9.5);
-  return question.options.map((opt) => Math.max(17, doc.heightOfString(opt.text, { width: OPTION_WIDTH }) + 4));
+  return question.options.map((opt) => Math.max(15, doc.heightOfString(opt.text, { width: OPTION_WIDTH }) + 3));
 }
 
 function cardHeight(doc, question) {
   let answer = 26;
   if (question.questionType === 'multiple_choice') answer = optionRows(doc, question).reduce((sum, h) => sum + h, 0);
   else if (question.questionType === 'true_false') answer = 22;
-  return 10 + promptHeight(doc, question) + 8 + answer + 10;
+  return 10 + promptHeight(doc, question) + 8 + answer + 4;
 }
 
 /** Folio, nombre, fecha, casilla de apoyo opcional e instrucciones. Devuelve la Y donde empiezan las preguntas. */
@@ -46,16 +46,18 @@ function drawHeader(doc, quiz, groupLabel, supportField) {
   const detail = `${quiz.skill.name} · ${quiz.grade}.º grado${groupLabel ? ` · ${groupLabel}` : ''}`;
   drawTicketHeader(doc, { heading: 'Axi · Hoja de evaluación', title: quiz.title, detail, mood: 'celebra' });
 
-  const fy = M + 92;
-  doc.fillColor(INK).font('Helvetica-Bold').fontSize(9).text('Folio', M, fy, { lineBreak: false });
-  doc.lineWidth(0.8).moveTo(M + 30, fy + 10).lineTo(M + 200, fy + 10).stroke(INK);
-  doc.font('Helvetica').fontSize(7.5).text('(lo llena el docente)', M, fy + 16, { width: 200, align: 'right', lineBreak: false });
-
-  const y = M + 130;
-  doc.font('Helvetica-Bold').fontSize(9.5).text('Nombre:', M, y, { lineBreak: false });
-  doc.lineWidth(0.8).moveTo(M + 48, y + 11).lineTo(M + 360, y + 11).stroke(INK);
-  doc.font('Helvetica-Bold').fontSize(9.5).text('Fecha:', M + 378, y, { lineBreak: false });
-  doc.lineWidth(0.8).moveTo(M + 420, y + 11).lineTo(M + CW, y + 11).stroke(INK);
+  const y = M + 96;
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(9.5).text('Nombre:', M, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 48, y + 11).lineTo(M + 290, y + 11).stroke(INK);
+  doc.font('Helvetica-Bold').fontSize(9.5).text('Fecha:', M + 302, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 340, y + 11).lineTo(M + 420, y + 11).stroke(INK);
+  doc.font('Helvetica-Bold').fontSize(9.5).text('Folio:', M + 430, y, { lineBreak: false });
+  doc.lineWidth(0.8).moveTo(M + 462, y + 11).lineTo(M + CW, y + 11).stroke(INK);
+  doc.font('Helvetica').fontSize(7).text('(lo llena el docente)', M + 430, y + 13, {
+    width: CW - 430,
+    align: 'right',
+    lineBreak: false,
+  });
 
   let top = y + 22;
   if (supportField) {
@@ -68,7 +70,7 @@ function drawHeader(doc, quiz, groupLabel, supportField) {
     }
     top += 20;
   }
-  return drawNoteBox(doc, INSTRUCTION, top) + 14;
+  return drawNoteBox(doc, INSTRUCTION, top) + 10;
 }
 
 function drawQuestionCard(doc, question, y, h) {
@@ -82,9 +84,9 @@ function drawQuestionCard(doc, question, y, h) {
     const rows = optionRows(doc, question);
     let oy = top;
     question.options.forEach((opt, i) => {
-      doc.lineWidth(1).circle(M + 50, oy + 5.5, 6.5).stroke(INK);
-      doc.fillColor(INK).font('Helvetica-Bold').fontSize(7.5).text(opt.label, M + 43.5, oy + 2.4, {
-        width: 13,
+      doc.lineWidth(1).circle(M + 50, oy + 5.5, 6).stroke(INK);
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(7.5).text(opt.label, M + 44, oy + 2.4, {
+        width: 12,
         align: 'center',
         lineBreak: false,
       });

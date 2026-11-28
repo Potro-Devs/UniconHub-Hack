@@ -17,8 +17,8 @@ import {
   drawTicketHeader,
 } from '../../shared/pdf/axi-sheet.js';
 
-const ROW_TOP = 12; // espacio para la insignia "Reactivo N" sobre las tarjetas
-const ROW_GAP = 14;
+const ROW_TOP = 22; // espacio para la insignia "Reactivo N" sobre las tarjetas sin tocar la línea de corte
+const ROW_GAP = 10;
 const CARD_GAP = 8;
 const CARD_WIDTH = (CW - CARD_GAP * 2) / 3;
 const CARD_PADDING = 8;
@@ -34,7 +34,7 @@ const INSTRUCTIONS =
 function cardHeight(doc, question) {
   doc.font('Helvetica').fontSize(9);
   const textHeights = question.hints.map((hint) => doc.heightOfString(hint, { width: CARD_WIDTH - CARD_PADDING * 2 }));
-  return CARD_PADDING + 14 + Math.max(...textHeights, 12) + CARD_PADDING;
+  return CARD_PADDING + 12 + Math.max(...textHeights, 12) + CARD_PADDING;
 }
 
 function drawRow(doc, question, y, h) {
@@ -45,15 +45,15 @@ function drawRow(doc, question, y, h) {
     doc.fillColor(INK).font('Helvetica-Bold').fontSize(8).text(
       `${question.position} · ${HINT_LEVEL_LABELS[level]}`,
       x + CARD_PADDING,
-      y + CARD_PADDING + 4,
+      y + CARD_PADDING,
       { width: CARD_WIDTH - CARD_PADDING * 2, lineBreak: false, ellipsis: true },
     );
-    doc.font('Helvetica').fontSize(9).text(hint, x + CARD_PADDING, y + CARD_PADDING + 16, {
+    doc.font('Helvetica').fontSize(9).text(hint, x + CARD_PADDING, y + CARD_PADDING + 12, {
       width: CARD_WIDTH - CARD_PADDING * 2,
     });
   });
-  // La insignia se dibuja al final para quedar encima del borde punteado.
-  drawBadge(doc, `Reactivo ${question.position} · ${question.skillName}`, y);
+  // La insignia se dibuja completamente encima de las tarjetas para no invadir la línea de corte.
+  drawBadge(doc, `Reactivo ${question.position} · ${question.skillName}`, y - 12);
 }
 
 /**
@@ -81,7 +81,7 @@ export function renderHintCardsPdf({ title, groupLabel = null, questions }) {
         detail: groupLabel ? `Grupo ${groupLabel}` : null,
         mood: 'pista',
       });
-      let y = drawNoteBox(doc, INSTRUCTIONS, M + 96) + 14;
+      let y = drawNoteBox(doc, INSTRUCTIONS, M + 96) + 10;
       for (const question of questions) {
         const h = cardHeight(doc, question);
         if (y + ROW_TOP + h > CONTENT_BOTTOM) {
