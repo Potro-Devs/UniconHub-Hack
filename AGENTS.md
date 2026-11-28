@@ -17,6 +17,14 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
 4. **Alineación curricular SEP:** Jerarquía `Fase -> Grado (1.º a 6.º) -> Campo Formativo -> Contenido -> PDA -> Habilidad -> Reactivos`.
 5. **Motivación centrada en el progreso propio:** Pistas graduadas en 3 niveles y celebraciones breves no punitivas. Prohibidos rankings entre alumnos, vidas, castigos o temporizadores.
 
+### Modelo de negocio y jerarquía (fase 2)
+- **Quién paga no es quien usa:** en primaria pública, docentes y directores usan Axi pero casi nunca tienen presupuesto. Modelo **híbrido, entrando por zona escolar**:
+  - **Escuelas públicas:** gratis para escuela y docente; lo paga la **zona escolar o el estado** (o una fundación / programa de responsabilidad social). Entrada: **piloto en una zona escolar**.
+  - **Escuelas privadas:** licencia por alumno al año, la compra el director.
+- **Jerarquía:** `Plataforma → Zona (supervisor) → Escuela (director) → Docentes → Grupos → Alumnos (sin cuenta)`.
+- **Los datos de los alumnos son de la escuela, no del docente** (LGPDPPSO en escuelas públicas): si un docente se va, su cuenta se **desactiva** y el historial de los alumnos se queda en la escuela.
+- Diagramas de referencia: `docs/diagramas/casos-de-uso.drawio` y `docs/diagramas/entidad-relacion.drawio`.
+
 ---
 
 ## 2. Stack Tecnológico y Configuración Base
@@ -42,23 +50,29 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
   3. `place_value` — Valor posicional
   4. `problem_solving` — Resolución de problemas
   5. `reading_comprehension` — Comprensión lectora
-- **Acceso y autenticación:**
-  - Login docente con correo electrónico + contraseña.
-  - **Botones de acceso rápido debajo del login** para pruebas/demo: *Entrar como Docente*, *Entrar como Directivo* y *Entrar como Alumno*.
-  - *Entrar como Directivo* es una excepción para la demo: el director ve el **Panel de la escuela** y **Docentes** con agregados reales del ciclo actual (sin datos de alumnos). Alta de docentes, promoción y traslados siguen en el Roadmap con datos de ejemplo.
-  - Acceso estándar del alumno mediante código de grupo (6 caracteres) y selección de tarjeta/avatar.
-- **Gestión escolar básica:** Alta/edición de grupos, alta individual o masiva (lista pegada) de alumnos, generación automática de `internal_folio` y avatar por defecto.
+- **Acceso y cuentas (roles: supervisor, director, docente; alumno sin cuenta):**
+  - Login del personal con correo electrónico + contraseña.
+  - **Cuentas reales:** la zona, la escuela (CCT) y su director se crean por seed/script; el **docente se registra con el código de la escuela** y queda `pending` hasta que el **director lo aprueba o rechaza** (un docente pendiente no ve nada). El director puede **desactivar** docentes (sin borrar el historial) y generar un **código de un solo uso para restablecer la contraseña**. Nadie ve contraseñas.
+  - **Supervisor de zona:** panel agregado de las escuelas de su zona (mismo panel del director, sumado; sin datos de alumnos).
+  - **Director:** **Panel de la escuela** y **Docentes** con agregados reales del ciclo actual (sin datos de alumnos), más la aprobación y administración de docentes. Promoción y traslados siguen en el Roadmap con datos de ejemplo.
+  - **Botones de acceso rápido debajo del login** para pruebas/demo: *Entrar como Docente*, *Entrar como Directivo*, *Entrar como Supervisor* y *Entrar como Alumno*.
+  - **Acceso del alumno:** código de grupo (6 caracteres) → su tarjeta → "¿Eres …?" → **imagen secreta** (ver §4.10). El acceso rápido de demo no pide imagen.
+- **Gestión escolar básica:** Alta/edición de grupos, alta individual o masiva (lista pegada o archivo) de alumnos, generación automática de `internal_folio` y avatar por defecto. **Corregir el nombre** de un alumno, **darlo de baja** (sin borrar su historial, §4.11) y **eliminar** solo registros hechos por error y sin datos.
 - **Temario y asignación:** Marcado de avance (`pending`, `in_progress`, `seen`) y asignación de pruebas (todo el grupo o alumnos específicos) en modalidad `screen` o `paper`.
-- **Motor de evaluación (Alumno):** Un reactivo a la vez, opciones táctiles grandes, hasta 3 pistas por reactivo, retroalimentación neutra y diferenciación entre acierto autónomo y **"Logrado con apoyo"**.
-- **Modo Papel:** PDF genérico B/N tamaño Carta (sin datos prellenados del alumno), PDF de tarjetas de pistas, captura rápida móvil alumno × reactivo sin scroll horizontal y bloqueo automático de pantalla al asignar/capturar en papel.
+- **Motor de evaluación (Alumno):** Un reactivo a la vez, opciones táctiles grandes, hasta 3 pistas por reactivo, retroalimentación neutra y diferenciación entre acierto autónomo y **"Logrado con apoyo"**. Los reactivos donde el dibujo es la pregunta (p. ej. "¿qué fracción está pintada?" en 3.º) muestran su **gráfico** (`questions.visual`), igual en pantalla y en papel (§4.12).
+- **Modo Papel:** PDF genérico B/N tamaño Carta (sin datos prellenados del alumno) con la casilla general **"Apoyo durante la prueba"** (si se usaron tarjetas, los aciertos cuentan como "Logrado con apoyo"), PDF de tarjetas de pistas (una por nivel), captura rápida móvil alumno × reactivo sin scroll horizontal y bloqueo automático de pantalla al asignar/capturar en papel.
+  - **Hoja de respuestas escaneable + lectura por cámara del celular (OMR):** burbujas en posiciones fijas y 4 marcas de esquina; la lectura **solo llena** la Captura rápida y la **docente confirma** antes de guardar. La foto se procesa en el navegador y **nunca se sube ni se guarda**.
 - **Analítica docente:** Mapa del grupo (`alumno × habilidad`), habilidad más débil, conteo de alumnos en apoyo, cobertura de temario, actividad sugerida y perfil individual con historial multigrado.
 - **Datos Seed:** Docente demo, escuela demo, grupo de **45 alumnos ficticios** con distribución realista, al menos un alumno con historial de **2 grados anteriores**, reactivos calibrados para 1.º a 6.º en las habilidades que corresponden a cada grado (fracciones desde 3.º, multiplicación desde 2.º) y catálogo de actividades.
 
 ### Puntos de Extensión (Roadmap futuro — no sobre-ingenierizar en MVP)
-- Rol Administrativo/Director (alta de docentes, promoción masiva de ciclos, traslados entre escuelas por código o QR).
+- Alta de escuelas y directores desde la supervisión de zona (por ahora: seed/script).
+- Invitaciones por correo (por ahora: código de escuela + aprobación del director).
+- Promoción masiva de ciclos y traslados entre escuelas por código o QR.
+- Selector de grupo para docentes con 2 o más grupos en celular (importante para **escuelas multigrado**).
 - Eje 2: IA para pistas dinámicas y resúmenes explicativos basados solo en métricas calculadas (**prohibido enviar nombres reales o `internal_folio` a APIs de IA externas**).
 - Eje 3: Módulo de comprensión lectora profunda.
-- Lectura OMR por cámara, colección extendida de insignias y personalización completa de mascota.
+- Colección extendida de insignias y personalización completa de mascota.
 
 ---
 
@@ -96,6 +110,16 @@ Todas las reglas matemáticas y pedagógicas deben vivir como **funciones puras 
    - Al crear un alumno, asignar un color aleatorio de paleta accesible + 2 letras en mayúsculas (inicial del primer nombre + inicial del primer apellido) junto al nombre completo.
 9. **Bloqueo anti-duplicidad Pantalla vs. Papel:**
    - Al asignar una prueba en modalidad `paper`, cada destinatario queda `status = 'pending'` con `is_screen_locked = 1`. Al capturarse en papel pasa a `status = 'completed_paper'` (siempre con `is_screen_locked = 1`). Abrir o contestar en el portal del alumno una prueba bloqueada responde `409 Conflict` (`SCREEN_LOCKED`).
+10. **Imagen secreta del alumno (evitar entrar con la tarjeta de otro):**
+   - **1 imagen de 9 en 1.º y 2.º; 2 en orden de 3.º a 6.º.** El alumno la elige la primera vez **solo si la docente abrió la ventana** de configuración (en clase); fuera de ella ve "Pídele ayuda a tu maestra o maestro". La docente puede restablecerla.
+   - Se guarda solo un HMAC; las imágenes y el hash nunca salen del servidor. Equivocarse da un mensaje amable y, tras varios intentos, se sugiere pedir ayuda: **sin bloqueos punitivos** (el límite por alumno cuenta solo intentos fallidos). No es seguridad de banco: el objetivo es evitar equivocaciones.
+   - El límite por IP del acceso del alumno es amplio: un salón completo suele compartir la misma IP.
+11. **Baja de alumnos y docentes sin perder historial:**
+   - Dar de baja **nunca borra**: la inscripción (o la cuenta del docente) pasa a inactiva con fecha y el historial longitudinal se conserva.
+   - Eliminar un alumno solo se permite si no tiene respuestas, cortes, logros, pistas, tutorías ni inscripciones en otros grupos (`409 STUDENT_HAS_HISTORY`).
+12. **Gráficos de reactivos:**
+   - Se guardan como datos (`questions.visual`, p. ej. `{ "type": "fraction_bar", "parts": 4, "shaded": 1 }`), no como imágenes, y se dibujan igual en pantalla y en papel para que ambas modalidades sean comparables.
+   - Solo donde el dibujo **es** la pregunta; nunca donde delataría la respuesta (comparación, equivalencia). Siempre con descripción para lectores de pantalla.
 
 ---
 
@@ -155,15 +179,16 @@ Cada módulo en `backend/src/modules/<modulo>/` respeta dependencias unidireccio
 
 ## 6. Modelo de Datos y Contratos API (`/api/v1`)
 
-- **Tablas SQLite principales:** `schools`, `users`, `groups`, `students`, `group_enrollments`, `skills`, `curriculum_contents`, `group_curriculum_progress`, `questions`, `question_options`, `assignments`, `assignment_questions`, `assignment_targets`, `student_responses`, `skill_mastery_history`, `student_achievements`, `recommended_activities`.
+- **Tablas SQLite principales:** `zones`, `schools`, `users`, `user_access_codes`, `groups`, `students`, `group_enrollments`, `skills`, `curriculum_contents`, `group_curriculum_progress`, `questions`, `question_options`, `assignments`, `assignment_questions`, `assignment_targets`, `student_responses`, `hint_requests`, `skill_mastery_history`, `student_achievements`, `recommended_activities`, `group_interventions`, `tutoring_sessions`, `tutoring_pairs`, `quizzes`, `quiz_questions`. Diagrama: `docs/diagramas/entidad-relacion.drawio`.
+- **Migraciones:** numeradas y nunca se editan una vez integradas. Fase 2: `007` cuentas y zonas, `008` imagen secreta, `009` (reservada, Modo Papel), `010` gráficos de reactivos.
 - **Prefijos REST bajo `/api/v1`:**
-  - `/auth` (login, quick-login docente/directivo/alumno, student-join)
-  - `/groups` (CRUD grupos, alumnos individual/bulk, avatar)
+  - `/auth` (login, quick-login docente/directivo/supervisor/alumno, registro de docentes y contraseñas, student-join → select → secret)
+  - `/groups` (CRUD grupos, alumnos individual/bulk/archivo, corregir/baja/eliminar, avatar, ventana e imagen secreta)
   - `/curriculum` (temario por grupo, estado/notas, cobertura)
   - `/assessments` (banco de reactivos, asignaciones validando `>= 3` por habilidad)
-  - `/paper` (PDF prueba B/N Carta, PDF pistas, capture-status, captura alumno por alumno)
+  - `/paper` (PDF prueba B/N Carta, PDF pistas, hoja de respuestas escaneable y su layout, capture-status, captura alumno por alumno)
   - `/diagnostics` (pruebas disponibles alumno, start con check `409`, answer, complete)
-  - `/analytics` (mapa del grupo `alumno × habilidad`, perfil longitudinal del alumno)
+  - `/analytics` (mapa del grupo `alumno × habilidad`, perfil longitudinal del alumno, panel de escuela y de zona)
 - **Formato estándar de respuesta:** `{ "data": ..., "meta": ... }` o `{ "error": { "code": "...", "message": "..." } }`.
 
 ---
