@@ -12,3 +12,6 @@ Thumbs.db
 coverage/
 *.log
 output/
+
+# Solo demo: logos y nombres de marcas del servidor (no se suben al repositorio).
+demo-sponsors/

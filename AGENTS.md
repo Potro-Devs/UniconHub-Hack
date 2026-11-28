@@ -21,6 +21,7 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
 - **Quién paga no es quien usa:** en primaria pública, docentes y directores usan Axi pero casi nunca tienen presupuesto. Modelo **híbrido, entrando por zona escolar**:
   - **Escuelas públicas:** gratis para escuela y docente; lo paga la **zona escolar o el estado** (o una fundación / programa de responsabilidad social). Entrada: **piloto en una zona escolar**.
   - **Escuelas privadas:** licencia por alumno al año, la compra el director.
+  - **Patrocinio educativo (demo):** marcas afines a la escuela (útiles, lectura, tecnología educativa; nunca comida ni bebidas) financian **juegos de práctica**. Solo "Este juego lo hace posible …": sin anuncios, enlaces, compras ni el producto dentro de los retos, y **nunca** en pruebas, diagnósticos ni Modo Papel. La marca recibiría solo métricas agregadas y anónimas. Mientras no haya convenios, el repo solo trae "Marca patrocinadora de ejemplo" (`games.sponsored.domain.js`). **Nunca subir logos ni nombres de marcas reales al repositorio**: para una demo, el servidor los lee de su propia carpeta (`DEMO_SPONSORS_DIR`, ver README) y siempre conserva "Demostración · sin convenio real".
 - **Jerarquía:** `Plataforma → Zona (supervisor) → Escuela (director) → Docentes → Grupos → Alumnos (sin cuenta)`.
 - **Los datos de los alumnos son de la escuela, no del docente** (LGPDPPSO en escuelas públicas): si un docente se va, su cuenta se **desactiva** y el historial de los alumnos se queda en la escuela.
 - Diagramas de referencia: `docs/diagramas/casos-de-uso.drawio` y `docs/diagramas/entidad-relacion.drawio`.
@@ -70,6 +71,7 @@ Este documento es la fuente de verdad técnica para el desarrollo asistido por a
 - Invitaciones por correo (por ahora: código de escuela + aprobación del director).
 - Promoción masiva de ciclos y traslados entre escuelas por código o QR.
 - Selector de grupo para docentes con 2 o más grupos en celular (importante para **escuelas multigrado**).
+- Patrocinio educativo real: interruptor por escuela/zona para apagar los juegos patrocinados, conteo de partidas **agregado y anónimo** para la marca (mínimo de escuelas por reporte) y alta de patrocinadores con convenio.
 - Eje 2: IA para pistas dinámicas y resúmenes explicativos basados solo en métricas calculadas (**prohibido enviar nombres reales o `internal_folio` a APIs de IA externas**).
 - Eje 3: Módulo de comprensión lectora profunda.
 - Colección extendida de insignias y personalización completa de mascota.

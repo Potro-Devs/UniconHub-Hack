@@ -1,5 +1,6 @@
 /** Práctica manipulativa de ejemplo. Reglas puras, sin diagnóstico ni persistencia. */
 import { DomainError } from '../../shared/errors/DomainError.js';
+import { SPONSORED_CATALOG, buildSponsoredRounds, checkSponsoredAnswer, findSponsoredGame } from './games.sponsored.domain.js';
 
 export const GAME_CONTENT_REVIEW = 'por validar con docente';
 const CATALOG = Object.freeze([
@@ -11,14 +12,20 @@ const CATALOG = Object.freeze([
     description: 'Usa bloques de valor posicional para representar un número.' }),
 ]);
 
+/** Primero los juegos propios (`sponsor: null`); después los de patrocinio educativo (demo). */
 export function listGames() {
-  return CATALOG.map((game) => ({ ...game }));
+  return [
+    ...CATALOG.map((game) => ({ ...game, sponsor: null })),
+    ...SPONSORED_CATALOG.map((game) => findSponsoredGame(game.code)),
+  ];
 }
 
 export function findGame(gameCode) {
   const game = CATALOG.find((entry) => entry.code === gameCode);
-  return game ? { ...game } : null;
+  return game ? { ...game, sponsor: null } : findSponsoredGame(gameCode);
 }
+
+const isSponsored = (gameCode) => SPONSORED_CATALOG.some((game) => game.code === gameCode);
 
 const FRACTIONS = {
   1: [[1, 2], [1, 3], [3, 4]], 2: [[2, 3], [3, 4], [2, 5]],
@@ -38,6 +45,7 @@ const NUMBERS = {
 export function buildGameRounds(gameCode, grade) {
   if (!Number.isInteger(grade) || grade < 1 || grade > 6) throw new RangeError('El grado debe estar entre 1 y 6.');
   if (!findGame(gameCode)) throw new RangeError('Juego desconocido.');
+  if (isSponsored(gameCode)) return buildSponsoredRounds(gameCode, grade);
   if (gameCode === 'fractions') return FRACTIONS[grade].map(([targetNumerator, denominator], index) => ({
     id: `${gameCode}-${index + 1}`,
     prompt: `Representa ${targetNumerator}/${denominator}.`,
@@ -81,11 +89,16 @@ const isCount = (value, maximum) => typeof value === 'number' && Number.isIntege
 const hasExactKeys = (object, keys) => Object.keys(object).length === keys.length && keys.every((key) => Object.hasOwn(object, key));
 
 /** Valida forma y límites; una construcción incorrecta válida no es un error HTTP. */
-export function checkGameConstruction(gameCode, rounds, body) {
+export function checkGameConstruction(gameCode, rounds, body, grade) {
   if (!isObject(body) || !hasExactKeys(body, ['roundId', 'answer']) || typeof body.roundId !== 'string') throw invalid();
   const round = rounds.find((entry) => entry.id === body.roundId);
   if (!round) throw new DomainError('VALIDATION_ERROR', 'Ese reto no está disponible en este juego.');
   const { answer } = body;
+  if (isSponsored(gameCode)) {
+    const { correct, explanation } = checkSponsoredAnswer(gameCode, round, grade, answer);
+    return { correct, feedback: correct ? '¡Lo lograste! Puedes seguir explorando.'
+      : 'Puedes ajustar tu respuesta y volver a probar.', explanation };
+  }
   let correct;
   if (gameCode === 'fractions') {
     if (!isCount(answer, round.material.denominator)) throw invalid();

@@ -6,6 +6,8 @@ import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { errorMessageOf } from '@/shared/api/client';
 import { gamesApi } from './games.api';
 import { useGamesResource } from './useGamesResource';
+import { SponsorBadge } from './SponsorBadge';
+import { formatGameNumber, isAnswerReady } from './games.logic';
 import './games.css';
 
 const placeLabels = { hundreds: 'Centenas', tens: 'Decenas', units: 'Unidades' };
@@ -15,6 +17,9 @@ const fractionColumns = (denominator) => Math.min(5, Math.ceil(Math.sqrt(denomin
 function initialAnswer(code, material) {
   if (code === 'fractions') return Array(material.denominator).fill(false);
   if (code === 'multiplication') return Array(material.groups).fill(0);
+  if (code === 'grammar_fix') return { wordIndex: null, optionIndex: null };
+  if (code === 'mental_math') return [];
+  if (code === 'symmetry') return material.left.map((row) => row.map(() => false));
   return Object.fromEntries(material.places.map((place) => [place, 0]));
 }
 
@@ -36,6 +41,44 @@ function GroupMaterial({ material, answer, setAnswer, disabled }) {
 function PlaceMaterial({ material, answer, setAnswer, disabled }) {
   return <div className="game-place-material"><div className="game-number-target"><span>El número que vas a construir</span><strong>{material.targetNumber}</strong></div><div className="game-place-grid" style={{ gridTemplateColumns: `repeat(${material.places.length}, minmax(0, 1fr))` }}>{material.places.map((place) => <section className={`game-place-column game-place-${place}`} key={place} aria-labelledby={`place-${place}`}><h3 id={`place-${place}`}>{placeLabels[place]}</h3><div className="game-place-blocks" aria-hidden="true">{Array.from({ length: answer[place] }, (_, index) => <span key={index} />)}{answer[place] === 0 && <small>Sin fichas</small>}</div><Counter value={answer[place]} label={placeSingular[place]} increase={() => setAnswer({ ...answer, [place]: answer[place] + 1 })} decrease={() => setAnswer({ ...answer, [place]: answer[place] - 1 })} disabled={disabled} canIncrease={answer[place] < 9} /><span className="game-place-value">{place === 'hundreds' ? 'Cada ficha vale 100' : place === 'tens' ? 'Cada barra vale 10' : 'Cada pieza vale 1'}</span></section>)}</div><p className="game-material-caption">Construye con las fichas. Puedes cambiar tu idea antes de comprobar.</p></div>;
 }
+
+/** Corrige el cuaderno: 1) tocar la palabra con error; 2) elegir cómo se escribe bien. */
+function GrammarMaterial({ material, answer, setAnswer, disabled }) {
+  return <div className="game-grammar-material">
+    <p className="game-notebook" role="group" aria-label="Oración del cuaderno">{material.words.map((word, index) => <button key={index} type="button" className="game-word" aria-pressed={answer.wordIndex === index} disabled={disabled} onClick={() => setAnswer({ wordIndex: index, optionIndex: null })}>{word}</button>)}</p>
+    {answer.wordIndex === null ? <p className="game-material-caption">Toca la palabra que tiene el error.</p> : <div className="game-grammar-options" role="radiogroup" aria-label={`¿Cómo se escribe bien "${material.words[answer.wordIndex]}"?`}>
+      <p className="game-material-caption">¿Cómo se escribe bien <strong>{material.words[answer.wordIndex]}</strong>?</p>
+      {material.options.map((option, index) => <button key={option} type="button" role="radio" aria-checked={answer.optionIndex === index} className="game-choice" disabled={disabled} onClick={() => setAnswer({ ...answer, optionIndex: index })}>{option}</button>)}
+    </div>}
+  </div>;
+}
+
+/** Cálculo mental: elegir dos tarjetas que juntas llegan a la meta. */
+function CardsMaterial({ material, answer, setAnswer, disabled }) {
+  const toggle = (index) => setAnswer(answer.includes(index) ? answer.filter((value) => value !== index) : answer.length < 2 ? [...answer, index] : answer);
+  return <div className="game-cards-material">
+    <div className="game-number-target"><span>Meta</span><strong>{formatGameNumber(material.target)}</strong></div>
+    <div className="game-cards" role="group" aria-label="Tarjetas">{material.cards.map((card, index) => { const on = answer.includes(index); return <button key={index} type="button" className="game-card" aria-pressed={on} disabled={disabled || (!on && answer.length >= 2)} onClick={() => toggle(index)}>{formatGameNumber(card)}</button>; })}</div>
+    <p className="game-material-caption" aria-live="polite">{answer.length} de 2 tarjetas elegidas · toca una para soltarla</p>
+  </div>;
+}
+
+/** Completa la figura: la mitad izquierda es fija; se pinta la derecha como en un espejo. */
+function SymmetryMaterial({ material, answer, setAnswer, disabled }) {
+  const toggle = (r, c) => setAnswer(answer.map((row, ri) => ri === r ? row.map((cell, ci) => ci === c ? !cell : cell) : row));
+  return <div className="game-symmetry-material">
+    <div className="game-symmetry-grid" role="group" aria-label={`Figura de ${material.rows} filas; la línea del centro es el espejo`} style={{ gridTemplateColumns: `repeat(${material.half}, minmax(0, 1fr)) 8px repeat(${material.half}, minmax(0, 1fr))` }}>
+      {material.left.map((row, r) => [
+        ...row.map((painted, c) => <span key={`l${r}-${c}`} className={`game-sym-cell ${painted ? 'painted' : ''}`} aria-hidden="true" />),
+        <span key={`m${r}`} className="game-sym-mirror" aria-hidden="true" />,
+        ...answer[r].map((painted, c) => <button key={`r${r}-${c}`} type="button" className="game-sym-cell" aria-pressed={painted} aria-label={`Fila ${r + 1}, cuadro ${c + 1} a la derecha del espejo${painted ? ', pintado' : ''}`} disabled={disabled} onClick={() => toggle(r, c)} />),
+      ])}
+    </div>
+    <p className="game-material-caption">El lado izquierdo ya está pintado. Pinta el derecho como su reflejo.</p>
+  </div>;
+}
+
+const MATERIALS = { fractions: FractionMaterial, multiplication: GroupMaterial, place_value: PlaceMaterial, grammar_fix: GrammarMaterial, mental_math: CardsMaterial, symmetry: SymmetryMaterial };
 
 function RoundBoard({ game, round, index, total, axiColor, onNext }) {
   const [answer, setAnswer] = useState(() => initialAnswer(game.code, round.material));
@@ -66,11 +109,11 @@ function RoundBoard({ game, round, index, total, axiColor, onNext }) {
   return <section className={`game-board game-theme-${game.code}`} aria-busy={pending}>
     <div className="game-round-heading"><span className="games-eyebrow">RETO {index + 1} DE {total}</span><ol className="game-round-progress" aria-label="Tu recorrido">{Array.from({ length: total }, (_, position) => <li key={position} aria-current={position === index ? 'step' : undefined} className={position < index ? 'complete' : ''}><span aria-hidden="true">{position < index ? '✓' : position + 1}</span><span className="axi-sr-only">Reto {position + 1}{position < index ? ', completado' : position === index ? ', actual' : ', por explorar'}</span></li>)}</ol></div>
     <h2 tabIndex={-1} ref={heading}>{round.prompt}</h2><p className="game-instruction">{round.instruction}</p>
-    <div className="game-manipulative">{game.code === 'fractions' ? <FractionMaterial material={round.material} answer={answer} setAnswer={change} disabled={locked} /> : game.code === 'multiplication' ? <GroupMaterial material={round.material} answer={answer} setAnswer={change} disabled={locked} /> : <PlaceMaterial material={round.material} answer={answer} setAnswer={change} disabled={locked} />}</div>
+    <div className="game-manipulative">{(() => { const Material = MATERIALS[game.code] ?? PlaceMaterial; return <Material material={round.material} answer={answer} setAnswer={change} disabled={locked} />; })()}</div>
     <div className="game-help"><div className="game-help-controls"><button className="game-button game-button-help" type="button" disabled={pending || feedback?.correct || hintLevel >= round.hints.length} onClick={() => setHintLevel((value) => value + 1)}>{hintLevel >= round.hints.length ? `Ya viste las ${round.hints.length} pistas` : 'Pedir una pista'}<span>{Math.min(hintLevel, round.hints.length)}/{round.hints.length}</span></button><button type="button" className="game-text-button" disabled={pending || feedback?.correct} onClick={reset}>Reiniciar este reto</button></div>{hintLevel > 0 && <p className="game-hint" role="status"><strong>Pista {hintLevel}:</strong> {round.hints[hintLevel - 1]}</p>}</div>
     {feedback && <div role="status" className={`game-feedback ${feedback.correct ? 'game-feedback-correct' : ''}`}><Mascot size={62} color={axiColor} mood={feedback.correct ? 'acierto' : 'calma'} animated={!reducedMotion} /><div><strong>{feedback.feedback}</strong>{feedback.explanation && <p>{feedback.explanation}</p>}{!feedback.correct && hintLevel >= round.hints.length && <p>Puedes revisar la última pista o pedir ayuda a tu docente.</p>}</div></div>}
     {error && <p role="alert" className="game-error-message">{error}</p>}
-    <div className="game-board-action">{feedback?.correct ? <button className="game-button game-button-primary" type="button" onClick={onNext}>{index + 1 === total ? 'Ver mi recorrido' : 'Siguiente reto'}</button> : <button className="game-button game-button-primary" type="button" disabled={pending} onClick={check}>{pending ? 'Revisando tu construcción…' : 'Comprobar mi idea'}</button>}<span>Sin prisa. Puedes probar y ajustar.</span></div>
+    <div className="game-board-action">{feedback?.correct ? <button className="game-button game-button-primary" type="button" onClick={onNext}>{index + 1 === total ? 'Ver mi recorrido' : 'Siguiente reto'}</button> : <button className="game-button game-button-primary" type="button" disabled={pending || !isAnswerReady(game.code, answer)} onClick={check}>{pending ? 'Revisando tu construcción…' : 'Comprobar mi idea'}</button>}<span>Sin prisa. Puedes probar y ajustar.</span></div>
   </section>;
 }
 
@@ -84,7 +127,7 @@ function GameSession({ data, axiColor }) {
   const animated = !reducedMotion && !skip;
   if (!data.rounds.length) return <div className="games-status"><p>Aún no hay retos disponibles para este juego.</p><button type="button" className="game-button" onClick={() => navigate('/alumno/juegos')}>Elegir otro juego</button></div>;
   return <>
-    <div className="game-session-heading"><div><span className="games-eyebrow">JUEGA Y PRACTICA</span><h1>{data.game.title}</h1><p>Práctica para tu grupo de {data.grade}.º · no cambia tus resultados.</p></div><button type="button" className="game-button game-button-small" onClick={() => navigate('/alumno/juegos')}>Volver a juegos</button></div>
+    <div className="game-session-heading"><div><span className="games-eyebrow">JUEGA Y PRACTICA</span><h1>{data.game.title}</h1><p>Práctica para tu grupo de {data.grade}.º · no cambia tus resultados.</p>{data.game.sponsor && <SponsorBadge sponsor={data.game.sponsor} />}</div><button type="button" className="game-button game-button-small" onClick={() => navigate('/alumno/juegos')}>Volver a juegos</button></div>
     {complete ? <section className={`game-complete ${animated ? 'game-complete-animated' : ''}`}><div className="game-complete-picture" aria-hidden="true"><span>✦</span><Mascot size={160} color={axiColor} mood="celebra" animated={animated} /><span>✧</span></div><h2>¡Exploraste {data.rounds.length} retos!</h2><p>Probaste tus ideas y seguiste aprendiendo. Puedes volver a jugar cuando quieras.</p>{animated && <button type="button" className="game-text-button" onClick={() => setSkip(true)}>Saltar animación</button>}<div className="game-complete-actions"><button type="button" className="game-button game-button-primary" onClick={() => navigate('/alumno/juegos')}>Elegir otro juego</button><button type="button" className="game-button" onClick={() => { setRoundIndex(0); setAttempt((value) => value + 1); setSkip(false); }}>Volver a explorar</button></div></section> : <RoundBoard key={`${attempt}-${data.rounds[roundIndex].id}`} game={data.game} round={data.rounds[roundIndex]} index={roundIndex} total={data.rounds.length} axiColor={axiColor} onNext={() => setRoundIndex((value) => value + 1)} />}
     <p className="games-content-note">Ejemplos de práctica por validar con docente. Los juegos no son una evaluación.</p>
   </>;

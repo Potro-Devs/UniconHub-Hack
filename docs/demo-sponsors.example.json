@@ -1,0 +1,5 @@
+{
+  "grammar_fix": { "name": "Marca de cuadernos", "logo": "cuadernos.png" },
+  "mental_math": { "name": "Marca de calculadoras", "logo": "calculadoras.png" },
+  "symmetry": { "name": "Marca de útiles", "logo": "utiles.png" }
+}
