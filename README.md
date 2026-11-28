@@ -236,6 +236,14 @@ Abre http://localhost:3000. El servidor **no arranca** sin un `JWT_SECRET` de al
 - **Empezar de cero:** `docker compose down -v` borra el volumen, **con todos sus datos**.
 - **Respaldo:** detén el contenedor antes de copiar (SQLite usa modo WAL y una copia en caliente puede quedar incompleta): `docker compose stop && docker compose cp axi:/data/axi.db ./respaldo-axi.db && docker compose start`.
 
+### Pitch animado para grabación
+
+Con el frontend iniciado, abre **http://localhost:5173/pitch**. Es una presentación React pública de **2 minutos y 48 segundos** y once escenas, del equipo **PotroDevs** (Raúl Treviño Licona, Lizbeth Ocampo Blanco y Osvaldo Estrada Lara). Funciona sin iniciar sesión. La portada anima a Axi como logo del sistema y presenta al equipo. Seis escenas son **recorridos guiados por capturas reales del prototipo** (docente, alumno, modo papel, Aprendemos en equipo, lenguas y dirección): cada una parte de un problema real, una cámara recorre y amplía la captura, un foco con cursor señala cada parte y a la izquierda se explica cómo Axi lo resuelve. Las capturas usan datos ficticios del seed demo y están en `frontend/src/features/pitch/assets/screens/`; las zonas señaladas se definen en `pitch.tours.js`. Todas las animaciones se calculan con el reloj de la presentación, así que pausar o saltar entre escenas las deja en el punto correcto. El botón **Sonido** (tecla M) activa una banda sonora original: música que pasa de tono menor en el problema a mayor en la solución y a un cierre triunfal, y efectos sincronizados con las transiciones, el cursor, el confeti y la frase final. Todo se sintetiza en el navegador con Web Audio, sin archivos ni música de terceros, y está apagado por defecto.
+
+Reproduce o pausa la presentación, salta entre escenas y ajusta la posición desde la barra de avance. Usa pantalla completa y modo limpio para grabar el escenario; las notas del presentador contienen el discurso de cada escena. La animación está pensada para narración humana y grabación de pantalla; no genera un archivo de video por sí sola. Respeta la preferencia de movimiento reducido y pausa al ocultar la pestaña.
+
+El [guion con tiempos](docs/pitch-guion.md) contiene 331 palabras. Las estadísticas se atribuyen a PISA 2022 y describen estudiantes de 15 años. El progreso mostrado es ilustrativo; la validación con docentes y las pruebas en escuelas se presentan como siguientes pasos.
+
 ## Estructura del repositorio
 
 ```text

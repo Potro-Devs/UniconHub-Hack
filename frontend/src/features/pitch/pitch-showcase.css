@@ -1,0 +1,113 @@
+/* Presentación con recorridos guiados por capturas reales. Unidades cqw: escala con el escenario 16:9. */
+
+/* ── Logo de Axi (mascota + nombre) ── */
+.pv-axi-logo { display:inline-flex; align-items:center; gap:.5em; font-weight:800; letter-spacing:-.02em; }
+.pv-axi-logo-mascot, .pv-stage-mascot { display:inline-grid; place-items:center; flex:none; }
+.pv-axi-logo--sm b { font-size:1.05cqw; letter-spacing:.02em; }
+.pv-axi-logo--md b { font-size:28px; }
+.pv-axi-logo--wipe b { font-size:3cqw; color:#fff; }
+.pv-stage-brand { display:inline-flex; align-items:center; }
+.pv-word { display:inline-block; white-space:pre; will-change:transform,opacity; }
+
+/* ── Luces de fondo en movimiento (se pausan con la presentación) ── */
+.pv-ambient { position:absolute; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+.pv-ambient i { position:absolute; border-radius:50%; filter:blur(5cqw); opacity:.55; animation:pvDrift 16s ease-in-out infinite alternate; animation-play-state:var(--pitch-play-state); }
+.pv-ambient i:nth-child(1) { width:34cqw; height:34cqw; left:-8cqw; top:-10cqw; background:#c9bdf7; }
+.pv-ambient i:nth-child(2) { width:28cqw; height:28cqw; right:-6cqw; bottom:-12cqw; background:#ffd6e7; animation-duration:19s; animation-delay:-6s; }
+.pv-ambient i:nth-child(3) { width:22cqw; height:22cqw; left:42%; top:30%; background:#cfe8ff; opacity:.35; animation-duration:23s; animation-delay:-11s; }
+.pitch-stage--dark .pv-ambient i { opacity:.22; }
+.pitch-stage--dark .pv-ambient i:nth-child(1) { background:#6552c8; }
+.pitch-stage--dark .pv-ambient i:nth-child(2) { background:#c8006a; }
+.pitch-stage--dark .pv-ambient i:nth-child(3) { background:#2f86d6; }
+@keyframes pvDrift { 0% { transform:translate(0,0) scale(1); } 50% { transform:translate(6cqw,3cqw) scale(1.12); } 100% { transform:translate(-4cqw,5cqw) scale(.94); } }
+
+/* ── Cortina de transición entre escenas ── */
+.pv-wipe { position:absolute; inset:0; z-index:30; display:grid; place-items:center; background:linear-gradient(135deg,#6552c8 0%,#3b2f8f 55%,#1c1b3b 100%); pointer-events:none; }
+
+/* ── 01 Portada ── */
+.pitch-stage--title .pitch-scene-copy { display:none; }
+.pitch-stage--title .pitch-scene-art { top:12%; bottom:13%; left:6%; right:5%; }
+.pv-title-art { height:100%; display:grid; grid-template-columns:minmax(0,1fr) 34%; gap:4cqw; align-items:center; }
+.pv-title-wordmark { display:flex; flex-direction:column; gap:1.4cqw; }
+.pv-title-letters { display:flex; align-items:flex-end; gap:.2cqw; font-size:15cqw; font-weight:800; line-height:.85; letter-spacing:-.06em; color:#fffaf1; }
+.pv-title-letters > span:not(.pv-title-mascot) { display:inline-block; will-change:transform,opacity; }
+.pv-title-mascot { margin-left:2cqw; align-self:center; }
+.pv-title-tagline { font-size:2.6cqw; color:var(--pitch-lilac); letter-spacing:-.02em; }
+.pv-title-pillars { display:flex; flex-wrap:wrap; gap:.6cqw; max-width:46cqw; }
+.pv-title-pillars span { font-size:.85cqw; padding:.45cqw .9cqw; border-radius:99cqw; border:.1cqw solid #c3b5f466; color:#eae1fb; background:#ffffff0d; }
+.pv-team-card { padding:1.8cqw 2cqw; border-radius:1.4cqw; background:#fffaf1; color:var(--pitch-night); box-shadow:0 2cqw 4cqw #0007; }
+.pv-team-brand { display:flex; align-items:center; gap:1.2cqw; padding-bottom:1.2cqw; border-bottom:.1cqw solid #1c1b3b1f; }
+.pv-team-logo { flex:none; width:7cqw; max-width:128px; aspect-ratio:1; border-radius:1cqw; background:#fff; border:.1cqw solid #1c1b3b14; display:grid; place-items:center; overflow:hidden; }
+.pv-team-logo img { width:100%; height:100%; object-fit:contain; }
+.pv-team-brand span { display:block; font-size:.75cqw; color:var(--pitch-muted); letter-spacing:.06em; }
+.pv-team-brand strong { font-size:2.2cqw; letter-spacing:-.03em; }
+.pv-team-members { list-style:none; margin:1.2cqw 0 0; padding:0; display:flex; flex-direction:column; gap:.55cqw; font-size:1.2cqw; font-weight:600; }
+.pv-team-members li::before { content:''; display:inline-block; width:.55cqw; height:.55cqw; margin-right:.8cqw; border-radius:50%; background:var(--pitch-purple); vertical-align:middle; }
+
+/* ── Detalles de Axi en escenas existentes ── */
+.pv-opening-axi { position:absolute; right:2%; bottom:0; }
+.pv-diag-axi { position:absolute; right:0; bottom:-6%; }
+
+/* ── Recorridos guiados ── */
+.pitch-stage--tour { background:#f4f2fb; }
+.pitch-stage--tour .pitch-scene-copy { top:13%; width:33%; right:auto; }
+.pitch-stage--tour .pitch-scene-copy h1 { font-size:3.1cqw; }
+.pitch-stage--tour .pitch-scene-art { top:11%; bottom:10%; left:6%; right:4%; }
+.pv-tour { height:100%; display:grid; grid-template-columns:33% minmax(0,1fr); gap:2.6cqw; }
+.pv-tour-side { padding-top:10.5cqw; display:flex; flex-direction:column; gap:1cqw; min-width:0; }
+.pv-problem { padding:.9cqw 1.1cqw; border-radius:.9cqw; background:var(--pitch-night); color:#fffaf1; }
+.pv-problem span { display:block; font-size:.62cqw; letter-spacing:.16em; text-transform:uppercase; color:#ffcf4a; font-weight:700; }
+.pv-problem p { margin:.3cqw 0 0; font-size:.98cqw; line-height:1.4; }
+.pv-steps { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.55cqw; }
+.pv-step { display:flex; gap:.8cqw; align-items:flex-start; padding:.65cqw .85cqw; border-radius:.8cqw; background:#ffffff99; border:.1cqw solid transparent; will-change:transform,opacity; }
+.pv-step b { flex:none; display:grid; place-items:center; width:1.6cqw; height:1.6cqw; border-radius:50%; background:#e4def7; color:var(--pitch-purple); font-size:.78cqw; }
+.pv-step strong { display:block; font-size:.98cqw; line-height:1.25; }
+.pv-step span { display:block; font-size:.74cqw; line-height:1.4; color:var(--pitch-muted); margin-top:.15cqw; }
+.pv-step--active { background:#fff; border-color:#ffcf4a; box-shadow:0 .8cqw 2cqw #6552c829; }
+.pv-step--active b { background:#ffcf4a; color:var(--pitch-night); }
+.pv-step--done { opacity:.62 !important; }
+.pv-step--done b { background:var(--pitch-purple); color:#fff; }
+
+.pv-tour-frame { align-self:center; border-radius:1cqw; overflow:hidden; background:#fff; box-shadow:0 2.4cqw 5cqw #1c1b3b38, 0 .4cqw 1cqw #1c1b3b1f, 0 0 0 .12cqw #1c1b3b14; }
+.pv-browser-bar { display:flex; align-items:center; gap:.45cqw; height:2.1cqw; padding:0 .9cqw; background:#f1eff6; border-bottom:.1cqw solid #1c1b3b14; }
+.pv-browser-bar i { width:.62cqw; height:.62cqw; border-radius:50%; }
+.pv-browser-bar i:nth-child(1) { background:#f08a7e; }.pv-browser-bar i:nth-child(2) { background:#f3c45b; }.pv-browser-bar i:nth-child(3) { background:#6fcf97; }
+.pv-browser-bar span { margin-left:1cqw; flex:1; max-width:45%; padding:.2cqw .8cqw; border-radius:.5cqw; background:#fff; font-size:.66cqw; color:#716c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pv-browser-bar em { margin-left:auto; font-style:normal; font-size:.6cqw; color:#716c86; letter-spacing:.06em; }
+.pv-viewport { position:relative; width:100%; overflow:hidden; background:#eef1f8; }
+.pv-shot { position:absolute; inset:0; }
+.pv-shot img { position:absolute; max-width:none; height:auto; display:block; will-change:left,top,width; }
+.pv-spot { position:absolute; border-radius:.6cqw; pointer-events:none; box-shadow:0 0 0 200cqw #14122d6b, 0 0 0 .22cqw #ffcf4a, 0 0 2.4cqw .4cqw #ffcf4a88; }
+.pv-spot-badge { position:absolute; left:-1cqw; top:-1cqw; width:2cqw; height:2cqw; border-radius:50%; display:grid; place-items:center; background:#ffcf4a; color:var(--pitch-night); font-weight:800; font-size:1cqw; box-shadow:0 .3cqw .8cqw #0004; }
+.pv-cursor { position:absolute; width:2.1cqw; height:2.1cqw; z-index:3; margin:-.3cqw 0 0 -.3cqw; pointer-events:none; filter:drop-shadow(0 .25cqw .4cqw #0005); }
+.pv-cursor svg { width:100%; height:100%; }
+.pv-cursor path { fill:var(--pitch-night); stroke:#fff; stroke-width:1.4; stroke-linejoin:round; }
+.pv-click { position:absolute; left:-1cqw; top:-1cqw; width:2.4cqw; height:2.4cqw; border-radius:50%; border:.25cqw solid #ffcf4a; }
+
+/* ── Cierre: Axi celebra y enciende a los 45 alumnos ── */
+.pitch-stage--closing .pitch-scene-copy { display:none; }
+.pitch-stage--closing .pitch-scene-art { inset:9% 4% 8%; }
+.pv-finale { position:relative; height:100%; }
+.pv-finale-rays { position:absolute; left:50%; top:32%; width:62cqw; height:62cqw; border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, #c3b5f41f 0deg 7deg, transparent 7deg 18deg);
+  -webkit-mask:radial-gradient(circle, #000 18%, transparent 68%); mask:radial-gradient(circle, #000 18%, transparent 68%); }
+.pv-finale-glow { position:absolute; left:50%; top:32%; width:30cqw; height:30cqw; border-radius:50%; background:radial-gradient(circle, #8d6dc7aa 0%, #6552c844 40%, transparent 70%); }
+.pv-finale-ring { position:absolute; left:0; right:0; top:-4%; height:72%; }
+.pv-finale-ring span { position:absolute; width:1.1cqw; height:1.1cqw; border-radius:50%; }
+.pv-finale-axi { position:absolute; left:50%; top:32%; z-index:2; filter:drop-shadow(0 1.4cqw 1.6cqw #0006); }
+.pv-confetti { position:absolute; left:50%; top:30%; z-index:3; pointer-events:none; }
+.pv-confetti i { position:absolute; width:.9cqw; height:.9cqw; margin:-.45cqw; }
+.pv-confetti .pv-confetti-0 { border-radius:50%; }
+.pv-confetti .pv-confetti-1 { width:.5cqw; height:1.3cqw; border-radius:.15cqw; }
+.pv-confetti .pv-confetti-2 { clip-path:polygon(50% 0, 100% 100%, 0 100%); }
+.pv-finale-copy { position:absolute; left:0; right:0; bottom:9%; display:flex; flex-direction:column; align-items:center; gap:1.4cqw; text-align:center; z-index:4; }
+.pv-finale-motto { margin:0; display:flex; flex-wrap:wrap; justify-content:center; gap:0 1.1cqw; font-size:4.3cqw; font-weight:800; letter-spacing:-.05em; line-height:1.05; color:#fffaf1; }
+.pv-finale-motto span { display:inline-block; will-change:transform,opacity; }
+.pv-finale-motto .pv-finale-accent { background:linear-gradient(90deg,#ffcf4a,#ff8fc2 60%,#c3b5f4); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.pv-finale-sign { display:flex; flex-direction:column; align-items:center; gap:.4cqw; }
+.pv-axi-logo--finale b { font-size:1.6cqw; color:#fffaf1; }
+.pv-finale-sign > span { font-size:.85cqw; letter-spacing:.16em; text-transform:uppercase; color:var(--pitch-lilac); }
+.pv-finale-sign > b { font-size:.9cqw; font-weight:500; color:#d9d2f3; }
+
+@media (prefers-reduced-motion: reduce) { .pv-ambient i { animation:none; } }
+.pv-finale-sign > .pv-axi-logo { text-transform:none; letter-spacing:-.02em; color:#fffaf1; }
