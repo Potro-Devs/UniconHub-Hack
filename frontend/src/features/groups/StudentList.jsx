@@ -105,6 +105,18 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
     if (mode === 'withdraw' || mode === 'delete') confirmButton.current?.focus();
   }, [mode]);
 
+  // Todo cambio de modo empieza limpio: sin el error de una acción anterior.
+  const goTo = (next) => {
+    setError(null);
+    setErrorCode(null);
+    setMode(next);
+  };
+  const cancelEdit = () => {
+    setFirstNames(student.firstNames);
+    setLastNames(student.lastNames);
+    goTo('menu');
+  };
+
   const run = async (action) => {
     setBusy(true);
     setError(null);
@@ -148,7 +160,7 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
         <FormMessage message={error} />
         <div style={row}>
           <button type="submit" disabled={busy} style={buttonStyle('primary', { disabled: busy })}>{busy ? 'Guardando…' : 'Guardar'}</button>
-          <button type="button" onClick={() => setMode('menu')} disabled={busy} style={buttonStyle('secondary')}>Cancelar</button>
+          <button type="button" onClick={cancelEdit} disabled={busy} style={buttonStyle('secondary')}>Cancelar</button>
         </div>
       </form>
     );
@@ -171,7 +183,7 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
         <FormMessage message={error} />
         <div style={row}>
           {offerWithdraw ? (
-            <button type="button" onClick={() => { setError(null); setErrorCode(null); setMode('withdraw'); }} style={buttonStyle('primary')}>
+            <button type="button" onClick={() => goTo('withdraw')} style={buttonStyle('primary')}>
               Dar de baja en su lugar
             </button>
           ) : (
@@ -179,7 +191,7 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
               {busy ? 'Un momento…' : withdrawing ? 'Sí, dar de baja' : 'Sí, eliminar'}
             </button>
           )}
-          <button type="button" onClick={() => { setError(null); setErrorCode(null); setMode('menu'); }} disabled={busy} style={buttonStyle('secondary')}>Cancelar</button>
+          <button type="button" onClick={() => goTo('menu')} disabled={busy} style={buttonStyle('secondary')}>Cancelar</button>
         </div>
       </div>
     );
@@ -187,9 +199,9 @@ function StudentOptions({ id, student, groupId, fullName, onUpdated, onRemoved, 
 
   return (
     <div id={id} role="group" aria-label={`Opciones de ${fullName}`} style={{ ...panel, ...row, flexDirection: 'row' }}>
-      <button type="button" onClick={() => setMode('edit')} style={buttonStyle('secondary')}>Corregir nombre</button>
-      <button type="button" onClick={() => setMode('withdraw')} style={buttonStyle('secondary')}>Dar de baja</button>
-      <button type="button" onClick={() => setMode('delete')} style={buttonStyle('ghost')}>Eliminar (registro por error)</button>
+      <button type="button" onClick={() => goTo('edit')} style={buttonStyle('secondary')}>Corregir nombre</button>
+      <button type="button" onClick={() => goTo('withdraw')} style={buttonStyle('secondary')}>Dar de baja</button>
+      <button type="button" onClick={() => goTo('delete')} style={buttonStyle('ghost')}>Eliminar (registro por error)</button>
       <button type="button" onClick={onClose} style={{ ...buttonStyle('ghost'), marginLeft: 'auto' }}>Cerrar</button>
     </div>
   );
