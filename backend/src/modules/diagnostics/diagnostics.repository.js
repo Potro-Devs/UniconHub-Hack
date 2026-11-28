@@ -48,7 +48,7 @@ export function createDiagnosticsRepository(db) {
       WHERE id = ? AND status IN ('pending', 'in_progress') AND is_screen_locked = 0`),
     targetById: db.prepare('SELECT id, status, started_at, completed_at FROM assignment_targets WHERE id = ?'),
     questionsOfAssignment: db.prepare(`
-      SELECT aq.position, q.id, q.skill_id, q.stem, q.hint_1, q.hint_2, q.hint_3,
+      SELECT aq.position, q.id, q.skill_id, q.stem, q.hint_1, q.hint_2, q.hint_3, q.visual,
              s.code AS skill_code, s.name AS skill_name
       FROM assignment_questions aq
       JOIN questions q ON q.id = aq.question_id

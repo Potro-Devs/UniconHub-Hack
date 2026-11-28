@@ -29,12 +29,15 @@ function existingMainDatabase() {
   return db;
 }
 
+/** Migraciones de tutorías aplicadas (ignora las que vengan después, como 007 u 008). */
+const tutoringOnly = (applied) => applied.filter((name) => /^00[56]_/.test(name));
+
 test('migración de tutorías conserva cuestionarios de main y es repetible', () => {
   const db = existingMainDatabase();
   try {
     const quiz = db.prepare('SELECT * FROM quizzes').get();
     const question = db.prepare('SELECT * FROM quiz_questions').get();
-    assert.deepEqual(runMigrations(db), ['005_peer_tutoring.sql', '006_tutoring_tutor_set_null.sql']);
+    assert.deepEqual(tutoringOnly(runMigrations(db)), ['005_peer_tutoring.sql', '006_tutoring_tutor_set_null.sql']);
     assert.deepEqual(db.prepare('SELECT * FROM quizzes').get(), quiz);
     assert.deepEqual(db.prepare('SELECT * FROM quiz_questions').get(), question);
     db.exec("INSERT INTO tutoring_sessions (group_id, skill_id, created_by, note) VALUES (1, 1, 1, 'Sesión ficticia')");
@@ -50,7 +53,7 @@ test('migración renumerada conserva tutorías de una base con la antigua 004', 
     db.exec(migration('005_peer_tutoring.sql'));
     db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run('004_peer_tutoring.sql');
     db.exec("INSERT INTO tutoring_sessions (group_id, skill_id, created_by, note) VALUES (1, 1, 1, 'Respaldo previo')");
-    assert.deepEqual(runMigrations(db), ['005_peer_tutoring.sql', '006_tutoring_tutor_set_null.sql']);
+    assert.deepEqual(tutoringOnly(runMigrations(db)), ['005_peer_tutoring.sql', '006_tutoring_tutor_set_null.sql']);
     assert.equal(db.prepare('SELECT note FROM tutoring_sessions').get().note, 'Respaldo previo');
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM quizzes').get().count, 1);
     assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
@@ -72,7 +75,7 @@ test('la migración conserva parejas y deja la mesa docente si se elimina al tut
         VALUES (1, 1, 1, 2, 3, '2026-01-02 10:00:00');
     `);
 
-    assert.deepEqual(runMigrations(db), ['006_tutoring_tutor_set_null.sql']);
+    assert.deepEqual(tutoringOnly(runMigrations(db)), ['006_tutoring_tutor_set_null.sql']);
     const tutorForeignKey = db.prepare('PRAGMA foreign_key_list(tutoring_pairs)').all()
       .find((key) => key.from === 'tutor_student_id');
     assert.equal(tutorForeignKey.on_delete, 'SET NULL');

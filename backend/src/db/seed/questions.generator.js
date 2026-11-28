@@ -252,6 +252,8 @@ function fractions(grade, rng) {
     do exNum = rng.int(1, exDen - 1); while (exNum * den === num * exDen);
     return {
       stem: `Una ${obj} se divide en ${den} partes iguales y se ${num === 1 ? 'pinta' : 'pintan'} ${num}. ¿Qué fracción de la ${obj} está pintada?`,
+      // El dibujo es la pregunta: la misma tira que describe el enunciado.
+      visual: { type: 'fraction_bar', parts: den, shaded: num },
       correct: `${num}/${den}`,
       distractors: [
         d(`${den}/${num}`, 'inverts_fraction', 'Invierte el numerador y el denominador.'),

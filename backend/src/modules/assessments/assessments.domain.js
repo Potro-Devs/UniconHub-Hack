@@ -3,6 +3,7 @@
  * Funciones puras sin I/O (AGENTS.md §4.1 y §4.6).
  */
 import { DomainError } from '../../shared/errors/DomainError.js';
+import { parseQuestionVisual } from './question-visual.domain.js';
 import { getMasteryLevel, roundPercentage } from '../analytics/analytics.domain.js';
 
 /** Mínimo de reactivos por cada habilidad incluida en una prueba. */
@@ -372,6 +373,7 @@ export function toQuestionDto(row, options) {
     skill: { code: row.skill_code, name: row.skill_name },
     contentId: row.content_id ?? null,
     stem: row.stem,
+    visual: parseQuestionVisual(row.visual),
     difficulty: row.difficulty,
     hints: [row.hint_1, row.hint_2, row.hint_3],
     // `id` permite capturar respuestas en papel (`POST /paper/.../capture`), que se envían por id de opción.

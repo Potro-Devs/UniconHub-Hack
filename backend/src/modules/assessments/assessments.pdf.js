@@ -3,6 +3,7 @@
  * Nunca incluye las respuestas correctas ni pistas reveladoras: está listo para fotocopiar.
  */
 import PDFDocument from 'pdfkit';
+import { drawQuestionVisual, questionVisualHeight } from '../../shared/pdf/question-visual.js';
 
 const PAGE_MARGIN = 36;
 const CONTENT_WIDTH = 612 - PAGE_MARGIN * 2; // 540 pt en Carta (612x792)
@@ -28,7 +29,8 @@ function measureQuestionHeight(doc, question, boxWidth) {
     answerHeight = 24;
   }
 
-  return 9 + promptHeight + 6 + answerHeight + 9;
+  const visualHeight = questionVisualHeight(question.visual);
+  return 9 + promptHeight + 6 + (visualHeight ? visualHeight + 8 : 0) + answerHeight + 9;
 }
 
 function drawHeader(doc, quiz, groupLabel, supportField = false) {
@@ -109,6 +111,9 @@ function drawQuestionCard(doc, question) {
     { width: innerWidth },
   );
   cursorY = doc.y + 6;
+  // Gráfico del reactivo (la misma tira que ve el alumno en pantalla).
+  const visualHeight = drawQuestionVisual(doc, question.visual, x + 10, cursorY, innerWidth);
+  if (visualHeight) cursorY += visualHeight + 8;
 
   if (question.questionType === 'multiple_choice') {
     doc.font('Helvetica').fontSize(9.5);
