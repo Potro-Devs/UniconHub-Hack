@@ -16,3 +16,60 @@
   .student-progress-header { align-items: flex-start; }
   .student-real-actions > a { width: 100%; }
 }
+
+/* Álbum de logros (estampas) */
+.achievements-album .album-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+.achievements-album .album-head header { display: flex; flex-direction: column; gap: 8px; max-width: 620px; }
+.achievements-album .album-head h1 { margin: 0; font-size: clamp(2.25rem, 5vw, 2.75rem); line-height: 1.05; }
+.achievements-album .album-head p { margin: 0; }
+.album-eyebrow { font-size: 14px; font-weight: 700; letter-spacing: .1em; color: #4D43AD; }
+.album-legend { display: flex; gap: 8px; flex-wrap: wrap; }
+.album-legend span { padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+.album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 24px 20px; }
+.album-sticker { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-height: 220px; padding: 22px 20px; text-align: left; cursor: pointer; font-family: inherit; color: #18203A; border: 2px solid; border-radius: 26px; transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease, box-shadow .15s ease; min-width: 0; }
+.album-sticker:hover { transform: translateY(-3px); }
+.album-sticker:active { transform: translateY(3px); }
+.album-sticker:focus-visible { outline: 3px solid #4D43AD; outline-offset: 3px; }
+.album-sticker-icon { width: 56px; height: 56px; flex: none; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+.album-sticker-icon.big { width: 84px; height: 84px; }
+.album-sticker-title { font-weight: 700; font-size: 23px; line-height: 1.1; }
+.album-sticker-sub { font-size: 15px; line-height: 1.35; color: #4A5573; }
+.album-sticker-date { margin-top: auto; font-size: 14px; font-weight: 700; }
+.album-next { min-height: 220px; padding: 22px 20px; border: 2px dashed #C3CCDD; border-radius: 26px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; text-align: center; color: #4A5573; font-size: 15px; }
+
+.album-celebrate { position: fixed; inset: 0; z-index: 50; overflow-x: hidden; overflow-y: auto; background: #1E1A4D; }
+.album-ctl { min-height: 52px; padding: 0 22px; border-radius: 16px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.album-ctl:focus-visible { outline: 3px solid #FACC15; outline-offset: 3px; }
+.album-sound { position: absolute; top: 20px; right: 24px; z-index: 3; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 0; background: #fff; color: #18203A; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.album-back { border: 0; background: #FACC15; color: #18203A; font-size: 17px; padding: 0 26px; box-shadow: 0 4px 0 #B8920B; }
+.album-skip { position: absolute; top: 20px; left: 24px; z-index: 3; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid rgba(255,255,255,.55); background: transparent; color: #fff; font-size: 15px; }
+@media (max-width: 639px) { .album-skip { left: 16px; } .album-sound { right: 16px; } }
+.album-cel-body { position: relative; z-index: 2; min-height: 100%; max-width: 1100px; margin: 0 auto; padding: 80px 16px 40px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 32px 64px; }
+.album-cel-stage { position: relative; width: 440px; max-width: 100%; height: 440px; flex: none; }
+.album-rays { position: absolute; left: 50%; top: 50%; width: 640px; height: 640px; margin: -320px 0 0 -320px; border-radius: 50%; pointer-events: none; background: repeating-conic-gradient(from 0deg, rgba(255,228,154,.16) 0deg 9deg, rgba(255,228,154,0) 9deg 30deg); -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%); mask-image: radial-gradient(circle, #000 25%, transparent 68%); }
+.album-cel-sticker { position: absolute; left: 50%; top: 40px; margin-left: -130px; width: 260px; min-height: 300px; padding: 28px 24px; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: #18203A; border: 3px solid; border-radius: 32px; transform: rotate(-4deg); }
+.album-cel-sticker .album-sticker-title { font-size: 32px; line-height: 1.05; }
+.album-cel-sticker .album-sticker-sub { font-size: 17px; }
+.album-cel-axi { position: absolute; right: -50px; bottom: -10px; }
+.album-cel-text { flex: 1 1 360px; max-width: 460px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; color: #ECE9FF; }
+.album-cel-text h2 { margin: 0; font-size: clamp(2.25rem, 5vw, 3rem); line-height: 1.05; color: #fff; }
+.album-cel-text p { margin: 0; font-size: 20px; line-height: 1.45; }
+.album-cel-text .album-cel-says { margin-top: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.1); font-size: 17px; line-height: 1.5; }
+.album-cel-says strong { color: #FFE49A; }
+.album-cel-chip { padding: 6px 14px; border-radius: 999px; font-size: 15px; font-weight: 700; }
+.album-cel-actions { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 12px; }
+.is-playing .album-rays { animation: albumRays 3s ease-out both; }
+.is-playing .album-cel-sticker { animation: albumSticker .8s cubic-bezier(.34,1.56,.64,1) .1s both; }
+.is-playing .album-cel-text > * { animation: albumFadeUp .5s ease-out 1.2s both; }
+@keyframes albumRays { 0% { opacity: 0; transform: rotate(0deg) scale(.6); } 20% { opacity: 1; } 100% { opacity: 1; transform: rotate(45deg) scale(1); } }
+@keyframes albumSticker { 0% { opacity: 0; transform: perspective(900px) rotateY(160deg) scale(.3); } 70% { opacity: 1; transform: perspective(900px) rotateY(0deg) rotate(-4deg) scale(1.08); } 100% { opacity: 1; transform: rotate(-4deg); } }
+@keyframes albumFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (max-width: 639px) {
+  .album-cel-body { padding-top: 76px; gap: 16px; }
+  .album-cel-stage { height: 500px; }
+  .album-rays { width: 420px; height: 420px; margin: -210px 0 0 -210px; }
+  .album-cel-axi { right: -16px; bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .album-sticker, .album-celebrate * { animation: none !important; transition: none !important; }
+}
