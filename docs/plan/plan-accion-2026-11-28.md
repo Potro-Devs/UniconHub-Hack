@@ -11,8 +11,8 @@
 | | **Raúl** — Cuentas y jerarquía | **Osvaldo** — Escaneo de hojas | **lizocbla** — Alumnos y reactivos |
 | --- | --- | --- | --- |
 | Qué | Zona, supervisor, registro de docentes con código de escuela + aprobación, contraseñas, panel del supervisor | Hoja de respuestas escaneable + lectura con la cámara del celular en Captura rápida | Editar y dar de baja alumnos, imagen secreta, gráficos en los reactivos, AGENTS.md |
-| Rama | `feat/accounts-zones` | `feat/paper-omr-scan` | `feat/students-edit-secret`, `feat/question-visuals` |
-| Migración | **007** | **009** (solo si la necesita) | **008** |
+| Rama | `feat/accounts-zones` | `feat/paper-omr-scan` | `feat/students-edit`, `feat/student-secret-image`, `feat/question-visuals` |
+| Migración | **007** | **009** (solo si la necesita) | **008** (imagen secreta) y **010** (gráficos) |
 | Primera entrega | Contrato de API de cuentas (≤ 1 h) | **PDF de la hoja de respuestas para imprimir (≤ 2 h)** | Contrato de editar/baja + imagen secreta (≤ 1 h) |
 
 > **Regla para no chocar:** cada quien escribe primero su **contrato** en `docs/api-contract.md` (en su propia sección) y lo sube en un PR `docs:` de una sola revisión. Así los otros pueden programar contra él sin esperar.
@@ -84,13 +84,13 @@ La hoja actual **no se puede escanear**: los reactivos van en tarjetas de tamañ
 
 ## 4. lizocbla — Alumnos, reactivos y documentación
 
-### 4.1 Editar y dar de baja alumnos (migración `008_students.sql`)
+### 4.1 Editar y dar de baja alumnos (sin migración: usa columnas que ya existen)
 - `PATCH /groups/:groupId/students/:studentId` → corregir nombres y apellidos (las iniciales se recalculan).
 - **Dar de baja:** usar `group_enrollments.status = 'withdrawn'` + `ended_at`, que ya existen. **Nunca borrar**, para conservar el historial.
 - **Borrar** solo alumnos creados por error **y sin ninguna respuesta, corte ni logro**. Si tiene datos → 409 con mensaje claro.
 - En la pantalla del grupo: botones "Editar" y "Dar de baja" por alumno, con confirmación.
 
-### 4.2 Imagen secreta del alumno (misma migración `008`)
+### 4.2 Imagen secreta del alumno (migración `008_student_secret_image.sql`)
 - **`students`:** `secret_hash` y `secret_set_at`. **`groups`:** `secret_setup_until`, la ventana que abre la docente.
 - **Flujo:** código del grupo → tarjeta → "¿Eres Sofía R.?" → imagen secreta → entra.
   - **1.º y 2.º:** una imagen de 9; **3.º a 6.º:** dos imágenes en orden.
@@ -100,7 +100,7 @@ La hoja actual **no se puede escanear**: los reactivos van en tarjetas de tamañ
 - ⚠️ **Toca `auth`,** igual que Raúl. **Acuerden:** lizocbla solo toca la parte del alumno (`student-join/select`); Raúl, la del personal escolar. Integrar primero lo de Raúl.
 
 ### 4.3 Gráficos en los reactivos (rama aparte, `feat/question-visuals`)
-- Columna `questions.visual` (JSON), por ejemplo `{ "tipo": "barra", "partes": 3, "pintadas": 1 }`. El generador del banco la llena donde aplica.
+- Columna `questions.visual` (JSON, migración `010_question_visuals.sql`), por ejemplo `{ "type": "fraction_circle", "theme": "pizza", "parts": 8, "shaded": 3 }`. El generador del banco la llena donde aplica (ver `docs/api-contract.md`).
 - **Pantalla del alumno:** componente de solo lectura a partir de `FractionMaterial`, `GroupMaterial` y `PlaceMaterial` de los juegos.
 - **PDF en blanco y negro:** el mismo dibujo, para que pantalla y papel sean comparables.
 - **Accesibilidad:** descripción para lectores de pantalla.
@@ -109,7 +109,7 @@ La hoja actual **no se puede escanear**: los reactivos van en tarjetas de tamañ
 ### 4.4 Documentación y coordinación
 - **AGENTS.md:** mover del Roadmap al alcance el supervisor y la zona, las cuentas reales y el OMR por cámara. Actualizar la jerarquía y los roles.
 - **Diagramas:** casos de uso y entidad-relación (ver `docs/diagramas/`).
-- **Integración:** revisar e integrar los PR, en este orden: contratos → Raúl (migración 007) → lizocbla (008) → Osvaldo.
+- **Integración:** revisar e integrar los PR, en este orden: contratos → Raúl (migración 007) → lizocbla (008 y 010) → Osvaldo.
 
 ---
 
@@ -117,7 +117,7 @@ La hoja actual **no se puede escanear**: los reactivos van en tarjetas de tamañ
 
 | Archivo | Regla |
 | --- | --- |
-| Migraciones | Números reservados: **007 Raúl, 008 lizocbla, 009 Osvaldo**. Nadie edita migraciones ya integradas. |
+| Migraciones | Números reservados: **007 Raúl, 008 y 010 lizocbla, 009 Osvaldo**. Nadie edita migraciones ya integradas. |
 | `backend/src/app.js` | Cada quien agrega **solo su línea** de router. |
 | `backend/src/db/seed.js` | Cada quien crea **su propio archivo** en `db/seed/` y agrega una sola línea en `seed.js`. |
 | `frontend/src/App.jsx` | Cada quien agrega **solo sus rutas**, en un bloque con comentario. |
