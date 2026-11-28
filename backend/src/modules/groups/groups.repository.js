@@ -45,9 +45,16 @@ export function createGroupsRepository(db) {
       JOIN group_enrollments e ON e.student_id = s.id
       WHERE s.id = ? AND e.group_id = ? AND e.status = 'active'`),
     folioExists: db.prepare('SELECT 1 FROM students WHERE internal_folio = ?'),
-    insertStudent: db.prepare(
-      'INSERT INTO students (school_id, internal_folio, first_names, last_names, initials, avatar_color) VALUES (?, ?, ?, ?, ?, ?)',
-    ),
+    // El id nuevo queda por encima del mayor id usado o eliminado: un id eliminado nunca se reutiliza,
+    // así una sesión vieja no puede entrar como otro alumno (migración 011).
+    insertStudent: db.prepare(`
+      INSERT INTO students (id, school_id, internal_folio, first_names, last_names, initials, avatar_color)
+      VALUES (
+        (SELECT MAX(last_id) + 1 FROM (
+          SELECT COALESCE(MAX(id), 0) AS last_id FROM students
+          UNION ALL SELECT COALESCE(MAX(id), 0) FROM deleted_student_ids
+        )),
+        ?, ?, ?, ?, ?, ?)`),
     enroll: db.prepare("INSERT INTO group_enrollments (group_id, student_id, status) VALUES (?, ?, 'active')"),
     updateAvatar: db.prepare('UPDATE students SET avatar_id = ?, avatar_color = ? WHERE id = ?'),
     updateStudentNames: db.prepare('UPDATE students SET first_names = ?, last_names = ?, initials = ? WHERE id = ?'),

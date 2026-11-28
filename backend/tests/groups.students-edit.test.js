@@ -154,6 +154,37 @@ describe('editar, dar de baja y eliminar alumnos', () => {
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM assignment_targets WHERE student_id = ?').get(ids.mateo).n, 0);
   });
 
+  test('un id eliminado no se reutiliza: la sesión vieja no entra como el alumno nuevo (#47, P1)', async () => {
+    const school = db.prepare('SELECT school_id FROM groups WHERE id = ?').get(ids.groupA).school_id;
+    const studentToken = (id) => tokenFor({ sub: String(id), role: 'student', schoolId: school, groupId: ids.groupA });
+    const add = async (firstNames) => {
+      const res = await server.call('POST', `/api/v1/groups/${ids.groupA}/students`, { token: tokens.teacherA, body: { firstNames, lastNames: 'Prueba Demo' } });
+      assert.equal(res.status, 201, JSON.stringify(res.body));
+      return db.prepare('SELECT MAX(id) AS id FROM students').get().id;
+    };
+    // Ana es la alumna con el id más alto: el caso en que SQLite reutilizaría su id.
+    const ana = await add('Ana');
+    const anaToken = studentToken(ana);
+    assert.equal((await server.call('GET', '/api/v1/auth/me', { token: anaToken })).status, 200);
+    assert.equal((await server.call('DELETE', path(ana), { token: tokens.teacherA })).status, 200);
+
+    const beatriz = await add('Beatriz');
+    assert.ok(beatriz > ana, `Beatriz recibió un id nuevo (${beatriz}), no el de Ana (${ana})`);
+    // El token de Ana ya no sirve para nada ni identifica a Beatriz.
+    const me = await server.call('GET', '/api/v1/auth/me', { token: anaToken });
+    assert.equal(me.status, 401);
+    assert.notEqual(me.body?.data?.student?.displayName, 'Beatriz P.');
+    assert.equal((await server.call('GET', `/api/v1/diagnostics/students/${ana}/assignments`, { token: anaToken })).status, 404);
+    // Beatriz sí entra con su propio id.
+    assert.equal((await server.call('GET', '/api/v1/auth/me', { token: studentToken(beatriz) })).status, 200);
+
+    // Red de seguridad en la base: insertar un alumno con un id eliminado se rechaza.
+    assert.throws(
+      () => db.prepare("INSERT INTO students (id, school_id, internal_folio, first_names, last_names, initials, avatar_color) VALUES (?, ?, 'AXI-ZZZZZZZZ', 'X', 'Y', 'XY', '#FFFFFF')").run(ana, school),
+      /STUDENT_ID_REUSED/,
+    );
+  });
+
   test('permisos: otra docente 404, director y alumno 403, sin sesión 401', async () => {
     for (const [method, extra, body] of [['PATCH', '', { firstNames: 'Ana' }], ['POST', '/withdraw'], ['DELETE', '']]) {
       assert.equal((await server.call(method, path(ids.sofia, extra), { token: tokens.teacherB, body })).status, 404, `${method} docente B`);

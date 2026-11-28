@@ -180,7 +180,7 @@ Cada módulo en `backend/src/modules/<modulo>/` respeta dependencias unidireccio
 ## 6. Modelo de Datos y Contratos API (`/api/v1`)
 
 - **Tablas SQLite principales:** `zones`, `schools`, `users`, `user_access_codes`, `groups`, `students`, `group_enrollments`, `skills`, `curriculum_contents`, `group_curriculum_progress`, `questions`, `question_options`, `assignments`, `assignment_questions`, `assignment_targets`, `student_responses`, `hint_requests`, `skill_mastery_history`, `student_achievements`, `recommended_activities`, `group_interventions`, `tutoring_sessions`, `tutoring_pairs`, `quizzes`, `quiz_questions`. Diagrama: `docs/diagramas/entidad-relacion.drawio`.
-- **Migraciones:** numeradas y nunca se editan una vez integradas. Fase 2: `007` cuentas y zonas, `008` imagen secreta, `009` (reservada, Modo Papel), `010` gráficos de reactivos.
+- **Migraciones:** numeradas y nunca se editan una vez integradas. Fase 2: `007` cuentas y zonas, `008` imagen secreta, `009` (reservada, Modo Papel), `010` gráficos de reactivos, `011` ids de alumnos eliminados (nunca se reutilizan).
 - **Prefijos REST bajo `/api/v1`:**
   - `/auth` (login, quick-login docente/directivo/supervisor/alumno, registro de docentes y contraseñas, student-join → select → secret)
   - `/groups` (CRUD grupos, alumnos individual/bulk/archivo, corregir/baja/eliminar, avatar, ventana e imagen secreta)
