@@ -5,6 +5,7 @@ import { createApp } from '../src/app.js';
 import { openDatabase } from '../src/config/database.js';
 import { runMigrations } from '../src/db/migrate.js';
 import { renderQuizPdf } from '../src/modules/assessments/assessments.pdf.js';
+import { renderHintCardsPdf } from '../src/modules/paper-mode/paper-mode.pdf.js';
 import { configWith, silentLogger, startServer, tokenFor } from './helpers.js';
 
 /**
@@ -167,5 +168,54 @@ describe('PDF de Modo Papel', () => {
       assert.equal((await fetchPdf(path(ids.paper), tokens.student)).status, 403);
       assert.equal((await fetchPdf(path(ids.paper))).status, 401);
     }
+  });
+
+  test('hoja de 4 reactivos en Modo Papel cabe en 1 página e incluye Folio en la misma fila', async () => {
+    const questions = Array.from({ length: 4 }, (_, i) => ({
+      position: i + 1,
+      questionType: 'multiple_choice',
+      prompt: `Una barra de chocolate se divide en 8 partes iguales y se pintan ${i + 1}. ¿Qué fracción de la barra de chocolate está pintada?`,
+      options: [
+        { label: 'A', text: '1/2' },
+        { label: 'B', text: '2/3' },
+        { label: 'C', text: '3/4' },
+        { label: 'D', text: '4/5' },
+      ],
+    }));
+    const buf = await renderQuizPdf(
+      { title: 'Fracciones equivalentes', grade: 4, skill: { name: 'Fracciones' }, questions },
+      { groupLabel: '4.º A', supportField: true },
+    );
+    const pages = (buf.toString('latin1').match(/\/Type \/Page\b/g) || []).length;
+    assert.equal(pages, 1);
+    const text = pdfText(buf);
+    assert.ok(text.includes(asPdf('Folio:')));
+    assert.ok(text.includes(asPdf('Nombre:')));
+    assert.ok(text.includes(asPdf('Fecha:')));
+  });
+
+  test('título de 117 caracteres se muestra completo sin truncar en el encabezado', async () => {
+    const longTitle = 'Diagnóstico integral de suma y resta de fracciones con distinto denominador y problemas aplicados en contexto escolar';
+    assert.equal(longTitle.length, 117);
+    const buf = await renderQuizPdf({ title: longTitle, grade: 5, skill: { name: 'Fracciones' }, questions: [] });
+    const text = pdfText(buf);
+    assert.ok(text.includes(asPdf(longTitle)), 'el título largo no debe truncarse');
+  });
+
+  test('tarjetas de pistas de 8 reactivos caben en 2 páginas e incluyen insignia completa', async () => {
+    const questions = Array.from({ length: 8 }, (_, i) => ({
+      position: i + 1,
+      skillName: 'Resolución de problemas',
+      hints: [
+        'Lee el enunciado e identifica qué te pregunta el problema.',
+        'Ordena los datos conocidos antes de elegir una operación.',
+        'Prueba con cantidades pequeñas para verificar si tu plan tiene sentido.',
+      ],
+    }));
+    const buf = await renderHintCardsPdf({ title: 'Práctica de problemas', groupLabel: '4.º A', questions });
+    const pages = (buf.toString('latin1').match(/\/Type \/Page\b/g) || []).length;
+    assert.equal(pages, 2);
+    const text = pdfText(buf);
+    assert.ok(text.includes(asPdf('Reactivo 2 · Resolución de problemas')));
   });
 });

@@ -1,3 +1,5 @@
+// Nota: backend/src/shared/pdf/axi-sheet.js replica la geometría vectorial de Mascot.jsx en B/N;
+// si cambias la mascota, actualiza también ese archivo.
 import { APP_NAME } from '@/config/brand';
 
 export const MASCOT_PALETTES = {
