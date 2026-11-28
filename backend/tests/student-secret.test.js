@@ -194,6 +194,21 @@ describe('imagen secreta del alumno (HTTP)', () => {
     assert.equal((await secret('SECR3A', ids.sofia, ['tree', 'star'])).status, 200);
   });
 
+  test('si se quedó sin intentos, restablecer su imagen se los devuelve y puede elegir la nueva', async () => {
+    // Sofía "olvidó" su imagen: se equivoca hasta agotar los intentos (algunos ya los gastó antes).
+    let status = 401;
+    for (let i = 0; i < 10 && status === 401; i += 1) ({ status } = await secret('SECR3A', ids.sofia, ['cat', 'sun']));
+    assert.equal(status, 429);
+    assert.equal((await secret('SECR3A', ids.sofia, ['tree', 'star'])).status, 429, 'ni con la correcta: ya no tiene intentos');
+    // La docente abre la ventana y la restablece: Sofía elige una nueva sin esperar 15 minutos.
+    assert.equal((await openWindow(ids.g3)).status, 200);
+    assert.equal((await server.call('POST', `/api/v1/groups/${ids.g3}/students/${ids.sofia}/secret/reset`, { token: tokens.teacherA })).status, 200);
+    assert.equal((await select('SECR3A', ids.sofia)).body.data.step, 'setup');
+    assert.equal((await secret('SECR3A', ids.sofia, ['fish', 'flower'])).status, 200);
+    // Los intentos de los demás alumnos no se tocan.
+    assert.equal((await secret('SECR3A', ids.ana, ['cat', 'cat'])).status, 429);
+  });
+
   test('un salón completo desde la misma IP puede entrar (sin 429 por IP)', async () => {
     await openWindow(ids.gBig);
     for (const sid of ids.big) {

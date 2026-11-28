@@ -59,7 +59,7 @@ function uniqueCode(generate, exists) {
  *   random?: () => number,
  * }} deps
  */
-export function createGroupsService({ repository, transaction, random = Math.random }) {
+export function createGroupsService({ repository, transaction, random = Math.random, onSecretReset = () => {} }) {
   const toGroup = (row) => toGroupDto(row, phaseForGrade(row.grade));
 
   // Regla de acceso a grupos centralizada en `groups.access.js`.
@@ -212,6 +212,8 @@ export function createGroupsService({ repository, transaction, random = Math.ran
     resetStudentSecret(auth, groupId, studentId) {
       const { student } = findOwnActiveStudent(auth, groupId, studentId);
       repository.resetStudentSecret(student.id);
+      // Si se quedó sin intentos, restablecer también se los devuelve para que elija su imagen nueva.
+      onSecretReset(student.id);
       return toStudentDto(repository.findStudentById(student.id));
     },
 

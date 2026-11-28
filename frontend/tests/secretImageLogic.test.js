@@ -7,6 +7,8 @@ import {
   isComplete,
   removeLastPick,
   samePicks,
+  SECRET_ALREADY_SAVED_MESSAGE,
+  afterSecretError,
 } from '../src/features/student-portal/secretImage.logic.js';
 
 describe('imagen secreta: selección', () => {
@@ -36,5 +38,17 @@ describe('imagen secreta: selección', () => {
     assert.equal(instructionFor({ step: 'verify', phase: 'pick', count: 2, picks: ['cat'] }), 'Toca tus 2 imágenes secretas, en orden (2 de 2).');
     assert.match(instructionFor({ step: 'setup', phase: 'pick', count: 1, picks: [] }), /Elige tu imagen secreta/);
     assert.equal(instructionFor({ step: 'setup', phase: 'confirm', count: 2, picks: [] }), 'Tócala otra vez para confirmar (1 de 2).');
+  });
+});
+
+describe('imagen secreta: cambios de estado del servidor', () => {
+  test('ya guardada en otro dispositivo → tocarla; ventana cerrada → pedir ayuda; otros errores → igual', () => {
+    const saved = { step: 'verify', message: SECRET_ALREADY_SAVED_MESSAGE };
+    assert.deepEqual(afterSecretError('SECRET_ALREADY_SET', 'setup'), saved);
+    // Si ya hay una guardada, el servidor responde "no coincide": configurando, significa lo mismo.
+    assert.deepEqual(afterSecretError('SECRET_MISMATCH', 'setup'), saved);
+    assert.deepEqual(afterSecretError('SECRET_SETUP_CLOSED', 'setup'), { step: 'ask_teacher', message: null });
+    assert.deepEqual(afterSecretError('SECRET_MISMATCH', 'verify'), { step: 'verify', message: null });
+    assert.deepEqual(afterSecretError(undefined, 'setup'), { step: 'setup', message: null });
   });
 });

@@ -8,22 +8,32 @@ import { createAuthRepository } from './auth.repository.js';
 import { createAuthService } from './auth.service.js';
 
 /**
- * @param {{ db: import('node:sqlite').DatabaseSync, config: object, requireAuth: Function }} deps
+ * Límite por alumno de intentos fallidos con la imagen secreta: frena que alguien adivine la de un
+ * compañero. Se crea en `app.js` y se comparte con `groups`, que lo libera al restablecer la imagen.
+ * `resetStudent(studentId)` olvida los intentos de ese alumno.
  */
-export function createAuthRouter({ db, config, requireAuth }) {
-  const controller = createAuthController(createAuthService({ repository: createAuthRepository(db), config }));
-  const { windowMs, max } = config.auth.rateLimit;
-  const loginLimit = createRateLimit({ windowMs, max });
-  // Acceso del alumno: límite amplio por IP (el salón comparte IP) y, para la imagen secreta,
-  // un límite por alumno que frena que alguien adivine la de un compañero.
-  const joinLimit = createRateLimit(config.auth.studentJoinRateLimit);
-  const secretLimit = createRateLimit({
+export function createSecretAttemptsLimit(config) {
+  const limit = createRateLimit({
     ...config.auth.secretAttemptsPerStudent,
     key: (req) => `secret:${Number(req.body?.studentId) || 'x'}`,
     code: 'SECRET_TOO_MANY_ATTEMPTS',
     failuresOnly: true,
     message: 'Pídele ayuda a tu maestra o maestro para entrar.',
   });
+  limit.resetStudent = (studentId) => limit.reset(`secret:${Number(studentId)}`);
+  return limit;
+}
+
+/**
+ * @param {{ db: import('node:sqlite').DatabaseSync, config: object, requireAuth: Function, secretLimit?: Function }} deps
+ */
+export function createAuthRouter({ db, config, requireAuth, secretLimit = createSecretAttemptsLimit(config) }) {
+  const controller = createAuthController(createAuthService({ repository: createAuthRepository(db), config }));
+  const { windowMs, max } = config.auth.rateLimit;
+  const loginLimit = createRateLimit({ windowMs, max });
+  // Acceso del alumno: límite amplio por IP (el salón comparte IP); la imagen secreta además
+  // usa el límite por alumno (`secretLimit`).
+  const joinLimit = createRateLimit(config.auth.studentJoinRateLimit);
 
   const router = Router();
   router.post('/login', loginLimit, controller.login);

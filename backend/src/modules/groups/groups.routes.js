@@ -12,11 +12,12 @@ import { createGroupsService } from './groups.service.js';
 /**
  * @param {{ db: import('node:sqlite').DatabaseSync, requireAuth: Function, random?: () => number }} deps
  */
-export function createGroupsRouter({ db, requireAuth, random }) {
+export function createGroupsRouter({ db, requireAuth, random, onSecretReset }) {
   const service = createGroupsService({
     repository: createGroupsRepository(db),
     transaction: (fn) => withTransaction(db, fn),
     random,
+    onSecretReset,
   });
   const controller = createGroupsController(service);
 

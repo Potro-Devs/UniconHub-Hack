@@ -35,5 +35,23 @@ export function instructionFor({ step, phase, count, picks }) {
   return count === 1 ? 'Toca tu imagen secreta.' : `Toca tus ${count} imágenes secretas, en orden${nth}.`;
 }
 
+export const SECRET_ALREADY_SAVED_MESSAGE = 'Tu imagen secreta ya se guardó. Tócala para entrar.';
+
+/**
+ * Qué hacer cuando el servidor rechaza la imagen por un cambio de estado. Devuelve el paso siguiente
+ * y, si aplica, un mensaje propio:
+ * - Configurando, `SECRET_ALREADY_SET` o `SECRET_MISMATCH`: la imagen ya se guardó en otro dispositivo
+ *   (el servidor responde "no coincide" si ya hay una guardada) → ahora hay que tocarla (`verify`).
+ * - `SECRET_SETUP_CLOSED`: la docente cerró la ventana → pedir ayuda (`ask_teacher`).
+ * Cualquier otro error deja el paso como está (p. ej. sin conexión: se puede volver a confirmar).
+ */
+export function afterSecretError(code, step) {
+  if (step === 'setup' && (code === 'SECRET_ALREADY_SET' || code === 'SECRET_MISMATCH')) {
+    return { step: 'verify', message: SECRET_ALREADY_SAVED_MESSAGE };
+  }
+  if (code === 'SECRET_SETUP_CLOSED') return { step: 'ask_teacher', message: null };
+  return { step, message: null };
+}
+
 /** Después de cuántos intentos fallidos se sugiere pedir ayuda (sin bloquear: AGENTS.md §1.5). */
 export const HELP_AFTER_FAILED_ATTEMPTS = 3;

@@ -5,6 +5,9 @@ import { HttpError } from '../errors/HttpError.js';
  *
  * Con `failuresOnly`, solo cuentan las respuestas con error (≥ 400): entrar bien no consume intentos.
  *
+ * El middleware expone `reset(id)` para olvidar los intentos de una llave (p. ej. cuando la docente
+ * restablece la imagen secreta de un alumno que se quedó sin intentos).
+ *
  * @param {{ windowMs: number, max: number, key?: (req) => string, now?: () => number, failuresOnly?: boolean }} options
  */
 export function createRateLimit({
@@ -18,7 +21,7 @@ export function createRateLimit({
 }) {
   const hits = new Map();
 
-  return (req, res, next) => {
+  const middleware = (req, res, next) => {
     const id = key(req);
     const current = now();
     let entry = hits.get(id);
@@ -47,4 +50,6 @@ export function createRateLimit({
     }
     return next();
   };
+  middleware.reset = (id) => hits.delete(id);
+  return middleware;
 }

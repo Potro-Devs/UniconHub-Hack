@@ -12,6 +12,7 @@ import {
   isComplete,
   removeLastPick,
   samePicks,
+  afterSecretError,
 } from './secretImage.logic';
 
 /**
@@ -22,7 +23,9 @@ import {
  * Sin bloqueos ni castigos: tras varios intentos solo sugiere pedir ayuda (AGENTS.md §1.5).
  */
 export function StudentSecretStep({ joinCode, selection, onSignedIn, onBack }) {
-  const { step, imageCount: count, images, student } = selection;
+  const { imageCount: count, images, student } = selection;
+  // El paso puede cambiar aquí mismo si el servidor responde que ya se guardó o que se cerró la ventana.
+  const [step, setStep] = useState(selection.step);
   const [phase, setPhase] = useState('pick'); // 'pick' | 'confirm' (solo setup)
   const [picks, setPicks] = useState([]);
   const [firstPicks, setFirstPicks] = useState(null);
@@ -41,8 +44,16 @@ export function StudentSecretStep({ joinCode, selection, onSignedIn, onBack }) {
     } catch (err) {
       setBusy(false);
       setPicks([]);
-      if (err?.code === 'SECRET_MISMATCH') setFailed((n) => n + 1);
-      setMessage(errorMessageOf(err));
+      const next = afterSecretError(err?.code, step);
+      if (next.step !== step) {
+        // Empieza limpio en el paso nuevo (sin la primera elección de la configuración).
+        setStep(next.step);
+        setPhase('pick');
+        setFirstPicks(null);
+      } else if (err?.code === 'SECRET_MISMATCH') {
+        setFailed((n) => n + 1);
+      }
+      setMessage(next.message ?? errorMessageOf(err));
     }
   };
 
