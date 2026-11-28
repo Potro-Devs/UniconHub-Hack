@@ -63,6 +63,16 @@ export const KID_COLORS = {
   'warm-ink': '#805615', 'reading-bg': '#D0F0E8', 'reading-ink': '#226251',
 };
 
+/** Dibujos de los reactivos de fracciones (pizza, pastel, chocolate). En papel van solo con contorno. */
+export const FOOD_COLORS = {
+  outline: '#5B3A1E',
+  crust: '#E7A54B', cheese: '#FAD56A', sauce: '#E0703A',
+  mushroomCap: '#F3E6D4', mushroomStem: '#FFF8EE',
+  frosting: '#F6A9C0', cake: '#FDE2EA', cakeLine: '#D9789A',
+  strawberry: '#E2384D', leaf: '#3E9B4F', seed: '#FFE9A8',
+  chocolate: '#7A4A2B', chocolateLight: '#99633F', eaten: '#B98E70',
+};
+
 export const LEVELS = [
   {
     code: 'needs_support',

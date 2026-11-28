@@ -228,7 +228,47 @@ function multiplication(grade, rng) {
 
 // ───────────────────────── Fracciones ─────────────────────────
 
-const STRIP_OBJECTS = ['tira de papel', 'barra de chocolate', 'cuerda'];
+const has = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+/**
+ * Escenarios de 3.º: objetos que los niños reconocen (pizza, pastel, chocolate). Cada uno trae su
+ * dibujo (`visual`), su enunciado, sus pistas y la explicación de cada error con sus propias palabras.
+ * El escenario se elige con los números del reactivo, sin consumir azar extra.
+ */
+const FRACTION_SCENES = [
+  {
+    visual: { type: 'fraction_circle', theme: 'pizza' },
+    stem: (den, num) => `Una pizza se parte en ${den} rebanadas iguales y ${has(num, 'tiene', 'tienen')} champiñones. ¿Qué fracción de la pizza tiene champiñones?`,
+    unmarked: 'Cuenta las rebanadas sin champiñones.',
+    partToPart: 'Compara las rebanadas con champiñones con las que no tienen, en lugar de con el total.',
+    hints: (exDen, exNum) => [
+      'Cuenta todas las rebanadas: con champiñones y sin champiñones.',
+      'El total de rebanadas va abajo y las rebanadas con champiñones van arriba.',
+      `Ejemplo parecido: si de ${exDen} rebanadas iguales ${has(exNum, 'tiene', 'tienen')} champiñones, la fracción es ${exNum}/${exDen}.`,
+    ],
+  },
+  {
+    visual: { type: 'fraction_circle', theme: 'pastel' },
+    stem: (den, num) => `Un pastel se parte en ${den} rebanadas iguales y ${has(num, 'tiene', 'tienen')} fresas. ¿Qué fracción del pastel tiene fresas?`,
+    unmarked: 'Cuenta las rebanadas sin fresas.',
+    partToPart: 'Compara las rebanadas con fresas con las que no tienen, en lugar de con el total.',
+    hints: (exDen, exNum) => [
+      'Cuenta todas las rebanadas: con fresas y sin fresas.',
+      'El total de rebanadas va abajo y las rebanadas con fresas van arriba.',
+      `Ejemplo parecido: si de ${exDen} rebanadas iguales ${has(exNum, 'tiene', 'tienen')} fresas, la fracción es ${exNum}/${exDen}.`,
+    ],
+  },
+  {
+    visual: { type: 'fraction_bar', theme: 'chocolate' },
+    stem: (den, num) => `Una barra de chocolate tiene ${den} cuadritos iguales y Luis se come ${num}. ¿Qué fracción de la barra se comió Luis?`,
+    unmarked: 'Cuenta los cuadritos que quedaron en lugar de los que se comió.',
+    partToPart: 'Compara los cuadritos que se comió con los que quedaron, en lugar de con el total.',
+    hints: (exDen, exNum) => [
+      'Cuenta todos los cuadritos: los que se comió y los que quedaron.',
+      'El total de cuadritos va abajo y los que se comió van arriba.',
+      `Ejemplo parecido: si una barra tiene ${exDen} cuadritos y alguien se come ${exNum}, se comió ${exNum}/${exDen}.`,
+    ],
+  },
+];
 /** Pares de denominadores sin múltiplo común obvio para 6.º (denominador común = producto). */
 const COPRIME_PAIRS = [[2, 3], [3, 4], [2, 5], [3, 5], [4, 5]];
 const coprimeNumerator = (den, rng) => {
@@ -241,30 +281,29 @@ const coprimeNumerator = (den, rng) => {
 };
 
 function fractions(grade, rng) {
-  // 3.º: medios, cuartos y octavos con modelos de tiras (primer acercamiento formal).
+  // 3.º: cuartos y octavos con pizza, pastel o chocolate (primer acercamiento formal).
   if (grade === 3) {
     const den = rng.pick([4, 8]);
     const num = rng.int(1, den - 1);
-    const obj = rng.pick(STRIP_OBJECTS);
+    // Antes aquí se sorteaba el objeto; la llamada se conserva para que el resto del banco no cambie.
+    rng.pick(FRACTION_SCENES);
+    // Con solo 4 reactivos el sorteo podía repetir un escenario en todos; así se turnan sin azar.
+    const scene = FRACTION_SCENES[(den + num) % FRACTION_SCENES.length];
     const exDen = den === 4 ? 8 : 4;
     // El ejemplo nunca vale lo mismo que la respuesta (3/4 revelaría 6/8).
     let exNum;
     do exNum = rng.int(1, exDen - 1); while (exNum * den === num * exDen);
     return {
-      stem: `Una ${obj} se divide en ${den} partes iguales y se ${num === 1 ? 'pinta' : 'pintan'} ${num}. ¿Qué fracción de la ${obj} está pintada?`,
-      // El dibujo es la pregunta: la misma tira que describe el enunciado.
-      visual: { type: 'fraction_bar', parts: den, shaded: num },
+      stem: scene.stem(den, num),
+      // El dibujo es la pregunta: el mismo entero y las mismas partes que dice el enunciado.
+      visual: { ...scene.visual, parts: den, shaded: num },
       correct: `${num}/${den}`,
       distractors: [
         d(`${den}/${num}`, 'inverts_fraction', 'Invierte el numerador y el denominador.'),
-        d(`${den - num}/${den}`, 'counts_unshaded', 'Cuenta las partes sin pintar.'),
-        d(`${num}/${den - num}`, 'part_to_part', 'Compara las partes pintadas con las no pintadas en lugar de con el total.'),
+        d(`${den - num}/${den}`, 'counts_unshaded', scene.unmarked),
+        d(`${num}/${den - num}`, 'part_to_part', scene.partToPart),
       ],
-      hints: [
-        'Cuenta todas las partes: pintadas y sin pintar.',
-        'El total de partes va abajo y las partes pintadas van arriba.',
-        `Ejemplo parecido: si de ${exDen} partes iguales pintas ${exNum}, está pintado ${exNum}/${exDen}.`,
-      ],
+      hints: scene.hints(exDen, exNum),
       difficulty: 2,
     };
   }
